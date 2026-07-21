@@ -27,7 +27,7 @@ jobs:
       - name: Build
         run: |
           chmod +x gradlew
-          ./gradlew assembleAfatDebug
+          ./gradlew assembleAfatDebug --stacktrace --info
 
       - name: Find APKs
         run: find . -iname "*.apk"
