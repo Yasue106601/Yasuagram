@@ -45,8 +45,14 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleAfatDebug --build-cache --no-daemon
 
+      - name: Find APK
+        run: |
+          echo "=== APK Files ==="
+          find . -type f -name "*.apk"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Yasuagram-debug
-          path: TMessagesProj/build/outputs/apk/**/*.apk
+          name: Yasuagram-APK
+          path: "**/*.apk"
+          if-no-files-found: error
