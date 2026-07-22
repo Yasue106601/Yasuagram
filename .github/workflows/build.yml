@@ -58,8 +58,9 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Yasuagram-APK
-          path: artifact/*.apk
+          name: Yasuagram
+          path: |
+            **/app.apk
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
