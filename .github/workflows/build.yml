@@ -1,9 +1,10 @@
 name: Build Yasuagram
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   build:
@@ -16,41 +17,14 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-          cache: gradle
 
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            TMessagesProj/.cxx
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*','**/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
-
-      - name: Configure Gradle
-        run: |
-          cat >> gradle.properties <<EOT
-org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8
-org.gradle.caching=true
-org.gradle.parallel=true
-org.gradle.configuration-cache=false
-org.gradle.workers.max=2
-EOT
-
-      - name: Build
+      - name: Build APK
         run: |
           chmod +x gradlew
-          ./gradlew :TMessagesProj_App:assembleAfatDebug --build-cache --no-daemon
-
-      - name: Collect APK
-        run: |
-          mkdir -p output
-          cp "$(find TMessagesProj_App/build/outputs/apk -name "*.apk" | head -n1)" output/Yasuagram.apk
+          ./gradlew :TMessagesProj_App:assembleAfatDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Yasuagram
-          path: output/Yasuagram.apk
-          if-no-files-found: error
+          path: TMessagesProj_App/build/outputs/apk/**/*.apk
