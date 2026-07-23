@@ -222,7 +222,6 @@ public class NativeInstance {
     public native void setEchoCancellationStrength(int strength);
     public native String getLastError();
     public native String getDebugInfo();
-    public native String getLatencyStats();
     public native long getPreferredRelayId();
     public native Instance.TrafficStats getTrafficStats();
     public native byte[] getPersistentState();

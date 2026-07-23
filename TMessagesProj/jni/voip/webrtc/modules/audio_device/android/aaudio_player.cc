@@ -9,6 +9,7 @@
  */
 
 #include "modules/audio_device/android/aaudio_player.h"
+#include "voip/yasuaudio/yasu_audio_report.h"
 
 #include <memory>
 
@@ -150,6 +151,55 @@ void AAudioPlayer::OnErrorCallback(aaudio_result_t error) {
 
 aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
                                                            int32_t num_frames) {
+
+  static int64_t player_callback_count = 0;
+  static int64_t player_total_frames = 0;
+  static int64_t player_start_time = 0;
+
+
+  int64_t current_time =
+      rtc::TimeMicros();
+
+
+  player_callback_count++;
+  player_total_frames += num_frames;
+
+
+  if (player_start_time == 0) {
+      player_start_time = current_time;
+  }
+
+
+  if (player_callback_count % 100 == 0) {
+
+      RTC_LOG(LS_INFO)
+          << "=== YASUAGRAM PLAYER MONITOR ===";
+
+
+      RTC_LOG(LS_INFO)
+          << "Player Callbacks: "
+          << player_callback_count;
+
+
+      RTC_LOG(LS_INFO)
+          << "Player Frames: "
+          << player_total_frames;
+
+
+      RTC_LOG(LS_INFO)
+          << "Player Running Time(us): "
+          << (current_time - player_start_time);
+
+
+      RTC_LOG(LS_INFO)
+          << "===============================";
+  }
+
+
+  int64_t yasuaudio_playback_start =
+      rtc::TimeMicros();
+
+
   RTC_DCHECK_RUN_ON(&thread_checker_aaudio_);
   // Log device id in first data callback to ensure that a valid device is
   // utilized.
@@ -198,6 +248,14 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
 
   // TODO(henrika): possibly add trace here to be included in systrace.
   // See https://developer.android.com/studio/profile/systrace-commandline.html.
+  int64_t yasuaudio_playback_time =
+      rtc::TimeMicros() - yasuaudio_playback_start;
+
+
+  YasuAudioReport::Instance()
+      .AddPlaybackTime(yasuaudio_playback_time);
+
+
   return AAUDIO_CALLBACK_RESULT_CONTINUE;
 }
 

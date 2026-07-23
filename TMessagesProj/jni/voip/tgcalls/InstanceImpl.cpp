@@ -150,7 +150,72 @@ std::string InstanceImpl::getLastError() {
 }
 
 std::string InstanceImpl::getDebugInfo() {
-	return "";  // TODO: not implemented
+
+    if (_manager) {
+
+        _manager->perform([this](Manager *manager) {
+
+            manager->getNetworkStats(
+                [this](TrafficStats stats, CallStats callStats) {
+
+                    latencyStatsCache =
+                        "=== YASUAGRAM LATENCY MONITOR ===\n";
+
+                    latencyStatsCache +=
+                        "Engine: tgcalls\n";
+
+                    latencyStatsCache +=
+                        "Mode: Group Voice\n";
+
+                    latencyStatsCache +=
+                        "Codec: " +
+                        callStats.outgoingCodec +
+                        "\n";
+
+                    latencyStatsCache +=
+                        "Network Records: " +
+                        std::to_string(callStats.networkRecords.size()) +
+                        "\n";
+
+                    latencyStatsCache +=
+                        "Bitrate Records: " +
+                        std::to_string(callStats.bitrateRecords.size()) +
+                        "\n";
+
+                    if (!callStats.bitrateRecords.empty()) {
+
+                        latencyStatsCache +=
+                            "Bitrate: " +
+                            std::to_string(
+                                callStats.bitrateRecords.back().bitrate
+                            ) +
+                            " bps\n";
+                    }
+
+                    latencyStatsCache +=
+                        "=================================\n";
+                }
+            );
+
+        });
+    }
+
+    if (latencyStatsCache.empty()) {
+
+        latencyStatsCache =
+            "=== YASUAGRAM LATENCY MONITOR ===\n"
+            "Waiting for live statistics...\n"
+            "=================================\n";
+    }
+
+    return latencyStatsCache;
+}
+
+
+std::string InstanceImpl::getLatencyStats() {
+
+    return getDebugInfo();
+
 }
 
 int64_t InstanceImpl::getPreferredRelayId() {

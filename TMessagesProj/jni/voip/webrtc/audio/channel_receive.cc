@@ -959,6 +959,80 @@ NetworkStatistics ChannelReceive::GetNetworkStatistics(
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);
   NetworkStatistics stats;
   acm_receiver_.GetNetworkStatistics(&stats, get_and_clear_legacy_stats);
+
+  {
+    CallReceiveStatistics rtcp_stats = GetRTCPStatistics();
+
+    RTC_LOG(LS_INFO)
+        << "YASU RTT REPORT\n"
+        << "RTTMs="
+        << (rtcp_stats.round_trip_time.has_value()
+                ? rtcp_stats.round_trip_time->ms()
+                : 0)
+        << " RTTMeasurements="
+        << rtcp_stats.round_trip_time_measurements
+        << " TotalRTTMs="
+        << rtcp_stats.total_round_trip_time.ms()
+        << "\n";
+  }
+
+  RTC_LOG(LS_INFO)
+      << "YASU PACKET ARRIVAL REPORT\n"
+      << "TotalSamplesReceived="
+      << stats.totalSamplesReceived
+      << " RelativeArrivalDelayMs="
+      << stats.relativePacketArrivalDelayMs
+      << " PacketsDiscarded="
+      << stats.packetsDiscarded
+      << " FecPacketsDiscarded="
+      << stats.fecPacketsDiscarded
+      << "\n";
+
+  RTC_LOG(LS_INFO)
+      << "YASU PLAYOUT DELAY REPORT\n"
+      << "BaseMinimumDelayMs="
+      << GetBaseMinimumPlayoutDelayMs()
+      << " CurrentFilteredDelayMs="
+      << acm_receiver_.FilteredCurrentDelayMs()
+      << " PlayoutDelayMs="
+      << playout_delay_ms_
+      << "\n";
+
+  RTC_LOG(LS_INFO)
+      << "YASU WAITING TIME REPORT\n"
+      << "MeanWaitingTimeMs="
+      << stats.meanWaitingTimeMs
+      << " MaxWaitingTimeMs="
+      << stats.maxWaitingTimeMs
+      << "\n";
+
+  RTC_LOG(LS_INFO)
+      << "YASU NETEQ BUFFER REPORT\n"
+      << "BufferSizeMs="
+      << stats.currentBufferSize
+      << " TargetBufferMs="
+      << stats.preferredBufferSize
+      << " JitterBufferDelayMs="
+      << stats.jitterBufferDelayMs
+      << " JitterTargetDelayMs="
+      << stats.jitterBufferTargetDelayMs
+      << " PacketArrivalDelayMs="
+      << stats.relativePacketArrivalDelayMs
+      << " PacketsDiscarded="
+      << stats.packetsDiscarded
+      << "\n";
+
+  RTC_LOG(LS_INFO)
+      << "YASU RECEIVE DELAY REPORT\n"
+      << "CurrentDelayMs="
+      << acm_receiver_.FilteredCurrentDelayMs()
+      << " PlayoutDelayMs="
+      << playout_delay_ms_
+      << " LossRate="
+      << stats.currentExpandRate
+      << " ExpandRate="
+      << stats.currentExpandRate;
+
   return stats;
 }
 
@@ -966,6 +1040,22 @@ AudioDecodingCallStats ChannelReceive::GetDecodingCallStatistics() const {
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);
   AudioDecodingCallStats stats;
   acm_receiver_.GetDecodingCallStatistics(&stats);
+
+  RTC_LOG(LS_INFO)
+      << "YASU DECODE REPORT\n"
+      << "CallsToNetEq="
+      << stats.calls_to_neteq
+      << " DecodedNormal="
+      << stats.decoded_normal
+      << " NetEqPLC="
+      << stats.decoded_neteq_plc
+      << " CodecPLC="
+      << stats.decoded_codec_plc
+      << " CNG="
+      << stats.decoded_cng
+      << " Muted="
+      << stats.decoded_muted_output;
+
   return stats;
 }
 

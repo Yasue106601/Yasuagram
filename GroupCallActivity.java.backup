@@ -384,8 +384,6 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
     private ValueAnimator liveLabelBgColorAnimator;
     private float textureLightningViewAnimatingAlpha;
     private final LinearLayout titleLayout;
-    private TextView latencyMonitorView;
-
     private final ActionBarMenuItem otherItem;
     private final ActionBarMenuItem pipItem;
     private final ActionBarMenuItem screenShareItem;
@@ -3328,7 +3326,6 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                 return super.onKeyDown(keyCode, event);
             }
         };
-        createLatencyMonitor();
 
         containerView.setClipToPadding(false);
         containerView.setFocusable(true);
@@ -10782,79 +10779,4 @@ disableComments = otherItem.addSubItem(comments_disable_item, R.drawable._menu_s
             }
         }
     }
-
-    
-
-private TextView latencyMonitorView;
-
-private native String getYasuAudioReport();
-
-
-private void copyYasuReport() {
-
-    String report = getYasuAudioReport();
-
-    android.content.ClipboardManager clipboard =
-        (android.content.ClipboardManager)
-        getContext().getSystemService(
-        android.content.Context.CLIPBOARD_SERVICE);
-
-    clipboard.setPrimaryClip(
-        android.content.ClipData.newPlainText(
-            "Yasuagram Audio Report",
-            report
-        )
-    );
-}
-
-
-private void createLatencyMonitor() {
-        latencyMonitorView = new TextView(getContext());
-
-        latencyMonitorView.setText(
-            "Yasuagram Audio Monitor\nLatency: measuring..."
-        );
-
-        latencyMonitorView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
-        latencyMonitorView.setTextColor(Color.WHITE);
-        latencyMonitorView.setPadding(dp(12), dp(8), dp(12), dp(8));
-        latencyMonitorView.setBackgroundColor(0x88000000);
-
-        android.widget.Button copyReportButton =
-            new android.widget.Button(getContext());
-
-        copyReportButton.setText("Copy Full Report");
-
-        copyReportButton.setOnClickListener(v -> {
-            copyYasuReport();
-        });
-
-        containerView.addView(
-            copyReportButton,
-            LayoutHelper.createFrame(
-                LayoutHelper.WRAP_CONTENT,
-                LayoutHelper.WRAP_CONTENT,
-                Gravity.TOP | Gravity.LEFT,
-                10,
-                130,
-                0,
-                0
-            )
-        );
-
-
-        containerView.addView(
-            latencyMonitorView,
-            LayoutHelper.createFrame(
-                LayoutHelper.WRAP_CONTENT,
-                LayoutHelper.WRAP_CONTENT,
-                Gravity.TOP | Gravity.LEFT,
-                10,
-                80,
-                0,
-                0
-            )
-        );
-    }
-
 }

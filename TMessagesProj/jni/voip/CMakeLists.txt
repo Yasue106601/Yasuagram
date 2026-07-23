@@ -1004,6 +1004,11 @@ add_library(tgcalls STATIC
         voip/webrtc/modules/audio_device/audio_device_data_observer.cc
         voip/webrtc/modules/audio_device/audio_device_generic.cc
         voip/webrtc/modules/audio_device/audio_device_impl.cc
+        voip/webrtc/modules/audio_device/android/aaudio_player.cc
+        voip/webrtc/modules/audio_device/android/aaudio_recorder.cc
+        voip/webrtc/modules/audio_device/android/aaudio_wrapper.cc
+        voip/yasuaudio/yasu_audio_report.cc
+        voip/yasuaudio/yasu_audio_jni.cpp
         voip/webrtc/modules/audio_device/audio_device_name.cc
         voip/webrtc/modules/audio_device/dummy/audio_device_dummy.cc
         voip/webrtc/modules/audio_device/dummy/file_audio_device.cc
