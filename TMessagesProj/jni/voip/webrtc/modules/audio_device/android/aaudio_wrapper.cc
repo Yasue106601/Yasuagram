@@ -1,3 +1,4 @@
+#if __ANDROID_API__ >= 26
 /*
  *  Copyright (c) 2018 The WebRTC project authors. All Rights Reserved.
  *
@@ -956,3 +957,5 @@ bool AAudioWrapper::OptimizeBuffers() {
 }
 
 }  // namespace webrtc
+
+#endif
