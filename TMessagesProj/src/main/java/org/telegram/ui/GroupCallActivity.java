@@ -384,6 +384,8 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
     private ValueAnimator liveLabelBgColorAnimator;
     private float textureLightningViewAnimatingAlpha;
     private final LinearLayout titleLayout;
+    private TextView latencyMonitorView;
+
     private final ActionBarMenuItem otherItem;
     private final ActionBarMenuItem pipItem;
     private final ActionBarMenuItem screenShareItem;
@@ -3326,6 +3328,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                 return super.onKeyDown(keyCode, event);
             }
         };
+        createLatencyMonitor();
 
         containerView.setClipToPadding(false);
         containerView.setFocusable(true);
@@ -10779,4 +10782,31 @@ disableComments = otherItem.addSubItem(comments_disable_item, R.drawable._menu_s
             }
         }
     }
+
+    private void createLatencyMonitor() {
+        latencyMonitorView = new TextView(getContext());
+
+        latencyMonitorView.setText(
+            "Yasuagram Audio Monitor\nLatency: measuring..."
+        );
+
+        latencyMonitorView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+        latencyMonitorView.setTextColor(Color.WHITE);
+        latencyMonitorView.setPadding(dp(12), dp(8), dp(12), dp(8));
+        latencyMonitorView.setBackgroundColor(0x88000000);
+
+        containerView.addView(
+            latencyMonitorView,
+            LayoutHelper.createFrame(
+                LayoutHelper.WRAP_CONTENT,
+                LayoutHelper.WRAP_CONTENT,
+                Gravity.TOP | Gravity.LEFT,
+                10,
+                80,
+                0,
+                0
+            )
+        );
+    }
+
 }
