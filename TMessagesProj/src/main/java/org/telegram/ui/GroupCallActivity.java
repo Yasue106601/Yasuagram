@@ -2607,7 +2607,6 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                     layoutParams.topMargin = ActionBar.getCurrentActionBarHeight() + dp(14);
                     layoutParams.rightMargin = layoutParams.leftMargin = dp(14);
                 }
-                //
                 if (isLandscapeMode && !isTabletMode) {
                     buttonsBackgroundGradientView.setVisibility(View.GONE);
                     buttonsBackgroundGradientView2.setVisibility(View.GONE);
@@ -4835,7 +4834,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
         menuItemsContainer.setOrientation(LinearLayout.HORIZONTAL);
         menuItemsContainer.addView(screenShareItem, LayoutHelper.createLinear(48, 48));
         menuItemsContainer.addView(pipItem, LayoutHelper.createLinear(48, 48));
-        menuItemsContainer.addView(otherItem, LayoutHelper.createLinear(48, 48));
+//         menuItemsContainer.addView(otherItem, LayoutHelper.createLinear(48, 48));
         containerView.addView(menuItemsContainer, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, 48, Gravity.TOP | Gravity.RIGHT));
 
         actionBarShadow = new View(context);
@@ -4863,9 +4862,9 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
         otherItem.addSubItem(user_item, accountSelectCell, LayoutHelper.WRAP_CONTENT, dp(48));
         otherItem.setShowSubmenuByMove(false);
         accountSelectCell.setBackground(Theme.createRadSelectorDrawable(Theme.getColor(Theme.key_voipgroup_listSelector), 6, 6));
-        everyoneItem = otherItem.addSubItem(eveyone_can_speak_item, 0, getString(R.string.VoipGroupAllCanSpeak), true);
+everyoneItem = otherItem.addSubItem(eveyone_can_speak_item, 0, getString(R.string.VoipGroupAllCanSpeak), true);
         everyoneItem.updateSelectorBackground(true, false);
-        adminItem = otherItem.addSubItem(admin_can_speak_item, 0, getString(R.string.VoipGroupOnlyAdminsCanSpeak), true);
+adminItem = otherItem.addSubItem(admin_can_speak_item, 0, getString(R.string.VoipGroupOnlyAdminsCanSpeak), true);
         adminItem.updateSelectorBackground(false, true);
 
         everyoneItem.setCheckColor(Theme.key_voipgroup_checkMenu);
@@ -4878,25 +4877,23 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
         soundDrawablePaint.setStyle(Paint.Style.STROKE);
         soundDrawablePaint.setStrokeWidth(dp(1.5f));
         soundDrawablePaint.setStrokeCap(Paint.Cap.ROUND);
-        soundItem = otherItem.addSubItem(sound_item, R.drawable.msg_voice_speaker, null, getString(R.string.VoipGroupAudio), true, false);
+soundItem = otherItem.addSubItem(sound_item, R.drawable.msg_voice_speaker, null, getString(R.string.VoipGroupAudio), true, false);
         soundItem.setItemHeight(56);
-
-        noiseItem = otherItem.addSubItem(noise_item, R.drawable.msg_noise_on, null, getString(R.string.VoipNoiseCancellation), true, false);
+noiseItem = otherItem.addSubItem(noise_item, R.drawable.msg_noise_on, null, getString(R.string.VoipNoiseCancellation), true, false);
         noiseItem.setItemHeight(56);
 
         soundItemDivider = otherItem.addDivider(ColorUtils.blendARGB(Theme.getColor(Theme.key_voipgroup_actionBar), Color.BLACK, 0.3f));
         ((ViewGroup.MarginLayoutParams) soundItemDivider.getLayoutParams()).topMargin = 0;
         ((ViewGroup.MarginLayoutParams) soundItemDivider.getLayoutParams()).bottomMargin = 0;
-        editTitleItem = otherItem.addSubItem(edit_item, R.drawable.msg_edit, recordCallDrawable, ChatObject.isChannelOrGiga(currentChat) ? getString(R.string.VoipChannelEditTitle) : getString(R.string.VoipGroupEditTitle), true, false);
-        permissionItem = otherItem.addSubItem(permission_item, R.drawable.msg_permissions, recordCallDrawable, getString(R.string.VoipGroupEditPermissions), false, false);
-        inviteItem = otherItem.addSubItem(share_invite_link_item, R.drawable.msg_link, getString(R.string.VoipGroupShareInviteLink));
+editTitleItem = otherItem.addSubItem(edit_item, R.drawable.msg_edit, recordCallDrawable, ChatObject.isChannelOrGiga(currentChat) ? getString(R.string.VoipChannelEditTitle) : getString(R.string.VoipGroupEditTitle), true, false);
+permissionItem = otherItem.addSubItem(permission_item, R.drawable.msg_permissions, recordCallDrawable, getString(R.string.VoipGroupEditPermissions), false, false);
+inviteItem = otherItem.addSubItem(share_invite_link_item, R.drawable.msg_link, getString(R.string.VoipGroupShareInviteLink));
         recordCallDrawable = new RecordCallDrawable();
-        screenItem = otherItem.addSubItem(screen_capture_item, R.drawable.msg_screencast, getString(R.string.VoipChatStartScreenCapture));
-        recordItem = otherItem.addSubItem(start_record_item, 0, recordCallDrawable, getString(R.string.VoipGroupRecordCall), true, false);
+screenItem = otherItem.addSubItem(screen_capture_item, R.drawable.msg_screencast, getString(R.string.VoipChatStartScreenCapture));
+recordItem = otherItem.addSubItem(start_record_item, 0, recordCallDrawable, getString(R.string.VoipGroupRecordCall), true, false);
         recordCallDrawable.setParentView(recordItem.getImageView());
-
-        enableComments = otherItem.addSubItem(comments_enable_item, R.drawable.menu_stream_comments_24, getString(R.string.VoipChannelEnableComments));
-        disableComments = otherItem.addSubItem(comments_disable_item, R.drawable._menu_stream_comments_off_24, getString(R.string.VoipChannelDisableComments));
+enableComments = otherItem.addSubItem(comments_enable_item, R.drawable.menu_stream_comments_24, getString(R.string.VoipChannelEnableComments));
+disableComments = otherItem.addSubItem(comments_disable_item, R.drawable._menu_stream_comments_off_24, getString(R.string.VoipChannelDisableComments));
 
         leaveItem = otherItem.addSubItem(leave_item, R.drawable.msg_cancel, isConference() ? getString(R.string.VoipGroupEndConference) : ChatObject.isChannelOrGiga(currentChat) ? getString(R.string.VoipChannelEndChat) : getString(R.string.VoipGroupEndChat));
         otherItem.setPopupItemsSelectorColor(Theme.getColor(Theme.key_voipgroup_listSelector));
