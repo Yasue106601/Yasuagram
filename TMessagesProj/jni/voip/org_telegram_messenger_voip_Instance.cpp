@@ -975,6 +975,27 @@ JNIEXPORT jstring JNICALL Java_org_telegram_messenger_voip_NativeInstance_getLas
 }
 
 extern "C"
+
+
+JNIEXPORT jstring JNICALL Java_org_telegram_messenger_voip_NativeInstance_getLatencyStats(JNIEnv *env, jobject obj) {
+
+    auto instance = getNativeInstance(obj);
+
+    if (!instance) {
+        return env->NewStringUTF("No active call");
+    }
+
+    std::string stats;
+
+    stats += "=== YASUAGRAM LATENCY MONITOR ===\n";
+
+    stats += instance->getDebugInfo();
+
+    stats += "\n================================";
+
+    return env->NewStringUTF(stats.c_str());
+}
+
 JNIEXPORT jstring JNICALL Java_org_telegram_messenger_voip_NativeInstance_getDebugInfo(JNIEnv *env, jobject obj) {
     InstanceHolder *instance = getInstanceHolder(env, obj);
     if (instance == nullptr || instance->nativeInstance == nullptr) {

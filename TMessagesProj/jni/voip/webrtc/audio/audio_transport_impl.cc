@@ -137,6 +137,15 @@ int32_t AudioTransportImpl::RecordedDataIsAvailable(
     uint32_t& /*new_mic_volume*/,
     absl::optional<int64_t>
         estimated_capture_time_ns) {  // NOLINT: to avoid changing APIs
+  static int64_t capture_callback_count = 0;
+  static int64_t capture_total_time = 0;
+  static int64_t capture_max_time = 0;
+
+
+  int64_t capture_start =
+      rtc::TimeMicros();
+
+
   RTC_DCHECK(audio_data);
   RTC_DCHECK_GE(number_of_channels, 1);
   RTC_DCHECK_LE(number_of_channels, 2);
@@ -166,6 +175,45 @@ int32_t AudioTransportImpl::RecordedDataIsAvailable(
   ProcessCaptureFrame(audio_delay_milliseconds, key_pressed,
                       swap_stereo_channels, audio_processing_,
                       audio_frame.get());
+
+
+  int64_t capture_processing_time =
+      rtc::TimeMicros() - capture_start;
+
+
+  capture_callback_count++;
+  capture_total_time += capture_processing_time;
+
+
+  if (capture_processing_time > capture_max_time) {
+      capture_max_time = capture_processing_time;
+  }
+
+
+  if (capture_callback_count % 100 == 0) {
+
+      RTC_LOG(LS_INFO)
+          << "=== YASUAGRAM CAPTURE PIPELINE ===";
+
+
+      RTC_LOG(LS_INFO)
+          << "Capture Callbacks: "
+          << capture_callback_count;
+
+
+      RTC_LOG(LS_INFO)
+          << "Average Capture Processing(us): "
+          << (capture_total_time / capture_callback_count);
+
+
+      RTC_LOG(LS_INFO)
+          << "Maximum Capture Processing(us): "
+          << capture_max_time;
+
+
+      RTC_LOG(LS_INFO)
+          << "==================================";
+  }
 
   if (estimated_capture_time_ns) {
     audio_frame->set_absolute_capture_timestamp_ms(*estimated_capture_time_ns /
@@ -209,6 +257,15 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
                                              size_t& nSamplesOut,
                                              int64_t* elapsed_time_ms,
                                              int64_t* ntp_time_ms) {
+  static int64_t playback_callback_count = 0;
+  static int64_t playback_total_time = 0;
+  static int64_t playback_max_time = 0;
+
+
+  int64_t playback_start =
+      rtc::TimeMicros();
+
+
   TRACE_EVENT0("webrtc", "AudioTransportImpl::SendProcessedData");
   RTC_DCHECK_EQ(sizeof(int16_t) * nChannels, nBytesPerSample);
   RTC_DCHECK_GE(nChannels, 1);
@@ -234,6 +291,47 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
 
   nSamplesOut = Resample(mixed_frame_, samplesPerSec, &render_resampler_,
                          static_cast<int16_t*>(audioSamples));
+
+
+  int64_t playback_processing_time =
+      rtc::TimeMicros() - playback_start;
+
+
+  playback_callback_count++;
+  playback_total_time += playback_processing_time;
+
+
+  if (playback_processing_time > playback_max_time) {
+      playback_max_time = playback_processing_time;
+  }
+
+
+  if (playback_callback_count % 100 == 0) {
+
+      RTC_LOG(LS_INFO)
+          << "=== YASUAGRAM PLAYBACK PIPELINE ===";
+
+
+      RTC_LOG(LS_INFO)
+          << "Playback Callbacks: "
+          << playback_callback_count;
+
+
+      RTC_LOG(LS_INFO)
+          << "Average Playback Processing(us): "
+          << (playback_total_time / playback_callback_count);
+
+
+      RTC_LOG(LS_INFO)
+          << "Maximum Playback Processing(us): "
+          << playback_max_time;
+
+
+      RTC_LOG(LS_INFO)
+          << "===================================";
+  }
+
+
   RTC_DCHECK_EQ(nSamplesOut, nChannels * nSamples);
   return 0;
 }

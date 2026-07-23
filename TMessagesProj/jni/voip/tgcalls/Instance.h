@@ -204,6 +204,7 @@ public:
 
 	virtual std::string getLastError() = 0;
 	virtual std::string getDebugInfo() = 0;
+  virtual std::string getLatencyStats() { return getDebugInfo(); }
 	virtual int64_t getPreferredRelayId() = 0;
 	virtual TrafficStats getTrafficStats() = 0;
 	virtual PersistentState getPersistentState() = 0;

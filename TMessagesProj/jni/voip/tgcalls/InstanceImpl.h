@@ -45,7 +45,10 @@ public:
 	PersistentState getPersistentState() override;
 	void stop(std::function<void(FinalState)> completion) override;
 
+
 private:
+    std::string latencyStatsCache;
+
 	std::unique_ptr<ThreadLocalObject<Manager>> _manager;
 	std::unique_ptr<LogSinkImpl> _logSink;
 

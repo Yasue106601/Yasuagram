@@ -9,6 +9,7 @@
  */
 
 #include "modules/audio_device/android/aaudio_recorder.h"
+#include "voip/yasuaudio/yasu_audio_report.h"
 
 #include <memory>
 
@@ -149,12 +150,60 @@ void AAudioRecorder::OnErrorCallback(aaudio_result_t error) {
 aaudio_data_callback_result_t AAudioRecorder::OnDataCallback(
     void* audio_data,
     int32_t num_frames) {
+
+
+  static int64_t recorder_callback_count = 0;
+  static int64_t recorder_total_frames = 0;
+  static int64_t recorder_start_time = 0;
+
+
+  int64_t current_time =
+      rtc::TimeMicros();
+
+
+  recorder_callback_count++;
+  recorder_total_frames += num_frames;
+
+
+  if (recorder_start_time == 0) {
+      recorder_start_time = current_time;
+  }
+
+
+  if (recorder_callback_count % 100 == 0) {
+
+      RTC_LOG(LS_INFO)
+          << "=== YASUAGRAM RECORDER MONITOR ===";
+
+
+      RTC_LOG(LS_INFO)
+          << "Recorder Callbacks: "
+          << recorder_callback_count;
+
+
+      RTC_LOG(LS_INFO)
+          << "Recorder Frames: "
+          << recorder_total_frames;
+
+
+      RTC_LOG(LS_INFO)
+          << "Recorder Running Time(us): "
+          << (current_time - recorder_start_time);
+
+
+      RTC_LOG(LS_INFO)
+          << "==================================";
+  }
   // TODO(henrika): figure out why we sometimes hit this one.
   // RTC_DCHECK(thread_checker_aaudio_.IsCurrent());
   // RTC_LOG(LS_INFO) << "OnDataCallback: " << num_frames;
   // Drain the input buffer at first callback to ensure that it does not
   // contain any old data. Will also ensure that the lowest possible latency
   // is obtained.
+  int64_t yasuaudio_capture_start =
+      rtc::TimeMicros();
+
+
   if (first_data_callback_) {
     RTC_LOG(LS_INFO) << "--- First input data callback: "
                         "device id="
@@ -171,6 +220,14 @@ aaudio_data_callback_result_t AAudioRecorder::OnDataCallback(
   }
   // Estimated time between an audio frame was recorded by the input device and
   // it can read on the input stream.
+  int64_t yasuaudio_capture_time =
+      rtc::TimeMicros() - yasuaudio_capture_start;
+
+
+  YasuAudioReport::Instance()
+      .AddCaptureTime(yasuaudio_capture_time);
+
+
   latency_millis_ = aaudio_.EstimateLatencyMillis();
   // TODO(henrika): use for development only.
   if (aaudio_.frames_read() % (1000 * aaudio_.frames_per_burst()) == 0) {

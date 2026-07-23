@@ -9,6 +9,7 @@
  */
 
 #include "modules/audio_device/android/aaudio_wrapper.h"
+#include "voip/yasuaudio/yasu_audio_report.h"
 
 #include "modules/audio_device/android/audio_manager.h"
 #include "rtc_base/logging.h"
@@ -93,6 +94,8 @@ void ErrorCallback(AAudioStream* stream,
   AAudioWrapper* aaudio_wrapper = reinterpret_cast<AAudioWrapper*>(user_data);
   RTC_LOG(LS_WARNING) << "ErrorCallback: "
                       << DirectionToString(aaudio_wrapper->direction());
+
+
   RTC_DCHECK(aaudio_wrapper->observer());
   aaudio_wrapper->observer()->OnErrorCallback(error);
 }
@@ -103,9 +106,229 @@ aaudio_data_callback_result_t DataCallback(AAudioStream* stream,
                                            int32_t num_frames) {
   RTC_DCHECK(user_data);
   RTC_DCHECK(audio_data);
-  AAudioWrapper* aaudio_wrapper = reinterpret_cast<AAudioWrapper*>(user_data);
+
+  static int callback_count = 0;
+  static int64_t total_frames = 0;
+
+
+  static int64_t total_callback_frames = 0;
+  static int32_t max_callback_frames = 0;
+
+  static int64_t last_callback_time = 0;
+  static int64_t total_callback_interval = 0;
+  static int64_t max_callback_interval = 0;
+
+  int64_t current_time =
+      rtc::TimeMicros();
+
+  static int64_t callback_interval_overruns = 0;
+
+
+  if (last_callback_time != 0) {
+
+    int64_t interval =
+        current_time - last_callback_time;
+
+
+    total_callback_interval += interval;
+
+
+    if (interval > max_callback_interval) {
+        max_callback_interval = interval;
+    }
+
+
+    if (interval > 30000) {
+        callback_interval_overruns++;
+    }
+  }
+
+  last_callback_time = current_time;
+
+
+  callback_count++;
+  total_frames += num_frames;
+
+
+  total_callback_frames += num_frames;
+
+
+  if (num_frames > max_callback_frames) {
+      max_callback_frames = num_frames;
+  }
+
+
+  if (callback_count % 100 == 0) {
+
+    RTC_LOG(LS_INFO)
+        << "=== YASUAGRAM CALLBACK MONITOR ===";
+
+    RTC_LOG(LS_INFO)
+        << "Callbacks: "
+        << callback_count;
+
+    RTC_LOG(LS_INFO)
+        << "Total Frames: "
+        << total_frames;
+
+
+    RTC_LOG(LS_INFO)
+        << "Average Callback Frames: "
+        << (total_callback_frames / callback_count);
+
+
+    RTC_LOG(LS_INFO)
+        << "Maximum Callback Frames: "
+        << max_callback_frames;
+
+    RTC_LOG(LS_INFO)
+        << "Average Frames Callback: "
+        << (total_frames / callback_count);
+
+
+    RTC_LOG(LS_INFO)
+        << "Average Callback Interval(us): "
+        << (total_callback_interval / callback_count);
+
+
+    RTC_LOG(LS_INFO)
+        << "Maximum Callback Interval(us): "
+        << max_callback_interval;
+
+
+    RTC_LOG(LS_INFO)
+        << "Callback Interval Overruns: "
+        << callback_interval_overruns;
+
+
+    RTC_LOG(LS_INFO)
+        << "===================================";
+  }
+
+  int64_t callback_start_time =
+      rtc::TimeMicros();
+
+
+  static int64_t total_callback_duration = 0;
+  static int64_t max_callback_duration = 0;
+
+
+  AAudioWrapper* aaudio_wrapper =
+      reinterpret_cast<AAudioWrapper*>(user_data);
+
   RTC_DCHECK(aaudio_wrapper->observer());
-  return aaudio_wrapper->observer()->OnDataCallback(audio_data, num_frames);
+
+
+  auto result =
+      static int yasu_report_counter = 0;
+
+  yasu_report_counter++;
+
+  if (yasu_report_counter >= 100) {
+
+    RTC_LOG(LS_INFO)
+        << "YASU LIVE REPORT\n"
+        << YasuAudioReport::Instance().GenerateReport();
+
+    yasu_report_counter = 0;
+  }
+
+
+  aaudio_wrapper->observer()->OnDataCallback(audio_data, num_frames);
+
+
+  int64_t processing_time =
+      rtc::TimeMicros() - callback_start_time;
+
+
+  int64_t callback_duration =
+      rtc::TimeMicros() - callback_start_time;
+
+
+  total_callback_duration += callback_duration;
+
+
+  if (callback_duration > max_callback_duration) {
+      max_callback_duration = callback_duration;
+  }
+
+
+  static int64_t total_processing_time = 0;
+  static int64_t max_processing_time = 0;
+
+
+  static double total_load_percent = 0.0;
+  static double max_load_percent = 0.0;
+
+
+  double callback_duration_us =
+      (static_cast<double>(num_frames) /
+       48000.0) * 1000000.0;
+
+
+  double load_percent =
+      (static_cast<double>(processing_time) /
+       callback_duration_us) * 100.0;
+
+
+  total_load_percent += load_percent;
+
+
+  if (load_percent > max_load_percent) {
+      max_load_percent = load_percent;
+  }
+
+
+  total_processing_time += processing_time;
+
+
+  if (processing_time > max_processing_time) {
+      max_processing_time = processing_time;
+  }
+
+
+  if (callback_count % 100 == 0) {
+
+      RTC_LOG(LS_INFO)
+          << "=== AUDIO PROCESSING MONITOR ===";
+
+
+      RTC_LOG(LS_INFO)
+          << "Average Processing(us): "
+          << (total_processing_time / callback_count);
+
+
+      RTC_LOG(LS_INFO)
+          << "Maximum Processing(us): "
+          << max_processing_time;
+
+
+      RTC_LOG(LS_INFO)
+          << "Average Audio Cycle(us): "
+          << (total_callback_duration / callback_count);
+
+
+      RTC_LOG(LS_INFO)
+          << "Maximum Audio Cycle(us): "
+          << max_callback_duration;
+
+
+      RTC_LOG(LS_INFO)
+          << "Average Audio Thread Load(%): "
+          << (total_load_percent / callback_count);
+
+
+      RTC_LOG(LS_INFO)
+          << "Maximum Audio Thread Load(%): "
+          << max_load_percent;
+
+
+      RTC_LOG(LS_INFO)
+          << "================================";
+  }
+
+
+  return result;
 }
 
 // Wraps the stream builder object to ensure that it is released properly when
@@ -144,6 +367,11 @@ AAudioWrapper::AAudioWrapper(AudioManager* audio_manager,
 }
 
 AAudioWrapper::~AAudioWrapper() {
+
+  RTC_LOG(LS_INFO)
+      << YasuAudioReport::Instance().GenerateReport();
+
+
   RTC_LOG(LS_INFO) << "dtor";
   RTC_DCHECK(thread_checker_.IsCurrent());
   RTC_DCHECK(!stream_);
@@ -169,6 +397,8 @@ bool AAudioWrapper::Init() {
   if (!OptimizeBuffers()) {
     return false;
   }
+
+  LogStreamConfiguration();
   LogStreamState();
   return true;
 }
@@ -423,8 +653,225 @@ void AAudioWrapper::LogStreamConfiguration() {
 }
 
 void AAudioWrapper::LogStreamState() {
-  RTC_LOG(LS_INFO) << "AAudio stream state: "
-                   << AAudio_convertStreamStateToText(stream_state());
+
+  RTC_LOG(LS_INFO)
+      << "=== YASUAGRAM AAudio LATENCY MONITOR ===";
+
+  RTC_LOG(LS_INFO)
+      << "Direction: "
+      << DirectionToString(direction());
+
+
+  if (direction() == AAUDIO_DIRECTION_INPUT) {
+
+      RTC_LOG(LS_INFO)
+          << "Audio Path: INPUT / MICROPHONE";
+
+  } else {
+
+      RTC_LOG(LS_INFO)
+          << "Audio Path: OUTPUT / SPEAKER";
+
+  }
+
+  RTC_LOG(LS_INFO)
+      << "Sample Rate: "
+      << sample_rate();
+
+  RTC_LOG(LS_INFO)
+      << "Channels: "
+      << channel_count();
+
+  RTC_LOG(LS_INFO)
+      << "Performance Mode: "
+      << PerformanceModeToString(performance_mode());
+
+  RTC_LOG(LS_INFO)
+      << "Sharing Mode: "
+      << SharingModeToString(sharing_mode());
+
+  RTC_LOG(LS_INFO)
+      << "Frames Per Burst: "
+      << frames_per_burst();
+
+  static int32_t last_buffer_size = 0;
+  static int32_t buffer_changes = 0;
+  static int32_t min_buffer_size = INT32_MAX;
+  static int32_t max_buffer_size = 0;
+
+
+  int32_t current_buffer_size =
+      AAudioStream_getBufferSizeInFrames(stream_);
+
+
+  if (last_buffer_size != 0 &&
+      current_buffer_size != last_buffer_size) {
+      buffer_changes++;
+  }
+
+
+  last_buffer_size = current_buffer_size;
+
+
+  if (current_buffer_size < min_buffer_size) {
+      min_buffer_size = current_buffer_size;
+  }
+
+
+  if (current_buffer_size > max_buffer_size) {
+      max_buffer_size = current_buffer_size;
+  }
+
+
+  RTC_LOG(LS_INFO)
+      << "Buffer Size Frames: "
+      << current_buffer_size;
+
+
+  RTC_LOG(LS_INFO)
+      << "Buffer Changes: "
+      << buffer_changes;
+
+
+  RTC_LOG(LS_INFO)
+      << "Min Buffer Size: "
+      << min_buffer_size;
+
+
+  RTC_LOG(LS_INFO)
+      << "Max Buffer Size: "
+      << max_buffer_size;
+
+  RTC_LOG(LS_INFO)
+      << "Buffer Capacity Frames: "
+      << buffer_capacity_in_frames();
+
+
+  RTC_LOG(LS_INFO)
+      << "Frames Per Callback: "
+      << frames_per_callback();
+
+
+  RTC_LOG(LS_INFO)
+      << "Device ID: "
+      << AAudioStream_getDeviceId(stream_);
+
+
+  static int32_t last_xrun_count = 0;
+
+  int32_t current_xrun_count =
+      AAudioStream_getXRunCount(stream_);
+
+
+  RTC_LOG(LS_INFO)
+      << "XRun Count: "
+      << current_xrun_count;
+
+
+  RTC_LOG(LS_INFO)
+      << "XRun Delta: "
+      << (current_xrun_count - last_xrun_count);
+
+
+  last_xrun_count = current_xrun_count;
+
+
+  int64_t hardware_position = 0;
+  int64_t hardware_time_nanos = 0;
+
+
+  aaudio_result_t timestamp_result =
+      AAudioStream_getTimestamp(
+          stream_,
+          CLOCK_MONOTONIC,
+          &hardware_position,
+          &hardware_time_nanos);
+
+
+  if (timestamp_result == AAUDIO_OK) {
+
+      RTC_LOG(LS_INFO)
+          << "=== YASUAGRAM HARDWARE TIMESTAMP ===";
+
+
+      RTC_LOG(LS_INFO)
+          << "Hardware Frame Position: "
+          << hardware_position;
+
+
+      RTC_LOG(LS_INFO)
+          << "Hardware Time(ns): "
+          << hardware_time_nanos;
+
+
+      RTC_LOG(LS_INFO)
+          << "Hardware Timestamp(ms): "
+          << (hardware_time_nanos / 1000000.0);
+
+
+      RTC_LOG(LS_INFO)
+          << "====================================";
+
+  } else {
+
+      RTC_LOG(LS_INFO)
+          << "Hardware Timestamp unavailable: "
+          << AAudio_convertResultToText(timestamp_result);
+
+  }
+
+
+  double buffer_latency =
+      static_cast<double>(AAudioStream_getBufferSizeInFrames(stream_))
+      / sample_rate()
+      * 1000.0;
+
+
+  double estimated_latency = 0.0;
+
+  if (stream_state() == AAUDIO_STREAM_STATE_STARTED) {
+      estimated_latency = EstimateLatencyMillis();
+  }
+
+
+  RTC_LOG(LS_INFO)
+      << "Buffer Latency(ms): "
+      << buffer_latency;
+
+
+  RTC_LOG(LS_INFO)
+      << "Estimated Hardware Latency(ms): "
+      << estimated_latency;
+
+
+  RTC_LOG(LS_INFO)
+      << "Audio Device Profile:";
+
+
+  RTC_LOG(LS_INFO)
+      << "Native Sample Rate: "
+      << AAudioStream_getSampleRate(stream_);
+
+
+  RTC_LOG(LS_INFO)
+      << "Native Channel Count: "
+      << AAudioStream_getChannelCount(stream_);
+
+
+  RTC_LOG(LS_INFO)
+      << "Native Performance Mode: "
+      << PerformanceModeToString(
+          AAudioStream_getPerformanceMode(stream_));
+
+
+  RTC_LOG(LS_INFO)
+      << "Native Sharing Mode: "
+      << SharingModeToString(
+          AAudioStream_getSharingMode(stream_));
+
+
+  RTC_LOG(LS_INFO)
+      << "======================================";
 }
 
 bool AAudioWrapper::VerifyStreamConfiguration() {
@@ -485,8 +932,20 @@ bool AAudioWrapper::OptimizeBuffers() {
   // Set buffer size to same as burst size to guarantee lowest possible latency.
   // This size might change for output streams if underruns are detected and
   // automatic buffer adjustment is enabled.
+  RTC_LOG(LS_INFO)
+      << "Requested Buffer Size: "
+      << frames_per_burst;
+
+
   AAudioStream_setBufferSizeInFrames(stream_, frames_per_burst);
+
+
   int32_t buffer_size = AAudioStream_getBufferSizeInFrames(stream_);
+
+
+  RTC_LOG(LS_INFO)
+      << "Actual Buffer Size After Set: "
+      << buffer_size;
   if (buffer_size != frames_per_burst) {
     RTC_LOG(LS_ERROR) << "Failed to use optimal buffer burst size";
     return false;
