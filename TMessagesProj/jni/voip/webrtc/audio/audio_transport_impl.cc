@@ -143,7 +143,7 @@ int32_t AudioTransportImpl::RecordedDataIsAvailable(
 
 
   int64_t capture_start =
-      rtc::TimeMicros();
+      rtc::TimeMillis() * 1000;
 
 
   RTC_DCHECK(audio_data);
@@ -178,7 +178,7 @@ int32_t AudioTransportImpl::RecordedDataIsAvailable(
 
 
   int64_t capture_processing_time =
-      rtc::TimeMicros() - capture_start;
+      rtc::TimeMillis() * 1000 - capture_start;
 
 
   capture_callback_count++;
@@ -263,7 +263,7 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
 
 
   int64_t playback_start =
-      rtc::TimeMicros();
+      rtc::TimeMillis() * 1000;
 
 
   TRACE_EVENT0("webrtc", "AudioTransportImpl::SendProcessedData");
@@ -294,7 +294,7 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
 
 
   int64_t playback_processing_time =
-      rtc::TimeMicros() - playback_start;
+      rtc::TimeMillis() * 1000 - playback_start;
 
 
   playback_callback_count++;
