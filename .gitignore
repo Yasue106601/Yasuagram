@@ -13,3 +13,11 @@ TMessagesProj_App/afat/
 TMessagesProj_AppHockeyApp/afat/
 TMessagesProj_AppStandalone/afat/
 TMessagesProj_AppHuawei/afat/
+
+# Temporary backups
+*.bak
+*.backup
+
+# Native test objects
+*.o
+testbuild/
