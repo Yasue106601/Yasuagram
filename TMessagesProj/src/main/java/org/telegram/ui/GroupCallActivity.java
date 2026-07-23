@@ -10789,6 +10789,8 @@ disableComments = otherItem.addSubItem(comments_disable_item, R.drawable._menu_s
 private native String getYasuAudioReport();
 
 
+
+
 private void copyYasuReport() {
 
     String report = getYasuAudioReport();
@@ -10810,9 +10812,30 @@ private void copyYasuReport() {
 private void createLatencyMonitor() {
         latencyMonitorView = new TextView(getContext());
 
-        latencyMonitorView.setText(
-            "Yasuagram Audio Monitor\nLatency: measuring..."
-        );
+        try {
+            String stats;
+
+            if (org.telegram.messenger.voip.VoIPService.getSharedInstance() != null) {
+                stats = org.telegram.messenger.voip.VoIPService
+                        .getSharedInstance()
+                        .getYasuLatencyStats();
+            } else {
+                stats = "No active call";
+            }
+
+            if (stats == null || stats.isEmpty()) {
+                stats = "No latency data";
+            }
+
+            latencyMonitorView.setText(
+                "Yasuagram Audio Monitor\n" + stats
+            );
+
+        } catch (Exception e) {
+            latencyMonitorView.setText(
+                "Yasuagram Audio Monitor\nWaiting for call..."
+            );
+        }
 
         latencyMonitorView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
         latencyMonitorView.setTextColor(Color.WHITE);
@@ -10825,7 +10848,29 @@ private void createLatencyMonitor() {
         copyReportButton.setText("Copy Full Report");
 
         copyReportButton.setOnClickListener(v -> {
-            copyYasuReport();
+
+            String report;
+
+            try {
+                report =
+                    org.telegram.messenger.voip.VoIPService
+                    .getSharedInstance()
+                    .getYasuLatencyStats();
+            } catch(Exception e) {
+                report = "No latency report available";
+            }
+
+            android.content.ClipboardManager clipboard =
+                (android.content.ClipboardManager)
+                getContext().getSystemService(
+                android.content.Context.CLIPBOARD_SERVICE);
+
+            clipboard.setPrimaryClip(
+                android.content.ClipData.newPlainText(
+                    "Yasuagram Latency Report",
+                    report
+                )
+            );
         });
 
         containerView.addView(

@@ -977,7 +977,7 @@ JNIEXPORT jstring JNICALL Java_org_telegram_messenger_voip_NativeInstance_getLas
 extern "C"
 
 
-JNIEXPORT jstring JNICALL Java_org_telegram_messenger_voip_NativeInstance_getLatencyStats(JNIEnv *env, jobject obj) {
+JNIEXPORT jstring JNICALL Java_org_telegram_messenger_voip_NativeInstance_getNativeLatencyStats(JNIEnv *env, jobject obj) {
 
     InstanceHolder *holder = getInstanceHolder(env, obj);
 
