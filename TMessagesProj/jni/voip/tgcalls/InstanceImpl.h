@@ -40,6 +40,7 @@ public:
     void setIsLowBatteryLevel(bool isLowBatteryLevel) override;
 	std::string getLastError() override;
 	std::string getDebugInfo() override;
+        std::string getLatencyStats();
 	int64_t getPreferredRelayId() override;
 	TrafficStats getTrafficStats() override;
 	PersistentState getPersistentState() override;
