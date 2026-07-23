@@ -1,3 +1,6 @@
+#include <future>
+#include <chrono>
+#include <memory>
 #include "InstanceImpl.h"
 
 #include "LogSinkImpl.h"
@@ -153,10 +156,13 @@ std::string InstanceImpl::getDebugInfo() {
 
     if (_manager) {
 
-        _manager->perform([this](Manager *manager) {
+        auto done = std::make_shared<std::promise<void>>();
+        auto future = done->get_future();
+
+        _manager->perform([this, done](Manager *manager) {
 
             manager->getNetworkStats(
-                [this](TrafficStats stats, CallStats callStats) {
+                [this, done](TrafficStats stats, CallStats callStats) {
 
                     latencyStatsCache =
                         "=== YASUAGRAM LATENCY MONITOR ===\n";
@@ -194,10 +200,14 @@ std::string InstanceImpl::getDebugInfo() {
 
                     latencyStatsCache +=
                         "=================================\n";
+
+                    try { done->set_value(); } catch (...) {}
                 }
             );
 
         });
+
+        future.wait_for(std::chrono::milliseconds(500));
     }
 
     if (latencyStatsCache.empty()) {

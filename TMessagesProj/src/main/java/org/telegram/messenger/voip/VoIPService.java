@@ -296,6 +296,28 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 	private int[] mySource = new int[2];
 	private NativeInstance convertingVoip;
 	private NativeInstance[] tgVoip = new NativeInstance[2];
+
+    public String getYasuLatencyStats() {
+
+        try {
+
+            if (tgVoip[0] != null) {
+                return tgVoip[0].getLatencyStats();
+            }
+
+            if (tgVoip[1] != null) {
+                return tgVoip[1].getLatencyStats();
+            }
+
+        } catch (Exception e) {
+            return "Latency error: " + e.getMessage();
+        }
+
+        return "No active VoIP instance";
+
+    }
+
+
 	private long[] captureDevice = new long[2];
 	private boolean[] destroyCaptureDevice = {true, true};
 	private int[] videoState = {Instance.VIDEO_STATE_INACTIVE, Instance.VIDEO_STATE_INACTIVE};
