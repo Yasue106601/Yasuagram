@@ -20,6 +20,7 @@
 #include "modules/async_audio_processing/async_audio_processing.h"
 #include "modules/audio_processing/include/audio_frame_proxies.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/logging.h"
 #include "rtc_base/time_utils.h"
 #include "rtc_base/trace_event.h"
 
@@ -193,26 +194,26 @@ int32_t AudioTransportImpl::RecordedDataIsAvailable(
 
   if (capture_callback_count % 100 == 0) {
 
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "=== YASUAGRAM CAPTURE PIPELINE ===";
 
 
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "Capture Callbacks: "
           << capture_callback_count;
 
 
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "Average Capture Processing(us): "
           << (capture_total_time / capture_callback_count);
 
 
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "Maximum Capture Processing(us): "
           << capture_max_time;
 
 
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "==================================";
   }
 
@@ -309,26 +310,26 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
 
   if (playback_callback_count % 100 == 0) {
 
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "=== YASUAGRAM PLAYBACK PIPELINE ===";
 
 
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "Playback Callbacks: "
           << playback_callback_count;
 
 
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "Average Playback Processing(us): "
           << (playback_total_time / playback_callback_count);
 
 
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "Maximum Playback Processing(us): "
           << playback_max_time;
 
 
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "===================================";
   }
 
