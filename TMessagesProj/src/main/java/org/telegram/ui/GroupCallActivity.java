@@ -10785,7 +10785,6 @@ disableComments = otherItem.addSubItem(comments_disable_item, R.drawable._menu_s
 
     
 
-private TextView latencyMonitorView;
 
 private native String getYasuAudioReport();
 
