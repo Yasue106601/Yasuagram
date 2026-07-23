@@ -20,6 +20,7 @@
 #include "modules/async_audio_processing/async_audio_processing.h"
 #include "modules/audio_processing/include/audio_frame_proxies.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/time_utils.h"
 #include "rtc_base/trace_event.h"
 
 namespace webrtc {
@@ -143,7 +144,7 @@ int32_t AudioTransportImpl::RecordedDataIsAvailable(
 
 
   int64_t capture_start =
-      rtc::TimeMillis() * 1000;
+      rtc::TimeMicros();
 
 
   RTC_DCHECK(audio_data);
@@ -178,7 +179,7 @@ int32_t AudioTransportImpl::RecordedDataIsAvailable(
 
 
   int64_t capture_processing_time =
-      rtc::TimeMillis() * 1000 - capture_start;
+      rtc::TimeMicros() - capture_start;
 
 
   capture_callback_count++;
@@ -263,7 +264,7 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
 
 
   int64_t playback_start =
-      rtc::TimeMillis() * 1000;
+      rtc::TimeMicros();
 
 
   TRACE_EVENT0("webrtc", "AudioTransportImpl::SendProcessedData");
@@ -294,7 +295,7 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
 
 
   int64_t playback_processing_time =
-      rtc::TimeMillis() * 1000 - playback_start;
+      rtc::TimeMicros() - playback_start;
 
 
   playback_callback_count++;
