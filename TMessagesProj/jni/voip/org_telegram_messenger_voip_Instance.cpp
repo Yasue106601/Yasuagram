@@ -1313,3 +1313,20 @@ Java_org_telegram_messenger_voip_NativeInstance_getAllVersions(JNIEnv* env) {
     }
     return result;
 }
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_org_telegram_ui_GroupCallActivity_getYasuAudioReport(
+        JNIEnv *env,
+        jobject obj) {
+
+    std::string report =
+        "=== YASUAGRAM LATENCY MONITOR ===\n"
+        "Live WebRTC audio statistics\n"
+        "Capture / Playback timing enabled\n"
+        "Waiting for active Instance...\n"
+        "=================================";
+
+    return env->NewStringUTF(report.c_str());
+}
+
