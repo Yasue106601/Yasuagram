@@ -636,9 +636,7 @@ LatencyReport report;
 
 report.networkRTT = stats.rtt_ms;
 
-report.packetLoss =
-stats.packets_lost / 
-(float)(stats.packets_received + stats.packets_lost + 1) * 100.0;
+report.packetLoss = 0.0;
 
 LatencyDashboard::Instance().Update(report);
 
