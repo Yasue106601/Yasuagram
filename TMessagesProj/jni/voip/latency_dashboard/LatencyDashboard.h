@@ -70,17 +70,3 @@ private:
     LatencyReport current;
 };
 
-    // Yasuagram: Audio Level Metrics
-    uint8_t audioInputLevel = 0;
-    bool audioInputIsSpeech = false;
-    uint8_t audioOutputLevel = 0;
-
-    // Yasuagram: End-to-End Latency
-    int64_t packetArrivalTimestamp = 0;
-    int64_t speakerPlaybackTimestamp = 0;
-    double endToEndLatency = 0;
-
-    // Yasuagram: AAudio Device Metrics
-    int32_t aaudioBufferCapacity = 0;
-    int32_t aaudioFramesPerDataCallback = 0;
-    int64_t aaudioPositionFrames = 0;

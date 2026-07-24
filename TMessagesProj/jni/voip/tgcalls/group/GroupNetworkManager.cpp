@@ -1,6 +1,6 @@
 #include "group/GroupNetworkManager.h"
 #include <cmath>
-#include "LatencyDashboard.h"
+#include "../../latency_dashboard/LatencyDashboard.h"
 
 #include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/client/basic_port_allocator.h"
