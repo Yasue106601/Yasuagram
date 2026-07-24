@@ -10937,9 +10937,17 @@ private void createLatencyMonitor() {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
 
-        builder.setTitle("Yasuagram Latency Dashboard");
+        builder.setTitle("📡 Yasuagram Latency Dashboard");
 
-        builder.setMessage(report);
+        TextView textView = new TextView(getContext());
+        textView.setText(report);
+        textView.setTextSize(15);
+        textView.setPadding(40, 30, 40, 30);
+
+        ScrollView scrollView = new ScrollView(getContext());
+        scrollView.addView(textView);
+
+        builder.setView(scrollView);
 
         final String finalReport = report;
 
@@ -10956,6 +10964,12 @@ private void createLatencyMonitor() {
                     );
 
             clipboard.setPrimaryClip(clip);
+
+            android.widget.Toast.makeText(
+                    getContext(),
+                    "Copied latency report",
+                    android.widget.Toast.LENGTH_SHORT
+            ).show();
 
         });
 
