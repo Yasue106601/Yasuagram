@@ -125,22 +125,14 @@ std::string LatencyReport::GenerateText(){
     s<<"Jitter Buffer Target Delay: "<<jitterBufferTargetDelay<<" ms\n";
     s<<"Jitter Buffer Packets Waiting: "<<jitterBufferPacketsWaiting<<"\n";
 
-    s<<"Audio Input Level: "<<(int)audioInputLevel<<" (speech: "<<(audioInputIsSpeech ? "yes" : "no")<<")
-";
-    s<<"Audio Output Level: "<<(int)audioOutputLevel<<"
-";
-    s<<"Packet Arrival Timestamp: "<<packetArrivalTimestamp<<" us
-";
-    s<<"Speaker Playback Timestamp: "<<speakerPlaybackTimestamp<<" us
-";
-    s<<"End-to-End Latency: "<<endToEndLatency<<" ms
-";
-    s<<"AAudio Buffer Capacity: "<<aaudioBufferCapacity<<" frames
-";
-    s<<"AAudio Frames Per Callback: "<<aaudioFramesPerDataCallback<<"
-";
-    s<<"AAudio Position Frames: "<<aaudioPositionFrames<<"
-";
+    s<<"Audio Input Level: "<<(int)audioInputLevel<<" (speech: "<<(audioInputIsSpeech ? "yes" : "no")<<")\n";
+    s<<"Audio Output Level: "<<(int)audioOutputLevel<<"\n";
+    s<<"Packet Arrival Timestamp: "<<packetArrivalTimestamp<<" us\n";
+    s<<"Speaker Playback Timestamp: "<<speakerPlaybackTimestamp<<" us\n";
+    s<<"End-to-End Latency: "<<endToEndLatency<<" ms\n";
+    s<<"AAudio Buffer Capacity: "<<aaudioBufferCapacity<<" frames\n";
+    s<<"AAudio Frames Per Callback: "<<aaudioFramesPerDataCallback<<"\n";
+    s<<"AAudio Position Frames: "<<aaudioPositionFrames<<"\n";
     return s.str();
 }
 
