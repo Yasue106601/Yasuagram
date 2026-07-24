@@ -57,8 +57,8 @@ void LatencyDashboard::Update(const LatencyReport& r){
     if (r.audioBurstSize)
         current.audioBurstSize = r.audioBurstSize;
 
-    if (r.audioXRunCount)
-        current.audioXRunCount = r.audioXRunCount;
+    if (r.audioXrunCount)
+        current.audioXrunCount = r.audioXrunCount;
 
     if (r.jitterBufferCurrentDelay)
         current.jitterBufferCurrentDelay = r.jitterBufferCurrentDelay;
