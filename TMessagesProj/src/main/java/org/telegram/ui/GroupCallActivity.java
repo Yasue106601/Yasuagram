@@ -384,7 +384,6 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
     private ValueAnimator liveLabelBgColorAnimator;
     private float textureLightningViewAnimatingAlpha;
     private final LinearLayout titleLayout;
-    private TextView latencyMonitorView;
 
     private final ActionBarMenuItem otherItem;
     private final ActionBarMenuItem pipItem;
@@ -1990,7 +1989,6 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
             public void onItemClick(int id) {
 
             if (id == 9001) {
-                showLatencyDashboard();
                 return;
             }
 
@@ -3334,7 +3332,6 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                 return super.onKeyDown(keyCode, event);
             }
         };
-        createLatencyMonitor();
 
         containerView.setClipToPadding(false);
         containerView.setFocusable(true);
@@ -10822,241 +10819,12 @@ private void copyYasuReport() {
 }
 
 
-private void createLatencyMonitor() {
-        latencyMonitorView = new TextView(getContext());
-
-        try {
-            String stats;
-
-            if (org.telegram.messenger.voip.VoIPService.getSharedInstance() != null) {
-                stats = org.telegram.messenger.voip.VoIPService
-                        .getSharedInstance()
-                        .getYasuLatencyStats();
-            } else {
-                stats = "No active call";
-            }
-
-            if (stats == null || stats.isEmpty()) {
-                stats = "No latency data";
-            }
-
-            latencyMonitorView.setText(
-                "Yasuagram Audio Monitor\n" + stats
-            );
-
-        } catch (Exception e) {
-            latencyMonitorView.setText(
-                "Yasuagram Audio Monitor\nWaiting for call..."
-            );
-        }
-
-        latencyMonitorView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
-        latencyMonitorView.setTextColor(Color.WHITE);
-        latencyMonitorView.setPadding(dp(12), dp(8), dp(12), dp(8));
-        latencyMonitorView.setBackgroundColor(0x88000000);
-
-        android.widget.Button copyReportButton =
-            new android.widget.Button(getContext());
-
-        copyReportButton.setText("Copy Full Report");
-
-        copyReportButton.setOnClickListener(v -> {
-
-            String report;
-
-            try {
-                report =
-                    org.telegram.messenger.voip.VoIPService
-                    .getSharedInstance()
-                    .getYasuLatencyStats();
-            } catch(Exception e) {
-                report = "No latency report available";
-            }
-
-            android.content.ClipboardManager clipboard =
-                (android.content.ClipboardManager)
-                getContext().getSystemService(
-                android.content.Context.CLIPBOARD_SERVICE);
-
-            clipboard.setPrimaryClip(
-                android.content.ClipData.newPlainText(
-                    "Yasuagram Latency Report",
-                    report
-                )
-            );
-        });
-
-        containerView.addView(
-            copyReportButton,
-            LayoutHelper.createFrame(
-                LayoutHelper.WRAP_CONTENT,
-                LayoutHelper.WRAP_CONTENT,
-                Gravity.TOP | Gravity.LEFT,
-                10,
-                130,
-                0,
-                0
-            )
-        );
 
 
-        containerView.addView(
-            latencyMonitorView,
-            LayoutHelper.createFrame(
-                LayoutHelper.WRAP_CONTENT,
-                LayoutHelper.WRAP_CONTENT,
-                Gravity.TOP | Gravity.LEFT,
-                10,
-                80,
-                0,
-                0
-            )
-        );
-    }
 
 
-    private void showLatencyDashboard() {
 
-        if (currentChat == null || MessagesController.getInstance(currentAccount).getGroupCall(currentChat.id, false) == null) {
-            return;
-        }
 
-        String report = "";
-
-        try {
-
-            VoIPService service = VoIPService.getSharedInstance();
-
-            if (service != null) {
-                report = service.getLatencyStats();
-            }
-
-        } catch (Exception e) {
-            report = "Latency error: " + e.getMessage();
-        }
-
-        final String finalReport = report;
-
-        Dialog dashboardDialog = new Dialog(getContext());
-
-        LinearLayout layout = new LinearLayout(getContext());
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(35, 25, 35, 25);
-
-        TextView title = new TextView(getContext());
-        title.setText("📡 Yasuagram Latency Dashboard");
-        title.setTextSize(18);
-
-        TextView textView = new TextView(getContext());
-        textView.setText(finalReport);
-        textView.setTextSize(15);
-
-        ScrollView scrollView = new ScrollView(getContext());
-        scrollView.addView(textView);
-
-        Button copyButton = new Button(getContext());
-        copyButton.setText("Copy");
-
-        copyButton.setOnClickListener(v -> {
-
-            android.content.ClipboardManager clipboard =
-            (android.content.ClipboardManager)
-            getContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE);
-
-            String liveReport;
-
-            try {
-                liveReport =
-                    org.telegram.messenger.voip.VoIPService
-                    .getSharedInstance()
-                    .getLatencyStats();
-            } catch(Exception e) {
-                liveReport = "No latency report available";
-            }
-
-            android.content.ClipData clip =
-            android.content.ClipData.newPlainText(
-                    "Latency Report",
-                    liveReport
-            );
-
-            clipboard.setPrimaryClip(clip);
-
-            android.widget.Toast.makeText(
-                    getContext(),
-                    "Copied latency report",
-                    android.widget.Toast.LENGTH_SHORT
-            ).show();
-        });
-
-        layout.addView(title);
-        layout.addView(scrollView);
-        layout.addView(copyButton);
-
-        dashboardDialog.setContentView(layout);
-
-        Window window = dashboardDialog.getWindow();
-
-        if (window != null) {
-
-            window.setBackgroundDrawableResource(android.R.color.transparent);
-
-            window.setLayout(
-                    WindowManager.LayoutParams.WRAP_CONTENT,
-                    WindowManager.LayoutParams.WRAP_CONTENT
-            );
-
-            WindowManager.LayoutParams params = window.getAttributes();
-
-            params.gravity = Gravity.TOP | Gravity.LEFT;
-            params.x = 50;
-            params.y = 200;
-
-            window.setAttributes(params);
-        }
-
-        title.setOnTouchListener(new View.OnTouchListener() {
-
-            float downX;
-            float downY;
-
-            public boolean onTouch(View v, MotionEvent event) {
-
-                Window window = dashboardDialog.getWindow();
-
-                if(window == null)
-                    return false;
-
-                WindowManager.LayoutParams params = window.getAttributes();
-
-                switch(event.getAction()) {
-
-                    case MotionEvent.ACTION_DOWN:
-                        downX = event.getRawX();
-                        downY = event.getRawY();
-                        return true;
-
-                    case MotionEvent.ACTION_MOVE:
-
-                        params.x += (int)(event.getRawX() - downX);
-                        params.y += (int)(event.getRawY() - downY);
-
-                        window.setAttributes(params);
-
-                        downX = event.getRawX();
-                        downY = event.getRawY();
-
-                        return true;
-                }
-
-                return false;
-            }
-        });
-
-        dashboardDialog.show();
-
-        
-    }
 
 
 }
