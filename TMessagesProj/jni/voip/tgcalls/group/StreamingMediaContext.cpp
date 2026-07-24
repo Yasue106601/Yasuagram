@@ -101,6 +101,10 @@ public:
         return WebRtc_available_write(_buffer);
     }
 
+    size_t availableForReading() {
+        return WebRtc_available_read(_buffer);
+    }
+
     size_t write(int16_t const *samples, size_t count) {
         return WebRtc_WriteBuffer(_buffer, samples, count);
     }
