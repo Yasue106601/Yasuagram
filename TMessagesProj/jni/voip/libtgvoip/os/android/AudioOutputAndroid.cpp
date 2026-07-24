@@ -9,6 +9,7 @@
 #include "../../logging.h"
 #include "tgnet/FileLog.h"
 #include "../latency_dashboard/LatencyDashboard.h"
+#include "rtc_base/time_utils.h"
 
 extern JavaVM* sharedJVM;
 
@@ -101,7 +102,7 @@ void AudioOutputAndroid::HandleCallback(JNIEnv* env, jbyteArray buffer){
 		return;
 	unsigned char* buf=(unsigned char*) env->GetByteArrayElements(buffer, NULL);
 	size_t len=(size_t) env->GetArrayLength(buffer);
-	int64_t renderStart = webrtc::rtc::TimeMicros();
+	int64_t renderStart = rtc::TimeMicros();
 
         LatencyReport inputReport;
         inputReport.audioRenderInputTimestamp = renderStart;
@@ -109,7 +110,7 @@ void AudioOutputAndroid::HandleCallback(JNIEnv* env, jbyteArray buffer){
 
         InvokeCallback(buf, len);
 
-        int64_t renderEnd = webrtc::rtc::TimeMicros();
+        int64_t renderEnd = rtc::TimeMicros();
 
         LatencyReport latencyReport;
         latencyReport.audioRenderOutputTimestamp = renderEnd;

@@ -18,6 +18,7 @@
 
 #include "VoIPController.h"
 #include "../latency_dashboard/LatencyDashboard.h"
+#include "rtc_base/time_utils.h"
 
 #define PACKET_SIZE (960*2)
 
@@ -218,11 +219,11 @@ int tgvoip::OpusDecoder::DecodeNextFrame(){
 	int size;
 	if(len){
 		// Yasuagram: Opus Decode Time measurement
-int64_t opusDecodeStart = webrtc::rtc::TimeMicros();
+int64_t opusDecodeStart = rtc::TimeMicros();
 
 size=opus_decode(isEC ? ecDec : dec, buffer, len, (opus_int16 *) decodeBuffer, packetsPerFrame*960, fec ? 1 : 0);
 
-int64_t opusDecodeEnd = webrtc::rtc::TimeMicros();
+int64_t opusDecodeEnd = rtc::TimeMicros();
 
 LatencyReport latencyReport;
 latencyReport.opusDecodeTime =

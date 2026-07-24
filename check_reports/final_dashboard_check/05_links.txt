@@ -1,0 +1,75 @@
+TMessagesProj/jni/voip/CMakeLists.txt:495:        voip/latency_dashboard/LatencyDashboard.cpp
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:11:#include "../latency_dashboard/LatencyDashboard.h"
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:83:        LatencyReport report;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:89:        LatencyDashboard::Instance().Update(report);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:20:#include "../latency_dashboard/LatencyDashboard.h"
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:227:LatencyReport latencyReport;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:228:latencyReport.opusDecodeTime =
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:231:LatencyDashboard::Instance().Update(latencyReport);
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:11:#include "../latency_dashboard/LatencyDashboard.h"
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:106:        LatencyReport inputReport;
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:108:        LatencyDashboard::Instance().Update(inputReport);
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:114:        LatencyReport latencyReport;
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:115:        latencyReport.audioRenderOutputTimestamp = renderEnd;
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:116:        latencyReport.audioRenderQueueDelay =
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:119:        LatencyDashboard::Instance().Update(latencyReport);
+TMessagesProj/jni/voip/org_telegram_messenger_voip_Instance.cpp:1:#include "latency_dashboard/LatencyDashboard.h"
+TMessagesProj/jni/voip/org_telegram_messenger_voip_Instance.cpp:979:JNIEXPORT jstring JNICALL Java_org_telegram_messenger_voip_NativeInstance_getLatencyStats(JNIEnv *env, jobject obj) {
+TMessagesProj/jni/voip/org_telegram_messenger_voip_Instance.cpp:981:    std::string report = LatencyDashboard::Instance().GetReport();
+TMessagesProj/jni/voip/tgcalls/Instance.h:1:#include "../latency_dashboard/LatencyDashboard.h"
+TMessagesProj/jni/voip/tgcalls/Instance.h:208:  virtual std::string getLatencyStats() { return LatencyDashboard::Instance().GetReport(); }
+TMessagesProj/jni/voip/tgcalls/InstanceImpl.cpp:1:#include "../latency_dashboard/LatencyDashboard.h"
+TMessagesProj/jni/voip/tgcalls/InstanceImpl.cpp:226:std::string InstanceImpl::getLatencyStats() {
+TMessagesProj/jni/voip/tgcalls/InstanceImpl.cpp:227:    return LatencyDashboard::Instance().GetReport();
+TMessagesProj/jni/voip/tgcalls/InstanceImpl.h:43:        std::string getLatencyStats();
+TMessagesProj/jni/voip/tgcalls/MediaManager.cpp:635:LatencyReport report;
+TMessagesProj/jni/voip/tgcalls/MediaManager.cpp:643:LatencyDashboard::Instance().Update(report);
+TMessagesProj/jni/voip/tgcalls/group/GroupNetworkManager.cpp:3:#include "LatencyDashboard.h"
+TMessagesProj/jni/voip/tgcalls/group/GroupNetworkManager.cpp:626:    LatencyReport udpReport;
+TMessagesProj/jni/voip/tgcalls/group/GroupNetworkManager.cpp:628:    LatencyDashboard::Instance().Update(udpReport);
+TMessagesProj/jni/voip/tgcalls/group/GroupNetworkManager.cpp:660:    LatencyReport report;
+TMessagesProj/jni/voip/tgcalls/group/GroupNetworkManager.cpp:672:    LatencyDashboard::Instance().Update(report);
+TMessagesProj/jni/voip/tgcalls/group/GroupNetworkManager.cpp:680:            LatencyReport audioLevelReport;
+TMessagesProj/jni/voip/tgcalls/group/GroupNetworkManager.cpp:683:            LatencyDashboard::Instance().Update(audioLevelReport);
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:1:#include "../latency_dashboard/LatencyDashboard.h"
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:415:                        LatencyReport rbReport;
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:417:                        LatencyDashboard::Instance().Update(rbReport);
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:512:                        LatencyReport rbReport;
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:514:                        LatencyDashboard::Instance().Update(rbReport);
+TMessagesProj/jni/voip/tgcalls/InstanceImpl.cpp.bak:1:#include "../latency_dashboard/LatencyDashboard.h"
+TMessagesProj/jni/voip/tgcalls/InstanceImpl.cpp.bak:226:std::string InstanceImpl::getLatencyStats() {
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.h:6:struct LatencyReport {
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.h:57:    std::string GenerateText();
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.h:60:class LatencyDashboard {
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.h:62:    static LatencyDashboard& Instance();
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.h:64:    void Update(const LatencyReport& report);
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.h:68:    LatencyDashboard() {}
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.h:70:    LatencyReport current;
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.cpp:1:#include "LatencyDashboard.h"
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.cpp:4:LatencyDashboard& LatencyDashboard::Instance(){
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.cpp:5:    static LatencyDashboard instance;
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.cpp:9:void LatencyDashboard::Update(const LatencyReport& r){
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.cpp:92:std::string LatencyDashboard::GetReport(){
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.cpp:94:    return current.GenerateText();
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.cpp:97:std::string LatencyReport::GenerateText(){
+TMessagesProj/jni/voip/latency_dashboard/LatencyBridge.h:2:#include "LatencyDashboard.h"
+TMessagesProj/jni/voip/latency_dashboard/LatencyBridge.h:4:inline std::string GetLatencyDashboardReport()
+TMessagesProj/jni/voip/latency_dashboard/LatencyBridge.h:6:    return LatencyDashboard::Instance().GetReport();
+TMessagesProj/jni/voip/CMakeLists.txt.bak:495:        voip/latency_dashboard/LatencyDashboard.cpp
+TMessagesProj/src/main/java/org/telegram/messenger/voip/NativeInstance.java:225:    public native String getLatencyStats();
+TMessagesProj/src/main/java/org/telegram/messenger/voip/VoIPService.java:305:                return tgVoip[0].getLatencyStats();
+TMessagesProj/src/main/java/org/telegram/messenger/voip/VoIPService.java:309:                return tgVoip[1].getLatencyStats();
+TMessagesProj/src/main/java/org/telegram/messenger/voip/VoIPService.java:5862:    public String getLatencyStats() {
+TMessagesProj/src/main/java/org/telegram/messenger/voip/VoIPService.java:5868:                return tgVoip[0].getLatencyStats();
+TMessagesProj/src/main/java/org/telegram/ui/Components/Paint/Painting.java:193:                helperTexture = Texture.generateTexture(size);
+TMessagesProj/src/main/java/org/telegram/ui/Components/Paint/Painting.java:1240:            paintTexture = Texture.generateTexture(size);
+TMessagesProj/src/main/java/org/telegram/ui/Components/Paint/Texture.java:25:        this.texture = generateTexture(width, height);
+TMessagesProj/src/main/java/org/telegram/ui/Components/Paint/Texture.java:29:        this.texture = generateTexture(size);
+TMessagesProj/src/main/java/org/telegram/ui/Components/Paint/Texture.java:98:    public static int generateTexture(Size size) {
+TMessagesProj/src/main/java/org/telegram/ui/Components/Paint/Texture.java:99:        return generateTexture((int) size.width, (int) size.height);
+TMessagesProj/src/main/java/org/telegram/ui/Components/Paint/Texture.java:102:    public static int generateTexture(int width, int height) {
+TMessagesProj/src/main/java/org/telegram/ui/Components/Premium/GLIcon/Icon3D.java:156:        generateTexture();
+TMessagesProj/src/main/java/org/telegram/ui/Components/Premium/GLIcon/Icon3D.java:313:    private void generateTexture() {
+TMessagesProj/src/main/java/org/telegram/ui/GroupCallActivity.java:1993:                showLatencyDashboard();
+TMessagesProj/src/main/java/org/telegram/ui/GroupCallActivity.java:10918:    private void showLatencyDashboard() {
+TMessagesProj/src/main/java/org/telegram/ui/GroupCallActivity.java:10931:                report = service.getLatencyStats();

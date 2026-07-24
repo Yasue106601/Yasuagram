@@ -1,0 +1,14 @@
+623:build	Build APK	2026-07-24T08:22:44.0594875Z C/C++: /home/runner/work/Yasuagram/Yasuagram/TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:221:27: error: use of undeclared identifier 'rtc'
+626:build	Build APK	2026-07-24T08:22:44.0714818Z C/C++: /home/runner/work/Yasuagram/Yasuagram/TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:225:25: error: use of undeclared identifier 'rtc'
+650:build	Build APK	2026-07-24T08:22:44.6945034Z C/C++: /home/runner/work/Yasuagram/Yasuagram/TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:11:10: error: '../../latency_dashboard/LatencyDashboard.h' file not found, did you mean 'latency_dashboard/LatencyDashboard.h'?
+654:build	Build APK	2026-07-24T08:22:44.7034740Z C/C++: /home/runner/work/Yasuagram/Yasuagram/TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:104:24: error: use of undeclared identifier 'rtc'
+657:build	Build APK	2026-07-24T08:22:44.7114952Z C/C++: /home/runner/work/Yasuagram/Yasuagram/TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:112:29: error: use of undeclared identifier 'rtc'
+859:build	Build APK	2026-07-24T08:22:47.5728620Z > Task :TMessagesProj:buildCMakeDebug[arm64-v8a] FAILED
+1242:build	Build APK	2026-07-24T08:22:52.9119397Z   FAILED: CMakeFiles/tgvoip.dir/voip/libtgvoip/OpusDecoder.cpp.o 
+1244:build	Build APK	2026-07-24T08:22:52.9155971Z   /home/runner/work/Yasuagram/Yasuagram/TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:221:27: error: use of undeclared identifier 'rtc'
+1247:build	Build APK	2026-07-24T08:22:52.9158765Z   /home/runner/work/Yasuagram/Yasuagram/TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:225:25: error: use of undeclared identifier 'rtc'
+1258:build	Build APK	2026-07-24T08:22:52.9169920Z   FAILED: CMakeFiles/tgvoip.dir/voip/libtgvoip/os/android/AudioOutputAndroid.cpp.o 
+1274:build	Build APK	2026-07-24T08:22:52.9227767Z   /home/runner/work/Yasuagram/Yasuagram/TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:11:10: error: '../../latency_dashboard/LatencyDashboard.h' file not found, did you mean 'latency_dashboard/LatencyDashboard.h'?
+1278:build	Build APK	2026-07-24T08:22:52.9230070Z   /home/runner/work/Yasuagram/Yasuagram/TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:104:24: error: use of undeclared identifier 'rtc'
+1281:build	Build APK	2026-07-24T08:22:52.9231889Z   /home/runner/work/Yasuagram/Yasuagram/TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:112:29: error: use of undeclared identifier 'rtc'
+1501:build	Build APK	2026-07-24T08:22:52.9500848Z BUILD FAILED in 1m 10s
