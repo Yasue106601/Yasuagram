@@ -10935,33 +10935,39 @@ private void createLatencyMonitor() {
             report = "Latency error: " + e.getMessage();
         }
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        final String finalReport = report;
 
-        builder.setTitle("📡 Yasuagram Latency Dashboard");
+        Dialog dashboardDialog = new Dialog(getContext());
+
+        LinearLayout layout = new LinearLayout(getContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(35, 25, 35, 25);
+
+        TextView title = new TextView(getContext());
+        title.setText("📡 Yasuagram Latency Dashboard");
+        title.setTextSize(18);
 
         TextView textView = new TextView(getContext());
-        textView.setText(report);
+        textView.setText(finalReport);
         textView.setTextSize(15);
-        textView.setPadding(40, 30, 40, 30);
 
         ScrollView scrollView = new ScrollView(getContext());
         scrollView.addView(textView);
 
-        builder.setView(scrollView);
+        Button copyButton = new Button(getContext());
+        copyButton.setText("Copy");
 
-        final String finalReport = report;
-
-        builder.setPositiveButton("Copy", (dialog, which) -> {
+        copyButton.setOnClickListener(v -> {
 
             android.content.ClipboardManager clipboard =
-                    (android.content.ClipboardManager)
-                    getContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+            (android.content.ClipboardManager)
+            getContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE);
 
             android.content.ClipData clip =
-                    android.content.ClipData.newPlainText(
-                            "Latency Report",
-                            finalReport
-                    );
+            android.content.ClipData.newPlainText(
+                    "Latency Report",
+                    finalReport
+            );
 
             clipboard.setPrimaryClip(clip);
 
@@ -10970,10 +10976,75 @@ private void createLatencyMonitor() {
                     "Copied latency report",
                     android.widget.Toast.LENGTH_SHORT
             ).show();
-
         });
 
-        builder.setNegativeButton("Close", null);
+        layout.addView(title);
+        layout.addView(scrollView);
+        layout.addView(copyButton);
+
+        dashboardDialog.setContentView(layout);
+
+        Window window = dashboardDialog.getWindow();
+
+        if (window != null) {
+
+            window.setBackgroundDrawableResource(android.R.color.transparent);
+
+            window.setLayout(
+                    WindowManager.LayoutParams.WRAP_CONTENT,
+                    WindowManager.LayoutParams.WRAP_CONTENT
+            );
+
+            WindowManager.LayoutParams params = window.getAttributes();
+
+            params.gravity = Gravity.TOP | Gravity.LEFT;
+            params.x = 50;
+            params.y = 200;
+
+            window.setAttributes(params);
+        }
+
+        title.setOnTouchListener(new View.OnTouchListener() {
+
+            float downX;
+            float downY;
+
+            public boolean onTouch(View v, MotionEvent event) {
+
+                Window window = dashboardDialog.getWindow();
+
+                if(window == null)
+                    return false;
+
+                WindowManager.LayoutParams params = window.getAttributes();
+
+                switch(event.getAction()) {
+
+                    case MotionEvent.ACTION_DOWN:
+                        downX = event.getRawX();
+                        downY = event.getRawY();
+                        return true;
+
+                    case MotionEvent.ACTION_MOVE:
+
+                        params.x += (int)(event.getRawX() - downX);
+                        params.y += (int)(event.getRawY() - downY);
+
+                        window.setAttributes(params);
+
+                        downX = event.getRawX();
+                        downY = event.getRawY();
+
+                        return true;
+                }
+
+                return false;
+            }
+        });
+
+        dashboardDialog.show();
+
+        
 
         builder.show();
     }
