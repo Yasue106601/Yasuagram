@@ -10941,6 +10941,8 @@ private void createLatencyMonitor() {
 
         builder.setMessage(report);
 
+        final String finalReport = report;
+
         builder.setPositiveButton("Copy", (dialog, which) -> {
 
             android.content.ClipboardManager clipboard =
@@ -10950,7 +10952,7 @@ private void createLatencyMonitor() {
             android.content.ClipData clip =
                     android.content.ClipData.newPlainText(
                             "Latency Report",
-                            report
+                            finalReport
                     );
 
             clipboard.setPrimaryClip(clip);
