@@ -11004,7 +11004,7 @@ private void createLatencyMonitor() {
             window.setAttributes(params);
         }
 
-        title.setOnTouchListener(new View.OnTouchListener() {
+        layout.setOnTouchListener(new View.OnTouchListener() {
 
             float downX;
             float downY;
