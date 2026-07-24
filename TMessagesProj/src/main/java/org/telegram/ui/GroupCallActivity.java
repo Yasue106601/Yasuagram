@@ -10917,7 +10917,7 @@ private void createLatencyMonitor() {
 
     private void showLatencyDashboard() {
 
-        if (getCurrentGroupCall() == null) {
+        if (currentChat == null || MessagesController.getInstance(currentAccount).getGroupCall(currentChat.id, false) == null) {
             return;
         }
 
