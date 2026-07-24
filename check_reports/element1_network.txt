@@ -1,0 +1,957 @@
+TMessagesProj/jni/voip/libtgvoip/BlockingQueue.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/BlockingQueue.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/Buffers.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/Buffers.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:18:	memset(inflightPackets, 0, sizeof(inflightPackets));
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:54:void CongestionControl::PacketAcknowledged(uint32_t seq){
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:58:		if(inflightPackets[i].seq==seq && inflightPackets[i].sendTime>0){
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:59:			tmpRtt+=(VoIPController::GetCurrentTime()-inflightPackets[i].sendTime);
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:61:			inflightPackets[i].sendTime=0;
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:62:			inflightDataSize-=inflightPackets[i].size;
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:68:void CongestionControl::PacketSent(uint32_t seq, size_t size){
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:76:	tgvoip_congestionctl_packet_t* slot=NULL;
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:79:		if(inflightPackets[i].sendTime==0){
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:80:			slot=&inflightPackets[i];
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:83:		if(smallestSendTime>inflightPackets[i].sendTime){
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:84:			slot=&inflightPackets[i];
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:92:		LOGD("Packet with seq %u was not acknowledged", slot->seq);
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:111:		if(inflightPackets[i].sendTime!=0 && VoIPController::GetCurrentTime()-inflightPackets[i].sendTime>2){
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:112:			inflightPackets[i].sendTime=0;
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:113:			inflightDataSize-=inflightPackets[i].size;
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.cpp:115:			LOGD("Packet with seq %u was not acknowledged", inflightPackets[i].seq);
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.h:21:struct tgvoip_congestionctl_packet_t{
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.h:26:typedef struct tgvoip_congestionctl_packet_t tgvoip_congestionctl_packet_t;
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.h:33:	void PacketSent(uint32_t seq, size_t size);
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.h:34:	void PacketAcknowledged(uint32_t seq);
+TMessagesProj/jni/voip/libtgvoip/CongestionControl.h:48:	tgvoip_congestionctl_packet_t inflightPackets[100];
+TMessagesProj/jni/voip/libtgvoip/EchoCanceller.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/EchoCanceller.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:20:	memset(slots, 0, sizeof(jitter_packet_t)*JITTER_SLOT_COUNT);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:54:void JitterBuffer::SetMinPacketCount(uint32_t count){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:55:	LOGI("jitter: set min packet count %u", count);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:61:int JitterBuffer::GetMinPacketCount(){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:74:void JitterBuffer::HandleInput(unsigned char *data, size_t len, uint32_t timestamp, bool isEC){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:76:	jitter_packet_t pkt;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:79:	pkt.timestamp=timestamp;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:87:        report.jitterBufferPacketsWaiting = GetMinPacketCount();
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:92:	//LOGV("in, ts=%d, ec=%d", timestamp, isEC);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:99:	lastPutTimestamp=0;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:120:	jitter_packet_t pkt;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:128:			LOGW("jitter: delay too big upon start (%u), dropping packets", delay);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:129:			while(delay>GetMinPacketCount()){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:131:					if(slots[i].timestamp==nextTimestamp){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:155:		//LOGV("stretching packet because the next one is late");
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:169:int JitterBuffer::GetInternal(jitter_packet_t* pkt, int offset, bool advance){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:170:	/*if(needBuffering && lastPutTimestamp<nextTimestamp){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:171:		LOGV("jitter: don't have timestamp %lld, buffering", (long long int)nextTimestamp);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:178:	int64_t timestampToGet=nextTimestamp+offset*(int32_t)step;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:182:		if(slots[i].buffer!=NULL && slots[i].timestamp==timestampToGet){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:189:			LOGE("jitter: packet won't fit into provided buffer of %d (need %d)", int(slots[i].size), int(pkt->size));
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:193:				pkt->timestamp = slots[i].timestamp;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:207:	LOGV("jitter: found no packet for timestamp %lld (last put = %d, lost = %d)", (long long int)timestampToGet, lastPutTimestamp, lostCount);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:215:			lostPackets++;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:219:			LOGW("jitter: lost %d packets in a row, resetting", lostCount);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:224:				nextTimestamp-=(int64_t)(minDelay-GetCurrentDelay());
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:234:void JitterBuffer::PutInternal(jitter_packet_t* pkt, bool overwriteExisting){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:236:		LOGE("The packet is too big to fit into the jitter buffer");
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:242:		if(slots[i].buffer && slots[i].timestamp==pkt->timestamp){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:243:			//LOGV("Found existing packet for timestamp %u, overwrite %d", pkt->timestamp, overwriteExisting);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:256:		nextTimestamp=(int64_t)(((int64_t)pkt->timestamp)-step*minDelay);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:258:		LOGI("jitter: resyncing, next timestamp = %lld (step=%d, minDelay=%f)", (long long int)nextTimestamp, step, minDelay);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:263:			if(slots[i].timestamp<nextTimestamp-1){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:273:		if(slots[i].buffer!=NULL && pkt->timestamp-slots[i].timestamp<pkt->timestamp-closestTime){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:274:			closestTime=slots[i].timestamp;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:281:		//LOGV("packet dev %f", dev);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:288:	if(pkt->timestamp<nextTimestamp){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:289:		//LOGW("jitter: would drop packet with timestamp %d because it is late but not hopelessly", pkt->timestamp);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:290:		latePacketCount++;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:291:		lostPackets--;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:292:	}else if(pkt->timestamp<nextTimestamp-1){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:293:		//LOGW("jitter: dropping packet with timestamp %d because it is too late", pkt->timestamp);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:294:		latePacketCount++;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:298:	if(pkt->timestamp>lastPutTimestamp)
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:299:		lastPutTimestamp=pkt->timestamp;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:307:		uint32_t bestTimestamp=0xFFFFFFFF;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:309:			if(slots[i].buffer!=NULL && slots[i].timestamp<bestTimestamp){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:311:				bestTimestamp=slots[i].timestamp;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:319:	slots[i].timestamp=pkt->timestamp;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:329:	fprintf(dump, "%u\t%.03f\t%d\t%.03f\t%.03f\t%.03f\n", pkt->timestamp, time, GetCurrentDelay(), lastMeasuredJitter, lastMeasuredDelay, minDelay);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:336:	nextTimestamp+=step;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:354:	lateHistory.Add(latePacketCount);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:355:	latePacketCount=0;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:356:	bool absolutelyNoLatePackets=lateHistory.Max()==0;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:365:	if(absolutelyNoLatePackets){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:395:			//nextTimestamp+=diff*(int32_t)step;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:425:		if (((minDelay==1 ? (avgDelay>=3) : (avgDelay>=minDelay/2)) && delayHistory[0]>minDelay && avgLate16<=0.1 && absolutelyNoLatePackets && dontDecMinDelay<32 && min>minDelay)) {
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:430:		if(!absolutelyNoLatePackets){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:431:			LOGI("jitter: done adjusting because we're losing packets");
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:434:			LOGD("jitter: removing a packet to reduce delay");
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:457:int JitterBuffer::GetAndResetLostPacketCount(){
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:459:	int r=lostPackets;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:460:	lostPackets=0;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.h:30:	void SetMinPacketCount(uint32_t count);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.h:31:	int GetMinPacketCount();
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.h:35:	void HandleInput(unsigned char* data, size_t len, uint32_t timestamp, bool isEC);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.h:39:	int GetAndResetLostPacketCount();
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.h:44:	struct jitter_packet_t{
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.h:47:		uint32_t timestamp;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.h:53:	void PutInternal(jitter_packet_t* pkt, bool overwriteExisting);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.h:54:	int GetInternal(jitter_packet_t* pkt, int offset, bool advance);
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.h:59:	jitter_packet_t slots[JITTER_SLOT_COUNT];
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.h:60:	int64_t nextTimestamp=0;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.h:66:	uint32_t lastPutTimestamp;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.h:78:	unsigned int latePacketCount=0;
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.h:81:	int lostPackets=0;
+TMessagesProj/jni/voip/libtgvoip/MediaStreamItf.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/MediaStreamItf.cpp:129:				//LOGV("AudioMixer: skipping silent packet");
+TMessagesProj/jni/voip/libtgvoip/MediaStreamItf.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:102:size_t NetworkSocket::Receive(unsigned char *buffer, size_t len){
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:103:	NetworkPacket pkt={0};
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:106:	Receive(&pkt);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:111:	NetworkPacket pkt={0};
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:272:void NetworkSocketTCPObfuscated::Send(NetworkPacket *packet){
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:273:	BufferOutputStream os(packet->length+4);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:274:	size_t len=packet->length/4;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:283:	os.WriteBytes(packet->data, packet->length);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:300:void NetworkSocketTCPObfuscated::Receive(NetworkPacket *packet){
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:302:	size_t packetLen=0;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:305:	len=wrapped->Receive(&len1, 1);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:307:		packet->length=0;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:313:		packetLen=(size_t)len1*4;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:316:		len=wrapped->Receive(len2, 3);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:318:			packet->length=0;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:322:		packetLen=((size_t)len2[0] | ((size_t)len2[1] << 8) | ((size_t)len2[2] << 16))*4;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:325:	if(packetLen>packet->length){
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:326:		LOGW("packet too big to fit into buffer (%u vs %u)", (unsigned int)packetLen, (unsigned int)packet->length);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:327:		packet->length=0;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:331:	while(offset<packetLen){
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:332:		len=wrapped->Receive(packet->data+offset, packetLen-offset);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:334:			packet->length=0;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:339:	EncryptForTCPO2(packet->data, packetLen, &recvState);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:340:	//packet->address=&itr->address;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:341:	packet->length=packetLen;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:342:	//packet->port=itr->port;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:343:	packet->protocol=PROTO_TCP;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:344:	packet->address=wrapped->GetConnectedAddress();
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:345:	packet->port=wrapped->GetConnectedPort();
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:378:void NetworkSocketSOCKS5Proxy::Send(NetworkPacket *packet){
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:380:		tcp->Send(packet);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:386:		const IPv4Address* v4=dynamic_cast<IPv4Address*>(packet->address);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:387:		const IPv6Address* v6=dynamic_cast<IPv6Address*>(packet->address);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:395:		out.WriteInt16(htons(packet->port));
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:396:		out.WriteBytes(packet->data, packet->length);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:397:		NetworkPacket p={0};
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:407:void NetworkSocketSOCKS5Proxy::Receive(NetworkPacket *packet){
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:409:		tcp->Receive(packet);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:410:		packet->address=connectedAddress;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:411:		packet->port=connectedPort;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:414:		NetworkPacket p={0};
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:417:		udp->Receive(&p);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:425:				packet->address=&lastRecvdV4;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:430:				packet->address=&lastRecvdV6;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:432:			packet->port=ntohs(in.ReadInt16());
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:433:			if(packet->length>=in.Remaining()){
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:434:				packet->length=in.Remaining();
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:435:				in.ReadBytes(packet->data, in.Remaining());
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:437:				packet->length=0;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:438:				LOGW("socks5: received packet too big");
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:499:bool NetworkSocketSOCKS5Proxy::OnReadyToReceive(){
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:500:	//LOGV("on ready to receive state=%d", state);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:503:		size_t l=tcp->Receive(buf, sizeof(buf));
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:536:		size_t l=tcp->Receive(buf, sizeof(buf));
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:559:		size_t l=tcp->Receive(buf, sizeof(buf));
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.cpp:640:	return udp ? udp->OnReadyToReceive() : tcp->OnReadyToReceive();
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.h:67:	struct NetworkPacket{
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.h:74:	typedef struct NetworkPacket NetworkPacket;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.h:91:		virtual void Send(NetworkPacket* packet)=0;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.h:92:		virtual void Receive(NetworkPacket* packet)=0;
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.h:93:		size_t Receive(unsigned char* buffer, size_t len);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.h:110:		virtual bool OnReadyToReceive(){ return true; };
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.h:149:		virtual void Send(NetworkPacket *packet);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.h:150:		virtual void Receive(NetworkPacket *packet);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.h:172:		virtual void Send(NetworkPacket *packet);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.h:173:		virtual void Receive(NetworkPacket *packet);
+TMessagesProj/jni/voip/libtgvoip/NetworkSocket.h:183:		virtual bool OnReadyToReceive();
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:22:#define PACKET_SIZE (960*2)
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:45:		bufferPool=new BufferPool(PACKET_SIZE, 32);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:62:	consecutiveLostPackets=0;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:64:	silentPacketCount=0;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:104:			int packetsNeeded;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:105:			if(len>PACKET_SIZE)
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:106:				packetsNeeded=len/PACKET_SIZE;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:108:				packetsNeeded=1;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:109:			packetsNeeded*=2;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:110:			semaphore->Release(packetsNeeded);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:113:		if(len==PACKET_SIZE){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:117:			memcpy(data, lastDecoded, PACKET_SIZE);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:120:			if(silentPacketCount>0){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:121:				silentPacketCount--;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:127:				echoCanceller->SpeakerOutCallback(data, PACKET_SIZE);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:134:		if(remainingDataLen==0 && silentPacketCount==0){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:138:		if(silentPacketCount>0 || remainingDataLen==0 || !processedBuffer){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:139:			if(silentPacketCount>0)
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:140:				silentPacketCount--;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:179:	LOGI("decoder: packets per frame %d", packetsPerFrame);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:192:						effect->Process(reinterpret_cast<int16_t*>(processedBuffer+(PACKET_SIZE*i)), 960);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:194:					memcpy(buf, processedBuffer+(PACKET_SIZE*i), PACKET_SIZE);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:197:					memset(buf, 0, PACKET_SIZE);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:223:size=opus_decode(isEC ? ecDec : dec, buffer, len, (opus_int16 *) decodeBuffer, packetsPerFrame*960, fec ? 1 : 0);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:232:		consecutiveLostPackets=0;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:237:			size=opus_decode(prevWasEC ? ecDec : dec, NULL, 0, (opus_int16*)nextBuffer, packetsPerFrame*960, 0);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:250:	}else{ // do packet loss concealment
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:251:		consecutiveLostPackets++;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:252:		if(consecutiveLostPackets>2 && enableDTX){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:253:			silentPacketCount+=packetsPerFrame;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:254:			size=packetsPerFrame*960;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:256:			size=opus_decode(prevWasEC ? ecDec : dec, NULL, 0, (opus_int16 *) decodeBuffer, packetsPerFrame*960, 0);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:278:	packetsPerFrame=frameDuration/20;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:65:	int consecutiveLostPackets;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:67:	size_t silentPacketCount;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:73:	unsigned int packetsPerFrame;
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:41:	opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC(1));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:118:		//LOGV("Packet size = %d", r);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:157:	uint32_t packetsPerFrame=frameDuration/20;
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:158:	LOGV("starting encoder, packets per frame=%d", packetsPerFrame);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:160:	if(packetsPerFrame>1)
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:161:		frame=(int16_t*) malloc(960*2*packetsPerFrame);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:167:		int16_t* packet=(int16_t*)queue.GetBlocking();
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:168:		if(packet){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:171:				echoCanceller->ProcessInput(packet, 960, hasVoice);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:174:					effect->Process(packet, 960);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:177:			if(packetsPerFrame==1){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:178:				Encode(packet, 960);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:180:				memcpy(frame+(960*bufferedCount), packet, 960*2);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:183:				if(bufferedCount==packetsPerFrame){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:210:					Encode(frame, 960*packetsPerFrame);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:215:			bufferPool.Reuse(reinterpret_cast<unsigned char *>(packet));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:228:void tgvoip::OpusEncoder::SetPacketLoss(int percent){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:229:	packetLossPercent=std::min(20, percent);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:230:	opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC(packetLossPercent));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:234:int tgvoip::OpusEncoder::GetPacketLoss(){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:235:	return packetLossPercent;
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.h:33:	void SetPacketLoss(int percent);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.h:34:	int GetPacketLoss();
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.h:65:	int packetLossPercent;
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:5:#include "PacketReassembler.h"
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:12:PacketReassembler::PacketReassembler(){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:16:PacketReassembler::~PacketReassembler(){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:20:void PacketReassembler::Reset(){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:24:void PacketReassembler::AddFragment(Buffer pkt, unsigned int fragmentIndex, unsigned int fragmentCount, uint32_t pts, bool keyframe, uint16_t rotation){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:25:	for(Packet& packet:packets){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:26:		if(packet.timestamp==pts){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:27:			if(fragmentCount!=packet.partCount){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:28:				LOGE("Received fragment total count %u inconsistent with previous %u", fragmentCount, packet.partCount);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:31:			packet.AddFragment(std::move(pkt), fragmentIndex);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:36:	if(pts<maxTimestamp){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:37:		LOGW("Received fragment doesn't belong here (ts=%u < maxTs=%u)", pts, maxTimestamp);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:41:		LOGE("Received fragment index %u is out of bounds %u", fragmentIndex, fragmentCount);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:45:		LOGE("Received fragment total count too big %u", fragmentCount);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:49:	maxTimestamp=std::max(maxTimestamp, pts);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:51:	Packet packet(fragmentCount);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:52:	packet.timestamp=pts;
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:53:	packet.isKeyframe=keyframe;
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:54:	packet.receivedPartCount=0;
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:55:	packet.rotation=rotation;
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:56:	packet.AddFragment(std::move(pkt), fragmentIndex);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:58:	packets.push_back(std::move(packet));
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:59:	while(packets.size()>3){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:60:		Packet&& old=std::move(packets[0]);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:61:		packets.erase(packets.begin());
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:62:		if(old.receivedPartCount==old.partCount){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:64:			callback(std::move(buffer), old.timestamp, old.isKeyframe, old.rotation);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:65:			//LOGV("Packet %u reassembled", old.timestamp);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:67:			LOGW("Packet %u not reassembled (%u of %u)", old.timestamp, old.receivedPartCount, old.partCount);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:72:void PacketReassembler::SetCallback(std::function<void(Buffer packet, uint32_t pts, bool keyframe, uint16_t rotation)> callback){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:76:void PacketReassembler::Packet::AddFragment(Buffer pkt, uint32_t fragmentIndex){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:77:	//LOGV("Add fragment %u/%u to packet %u", fragmentIndex, partCount, timestamp);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:79:	receivedPartCount++;
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.cpp:82:Buffer PacketReassembler::Packet::Reassemble(){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:5:#ifndef TGVOIP_PACKETREASSEMBLER_H
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:6:#define TGVOIP_PACKETREASSEMBLER_H
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:15:	class PacketReassembler{
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:17:		PacketReassembler();
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:18:		virtual ~PacketReassembler();
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:22:		void SetCallback(std::function<void(Buffer packet, uint32_t pts, bool keyframe, uint16_t rotation)> callback);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:25:		struct Packet{
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:26:			uint32_t timestamp;
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:28:			uint32_t receivedPartCount;
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:33:			TGVOIP_DISALLOW_COPY_AND_ASSIGN(Packet);
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:35:			Packet(Packet&& other) : timestamp(other.timestamp), partCount(other.partCount), receivedPartCount(other.receivedPartCount), isKeyframe(other.isKeyframe), rotation(other.rotation){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:39:			Packet& operator=(Packet&& other){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:45:					timestamp=other.timestamp;
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:47:					receivedPartCount=other.receivedPartCount;
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:54:			Packet(uint32_t partCount) : partCount(partCount){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:57:			~Packet(){
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:67:		std::vector<Packet> packets;
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:68:		uint32_t maxTimestamp=0;
+TMessagesProj/jni/voip/libtgvoip/PacketReassembler.h:72:#endif //TGVOIP_PACKETREASSEMBLER_H
+TMessagesProj/jni/voip/libtgvoip/PrivateDefines.h:58:	 * recent_received_mask:flags.5?int proto:flags.3?int extra:flags.1?string raw_data:flags.0?string*/
+TMessagesProj/jni/voip/libtgvoip/PrivateDefines.h:103:#define TLID_UDP_REFLECTOR_REQUEST_PACKETS_INFO 0x1a06fc96
+TMessagesProj/jni/voip/libtgvoip/PrivateDefines.h:104:#define TLID_UDP_REFLECTOR_LAST_PACKETS_INFO 0x0e107305
+TMessagesProj/jni/voip/libtgvoip/PrivateDefines.h:108:#define MAX_RECENT_PACKETS 128
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:89:	audioTimestampIn=0;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:90:	audioTimestampOut=0;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:92:	memset(recvPacketTimes, 0, sizeof(double)*32);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:97:	packetsReceived=0;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:101:	dontSendPackets=0;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:108:	lastRecvPacketTime=0;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:113:	receivedInit=false;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:114:	receivedInitAck=false;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:134:	didReceiveGroupCallKey=false;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:135:	didReceiveGroupCallKeyAck=false;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:148:	unsentStreamPackets.store(0);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:171:	packetLossToEnableExtraEC=ServerConfig::GetSharedInstance()->GetDouble("packet_loss_for_extra_ec", 0.02);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:172:	maxUnsentStreamPackets=static_cast<uint32_t>(ServerConfig::GetSharedInstance()->GetInt("max_unsent_stream_packets", 2));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:245:	runReceiver=false;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:253:	//PendingOutgoingPacket emptyPacket{0, 0, 0, move(emptyBuf), 0};
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:254:	//sendQueue->Put(move(emptyPacket));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:324:	//SendPacket(NULL, 0, currentEndpoint);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:326:	runReceiver=true;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:420:			SendPacketReliably(PKT_NETWORK_CHANGED, s.GetBuffer(), s.GetLength(), 1, 20);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:445:					res+=(remoteAcks[i-diff]-sentPacketTimes[i]);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:449:			MutexGuard m(queuedPacketsMutex);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:450:			for(std::vector<RecentOutgoingPacket>::iterator itr=recentOutgoingPackets.begin();itr!=recentOutgoingPackets.end();++itr){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:489:					SendPacketReliably(PKT_STREAM_STATE, buf, 2, .5f, 20);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:498:			noStreamsNopID=messageThread.Post(std::bind(&VoIPController::SendNopPacket, this), 0.2, 0.2);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:557:			 //					 "Packet grouping: %d\n"
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:560:			 jitterBuffer ? jitterBuffer->GetMinPacketCount() : 0, jitterBuffer ? jitterBuffer->GetAverageDelay() : 0, avgLate[0], avgLate[1], avgLate[2],
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:567:			 conctl->GetSendLossCount(), recvLossCount, encoder ? encoder->GetPacketLoss() : 0,
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:569:			 static_cast<unsigned int>(unsentStreamPackets),
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:570://			 audioPacketGrouping,
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:624:	for(DebugLoggedPacket& lpkt:debugLoggedPackets){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:625:		lpkts.push_back(json11::Json::array{lpkt.timestamp, lpkt.seq, lpkt.length});
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:628:			{"log_type", "out_packet_stats"},
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:637:			{"out_packet_stats", lpkts}
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:674:			{"packet_stats", json11::Json::object{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:676:					{"in", (int)packetsReceived},
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:923:						encoder ? encoder->GetPacketLoss() : 0,
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1019:	unsentStreamPacketsHistory.Add(static_cast<unsigned int>(unsentStreamPackets));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1020:	if(unsentStreamPacketsHistory.Average()>=maxUnsentStreamPackets && !videoSource){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1023:		unsentStreamPacketsHistory.Reset();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1024:		unsentStreamPackets=0;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1026:	if(waitingForAcks || dontSendPackets>0 || ((unsigned int)unsentStreamPackets>=maxUnsentStreamPackets /*&& endpoints[currentEndpoint].type==Endpoint::Type::TCP_RELAY*/)){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1027:		LOGV("waiting for queue, dropping outgoing audio packet, %d %d %d [%d]", (unsigned int)unsentStreamPackets, waitingForAcks, dontSendPackets, maxUnsentStreamPackets);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1030:	//LOGV("Audio packet size %u", (unsigned int)len);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1031:	if(!receivedInitAck)
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1047:	pkt.WriteInt32(audioTimestampOut);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1053:		ecAudioPackets.push_back(move(ecBuf));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1054:		while(ecAudioPackets.size()>4)
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1055:			ecAudioPackets.erase(ecAudioPackets.begin());
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1056:		pkt.WriteByte((unsigned char)MIN(ecAudioPackets.size(), extraEcLevel));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1057:		for(vector<Buffer>::iterator ecData=ecAudioPackets.begin()+MAX(0, (int)ecAudioPackets.size()-extraEcLevel);ecData!=ecAudioPackets.end();++ecData){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1063:	unsentStreamPackets++;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1065:	PendingOutgoingPacket p{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1073:	conctl->PacketSent(p.seq, p.len);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1075:	SendOrEnqueuePacket(move(p));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1079:		ecAudioPackets.push_back(move(ecBuf));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1080:		while(ecAudioPackets.size()>4)
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1081:			ecAudioPackets.erase(ecAudioPackets.begin());
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1084:		pkt.WriteInt32(audioTimestampOut);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1085:		pkt.WriteByte((unsigned char)MIN(ecAudioPackets.size(), extraEcLevel));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1086:		for(vector<Buffer>::iterator ecData=ecAudioPackets.begin()+MAX(0, (int)ecAudioPackets.size()-extraEcLevel);ecData!=ecAudioPackets.end();++ecData){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1092:		PendingOutgoingPacket p{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1099:		SendOrEnqueuePacket(move(p));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1102:	audioTimestampOut+=outgoingStreams[0]->frameDuration;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1249:void VoIPController::WritePacketHeader(uint32_t pseq, BufferOutputStream *s, unsigned char type, uint32_t length){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1253:		if(recvPacketTimes[i]>0)
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1264:		MutexGuard m(queuedPacketsMutex);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1291:			s->WriteInt32((uint32_t)((lastRecvPacketTime-connectionInitTime)*1000.0));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1356:				MutexGuard m(queuedPacketsMutex);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1377:	MutexGuard m(queuedPacketsMutex);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1378:	recentOutgoingPackets.push_back(RecentOutgoingPacket{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1386:	while(recentOutgoingPackets.size()>MAX_RECENT_PACKETS){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1387:		recentOutgoingPackets.erase(recentOutgoingPackets.begin());
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1390:	//LOGI("packet header size %d", s->GetLength());
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1409:			if(config.enableVideoReceive)
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1428:				vector<uint32_t> decoders=config.enableVideoReceive ? video::VideoRenderer::GetAvailableDecoders() : vector<uint32_t>();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1444:			SendOrEnqueuePacket(PendingOutgoingPacket{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1507:			udpProxy->OnReadyToReceive();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1522:	LOGI("Receive thread starting");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1524:	NetworkPacket packet={0};
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1536:	while(runReceiver){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1543:		packet.data=*buffer;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1544:		packet.length=buffer.Length();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1580:		if(!runReceiver)
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1605:			//while(packet.length){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1606:			packet.length=1500;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1607:			socket->Receive(&packet);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1608:			if(!packet.address){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1609:				LOGE("Packet has null address. This shouldn't happen.");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1612:			size_t len=packet.length;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1614:				LOGE("Packet has zero length.");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1617:			//LOGV("Received %d bytes from %s:%d at %.5lf", len, packet.address->ToString().c_str(), packet.port, GetCurrentTime());
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1620:			IPv4Address *src4=dynamic_cast<IPv4Address *>(packet.address);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1625:					if(e.address==*src4 && e.port==packet.port){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1626:						if((e.type!=Endpoint::Type::TCP_RELAY && packet.protocol==PROTO_UDP) || (e.type==Endpoint::Type::TCP_RELAY && packet.protocol==PROTO_TCP)){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1632:				if(!srcEndpointID && packet.protocol==PROTO_UDP){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1635:						if(p2p.rtts[0]==0.0 && p2p.address.PrefixMatches(24, *packet.address)){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1636:							LOGD("Packet source matches p2p endpoint partially: %s:%u", packet.address->ToString().c_str(), packet.port);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1642:				IPv6Address *src6=dynamic_cast<IPv6Address *>(packet.address);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1647:						if(e.v6address==*src6 && e.port==packet.port && e.IsIPv6Only()){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1648:							if((e.type!=Endpoint::Type::TCP_RELAY && packet.protocol==PROTO_UDP) || (e.type==Endpoint::Type::TCP_RELAY && packet.protocol==PROTO_TCP)){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1658:				LOGW("Received a packet from unknown source %s:%u", packet.address->ToString().c_str(), packet.port);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1670:				ProcessIncomingPacket(packet, endpoints.at(srcEndpointID));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1672:				LOGW("Error parsing packet: %s", x.what());
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1677:		for(vector<PendingOutgoingPacket>::iterator opkt=sendQueue.begin();opkt!=sendQueue.end();){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1678:			Endpoint* endpoint=GetEndpointForPacket(*opkt);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1681:				LOGE("SendQueue contained packet for nonexistent endpoint");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1690:				LOGI("Sending queued packet");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1691:				SendOrEnqueuePacket(move(*opkt), false);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1701:bool VoIPController::WasOutgoingPacketAcknowledged(uint32_t seq){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1702:	RecentOutgoingPacket* pkt=GetRecentOutgoingPacket(seq);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1708:VoIPController::RecentOutgoingPacket *VoIPController::GetRecentOutgoingPacket(uint32_t seq){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1709:	for(RecentOutgoingPacket& opkt:recentOutgoingPackets){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1717:void VoIPController::ProcessIncomingPacket(NetworkPacket &packet, Endpoint& srcEndpoint){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1718:	unsigned char *buffer=packet.data;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1719:	size_t len=packet.length;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1724:			LOGW("Received packet has wrong peerTag");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1744:				LOGV("Received UDP ping reply from %s:%d: date=%d, queryID=%ld, my IP=%s, my port=%d", srcEndpoint.address.ToString().c_str(), srcEndpoint.port, date, (long int) queryID, IPv4Address(*reinterpret_cast<uint32_t *>(myIP+12)).ToString().c_str(), myPort);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1781:				LOGW("Received reflector peer info, my=%s:%u, peer=%s:%u", IPv4Address(myAddr).ToString().c_str(), myPort, IPv4Address(peerAddr).ToString().c_str(), peerPort);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1794:							SendPacketReliably(PKT_LAN_ENDPOINT, pkt.GetBuffer(), pkt.GetLength(), 0.5, 10);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1804:			LOGV("Received relay response with unknown tl id: 0x%08X", tlid);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1809:		LOGV("Received packet is too small");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1834:			LOGW("Received packet has wrong hash after decryption");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1853:				LOGW("Received packet has wrong key fingerprint");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1870:		crypto.aes_ige_decrypt(packet.data+in.GetOffset(), decrypted, decryptedLen, aesKey, aesIv);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1873:		//LOGD("received packet length: %d", in.ReadInt32());
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1884:			LOGW("Received packet has wrong hash");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1890:			LOGW("Received packet has wrong inner length (%d with total of %u)", (int) innerLen, (unsigned int) decryptedLen);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1894:			LOGW("Received packet has too little padding (%u)", (unsigned int) (decryptedLen-innerLen));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1900:			LOGD("Successfully decrypted packet in MTProto2.0 fallback, upgrading");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1905:	lastRecvPacketTime=GetCurrentTime();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1908:		LOGI("Received a valid packet while reconnecting - setting state to established");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1913:		if(srcEndpoint.port!=packet.port || srcEndpoint.address!=*packet.address){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1914:			IPv4Address *v4=dynamic_cast<IPv4Address *>(packet.address);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1916:				LOGI("Incoming packet was decrypted successfully, changing P2P endpoint to %s:%u", packet.address->ToString().c_str(), packet.port);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1918:				srcEndpoint.port=packet.port;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1924: * recent_received_mask:flags.5?int proto:flags.3?int extra:flags.1?string raw_data:flags.0?string = DecryptedAudioBlock
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1929:	size_t packetInnerLen=0;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1936:		packetInnerLen=innerLen-14;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1946:				LOGW("Received packet doesn't have PFLAG_HAS_SEQ, PFLAG_HAS_RECENT_RECV, or both");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1954:					LOGW("Received packet has wrong call id");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1967:					LOGW("Received packet uses wrong protocol");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1979:				packetInnerLen=in.ReadTlLength();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1986:			packetInnerLen=in.ReadTlLength();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1996:			LOGW("Received a packet of unknown type %08X", tlid);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2001:	packetsReceived++;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2005:			memset(recvPacketTimes, 0, 32*sizeof(double));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2007:			memmove(&recvPacketTimes[diff], recvPacketTimes, (32-diff)*sizeof(double));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2009:				memset(recvPacketTimes, 0, diff*sizeof(double));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2011:			recvPacketTimes[0]=GetCurrentTime();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2015:		if(recvPacketTimes[lastRemoteSeq-pseq]!=0){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2016:			LOGW("Received duplicated packet for seq %u", pseq);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2020:		recvPacketTimes[lastRemoteSeq-pseq]=GetCurrentTime();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2022:		LOGW("Packet %u is out of order and too late", pseq);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2026:	bool didAckNewPackets=false;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2029:		didAckNewPackets=true;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2031:		MutexGuard _m(queuedPacketsMutex);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2035:			dontSendPackets=10;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2037:				dontSendPackets=0;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2042:		conctl->PacketAcknowledged(ackId);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2045:			for(vector<RecentOutgoingPacket>::iterator itr=recentOutgoingPackets.begin();itr!=recentOutgoingPackets.end();++itr){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2050:					conctl->PacketAcknowledged(itr->seq);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2056:					conctl->PacketAcknowledged(ackId-(i+1));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2060:		for(i=0;i<queuedPackets.size();i++){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2061:			QueuedPacket& qp=queuedPackets[i];
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2065:				LOGD("queued packet %u, seq %u=%u", i, j, qp.seqs[j]);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2071:					for(RecentOutgoingPacket& opkt:recentOutgoingPackets){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2083:				queuedPackets.erase(queuedPackets.begin()+i);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2099:			// so if a frame (or part of it) is acknowledged but isn't sentVideoFrames[0], we know there was a packet loss
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2102:				for(vector<uint32_t>::iterator s=f.unacknowledgedPackets.begin(); s!=f.unacknowledgedPackets.end();){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2103:					RecentOutgoingPacket* opkt=GetRecentOutgoingPacket(*s);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2105:						s=f.unacknowledgedPackets.erase(s);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2114:				if(f->unacknowledgedPackets.empty() && f->fragmentsInQueue==0){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2120:						LOGE("!!!!!!!!!!!!!!11 VIDEO FRAME LOSS DETECTED [1] %u of %u fragments", sentVideoFrames[0].unacknowledgedPackets.size(), sentVideoFrames[0].fragmentCount);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2121:						videoPacketLossCount++;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2128:				}else if(!first && f->unacknowledgedPackets.size()<f->fragmentCount){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2129:					LOGE("!!!!!!!!!!!!!!11 VIDEO FRAME LOSS DETECTED [2] %u of %u fragments", f->unacknowledgedPackets.size(), f->fragmentCount);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2130:					videoPacketLossCount++;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2163:		if(didAckNewPackets){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2165:            for(RecentOutgoingPacket& opkt:recentOutgoingPackets){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2171:                    videoCongestionControl.ProcessAcks(oneWayDelay, newlyAckedVideoBytes, videoPacketLossCount, rttHistory.Average(5));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2178:	if(config.logPacketStats){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2179:		DebugLoggedPacket dpkt={
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2182:				static_cast<int32_t>(packet.length)
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2184:		debugLoggedPackets.push_back(dpkt);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2185:		if(debugLoggedPackets.size()>=2500){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2186:			debugLoggedPackets.erase(debugLoggedPackets.begin(), debugLoggedPackets.begin()+500);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2190:#ifdef LOG_PACKETS
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2191:	LOGV("Received: from=%s:%u, seq=%u, length=%u, type=%s", srcEndpoint.GetAddress().ToString().c_str(), srcEndpoint.port, pseq, packet.length, GetPacketTypeString(type).c_str());
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2195:	//LOGD("recv: %u -> %.2lf, %.2lf, %.2lf, %.2lf, %.2lf, %.2lf, %.2lf, %.2lf", lastRemoteSeq, recvPacketTimes[0], recvPacketTimes[1], recvPacketTimes[2], recvPacketTimes[3], recvPacketTimes[4], recvPacketTimes[5], recvPacketTimes[6], recvPacketTimes[7]);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2197:	//LOGV("Packet %u type is %d", pseq, type);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2199:		LOGD("Received init");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2201:		if(!receivedInit)
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2212:		if(!receivedInit){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2237:		if(!receivedInit && ((flags & INIT_FLAG_VIDEO_SEND_SUPPORTED && config.enableVideoReceive) || (flags & INIT_FLAG_VIDEO_RECV_SUPPORTED && config.enableVideoSend))){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2269:		SendOrEnqueuePacket(PendingOutgoingPacket{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2276:		if(!receivedInit){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2277:			receivedInit=true;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2284:		if(!audioStarted && receivedInitAck){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2290:		LOGD("Received init ack");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2292:		if(!receivedInitAck){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2293:			receivedInitAck=true;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2298:			if(packetInnerLen>10){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2340:						stm->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_60", 2));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2342:						stm->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_40", 4));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2344:						stm->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_20", 6));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2347:					/*if(!stm->packetReassembler){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2348:						stm->packetReassembler=make_shared<PacketReassembler>();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2349:						stm->packetReassembler->SetCallback(bind(&VoIPController::ProcessIncomingVideoFrame, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2367:			if(!audioStarted && receivedInit){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2381:		if(!receivedFirstStreamPacket){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2382:			receivedFirstStreamPacket=true;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2383:			if(state!=STATE_ESTABLISHED && receivedInitAck){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2387:				LOGW("First audio packet - setting state to ESTABLISHED");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2416:			audioTimestampIn=pts;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2455:				if(stm->packetReassembler){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2482:					stm->packetReassembler->AddFragment(std::move(pdata), fragmentIndex, fragmentCount, pts, keyframe, rotation);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2484:				//LOGV("Received video fragment %u of %u", fragmentIndex, fragmentCount);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2486:				LOGW("received packet for unknown stream %u", (unsigned int)streamID);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2493:		//LOGD("Received ping from %s:%d", srcEndpoint.address.ToString().c_str(), srcEndpoint.port);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2495:			LOGW("Received p2p ping but p2p is disabled by manual override");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2501:		SendOrEnqueuePacket(PendingOutgoingPacket{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2510:		if(packetInnerLen>=4){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2512:#ifdef LOG_PACKETS
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2513:			LOGD("Received pong for ping in seq %u", pingSeq);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2518:				LOGD("Current RTT via %s: %.3f, average: %.3f", packet.address->ToString().c_str(), srcEndpoint.rtts[0], srcEndpoint.averageRTT);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2537:		LOGV("received lan endpoint");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2565:		uint32_t lastTimestamp=(uint32_t)in.ReadInt32();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2574:						stm->jitterBuffer->HandleInput(data, dlen, lastTimestamp-(count-i-1)*stm->frameDuration, true);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2589:	if(lastReceivedExtrasByType[type]==hash){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2593:	lastReceivedExtrasByType[type]=hash;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2606:							s->jitterBuffer->SetMinPacketCount(4);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2612:							s->jitterBuffer->SetMinPacketCount(2);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2622:		LOGI("Received codec specific data");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2654:		LOGV("received lan endpoint (extra)");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2681:		if(!didReceiveGroupCallKey && !didSendGroupCallKey){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2685:				if(callbacks.groupCallKeyReceived)
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2686:					callbacks.groupCallKeyReceived(this, groupKey);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2688:			didReceiveGroupCallKey=true;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2707:		LOGV("Received peer IPv6 endpoint [%s]:%u", addr.ToString().c_str(), port);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2724:		if(!didReceiveGroupCallKeyAck){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2725:			didReceiveGroupCallKeyAck=true;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2738:Endpoint* VoIPController::GetEndpointForPacket(const PendingOutgoingPacket& pkt){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2744:			LOGW("Unable to send packet via nonexistent endpoint %" PRIu64, pkt.endpoint);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2753:bool VoIPController::SendOrEnqueuePacket(PendingOutgoingPacket pkt, bool enqueue){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2754:	Endpoint* endpoint=GetEndpointForPacket(pkt);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2791:		WritePacketHeader(pkt.seq, &p, pkt.type, (uint32_t)pkt.len);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2793:		SendPacket(p.GetBuffer(), p.GetLength(), *endpoint, pkt);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2795:			unsentStreamPackets--;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2801:void VoIPController::SendPacket(unsigned char *data, size_t len, Endpoint& ep, PendingOutgoingPacket& srcPacket){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2870:#ifdef LOG_PACKETS
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2871:	LOGV("Sending: to=%s:%u, seq=%u, length=%u, type=%s", ep.GetAddress().ToString().c_str(), ep.port, srcPacket.seq, out.GetLength(), GetPacketTypeString(srcPacket.type).c_str());
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2874:	NetworkPacket pkt={0};
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2880:	ActuallySendPacket(pkt, ep);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2883:void VoIPController::ActuallySendPacket(NetworkPacket &pkt, Endpoint& ep){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2884:	//LOGI("Sending packet of %d bytes", pkt.length);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2928:std::string VoIPController::GetPacketTypeString(unsigned char type){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3121:	NetworkPacket pkt={0};
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3141:void VoIPController::SendPacketReliably(unsigned char type, unsigned char *data, size_t len, double retryInterval, double timeout){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3143:	QueuedPacket pkt;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3155:		MutexGuard m(queuedPacketsMutex);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3156:		queuedPackets.push_back(move(pkt));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3158:	messageThread.Post(std::bind(&VoIPController::UpdateQueuedPackets, this));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3160:		messageThread.Post(std::bind(&VoIPController::UpdateQueuedPackets, this), timeout);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3165:	MutexGuard m(queuedPacketsMutex);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3188:	}else if(request==2){ // set packet loss
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3190:			encoder->SetPacketLoss(param);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3201:		SendPacketReliably(PKT_NETWORK_CHANGED, s.GetBuffer(), s.GetLength(), 1, 20);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3220:	NetworkPacket pkt={0};
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3360:					if(!f.unacknowledgedPackets.empty()){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3361:						for(uint32_t& pseq:f.unacknowledgedPackets){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3362:							RecentOutgoingPacket* opkt=GetRecentOutgoingPacket(pseq);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3364:								videoCongestionControl.ProcessPacketLost(opkt->size);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3410:			//pkt.WriteInt32(audioTimestampOut);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3440:			PendingOutgoingPacket p{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3447:			unsentStreamPackets++;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3448:			SendOrEnqueuePacket(move(p));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3449:			videoCongestionControl.ProcessPacketSent(static_cast<unsigned int>(pktLength));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3450:			sentFrame.unacknowledgedPackets.push_back(seq);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3485:		if(lastReceivedVideoFrameNumber==UINT32_MAX || lastReceivedVideoFrameNumber==pts-1 || keyframe){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3486:			lastReceivedVideoFrameNumber=pts;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3494:			LOGW("Skipping non-keyframe after packet loss...");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3614:				SendOrEnqueuePacket(PendingOutgoingPacket{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3676:			int lostCount=(*stm)->jitterBuffer->GetAndResetLostPacketCount();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3688:		double packetsPerSec=1000/(double) outgoingStreams[0]->frameDuration;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3689:		double avgSendLossCount=sendLossCountHistory.Average()/packetsPerSec;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3692:		if(avgSendLossCount>packetLossToEnableExtraEC && networkType!=NET_TYPE_GPRS && networkType!=NET_TYPE_EDGE){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3721:		encoder->SetPacketLoss((int)(avgSendLossCount*100.0));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3725:		if((avgSendLossCount<packetLossToEnableExtraEC || networkType==NET_TYPE_EDGE || networkType==NET_TYPE_GPRS) && shittyInternetMode){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3765:		if(state==STATE_ESTABLISHED && time-lastRecvPacketTime>=reconnectingTimeout){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3774:			if(time-lastRecvPacketTime>=config.recvTimeout){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3777:					LOGW("Packet receive timeout, switching to relay");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3794:						SendPacketReliably(PKT_NETWORK_CHANGED, s.GetBuffer(), s.GetLength(), 1, 20);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3799:					lastRecvPacketTime=time;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3801:					LOGW("Packet receive timeout, disconnecting");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3812:	double packetsPerSec=1000/(double) outgoingStreams[0]->frameDuration;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3813:	double avgSendLossCount=sendLossCountHistory.Average()/packetsPerSec;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3850:void VoIPController::UpdateQueuedPackets(){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3851:	vector<PendingOutgoingPacket> packetsToSend;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3853:		MutexGuard m(queuedPacketsMutex);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3854:		for(std::vector<QueuedPacket>::iterator qp=queuedPackets.begin(); qp!=queuedPackets.end();){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3856:				LOGD("Removing queued packet because of timeout");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3857:				qp=queuedPackets.erase(qp);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3861:				messageThread.Post(std::bind(&VoIPController::UpdateQueuedPackets, this), qp->retryInterval);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3865:				//LOGD("Sending queued packet, seq=%u, type=%u, len=%u", seq, qp.type, qp.data.Length());
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3871:				packetsToSend.push_back(PendingOutgoingPacket{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3882:	for(PendingOutgoingPacket& pkt:packetsToSend){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3883:		SendOrEnqueuePacket(move(pkt));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3887:void VoIPController::SendNopPacket(){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3890:	SendOrEnqueuePacket(PendingOutgoingPacket{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:39:#include "PacketReassembler.h"
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:214:			bool logPacketStats=false;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:218:			bool enableVideoReceive=false;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:263:		 * Get the average round-trip time for network packets
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:414:			void (*groupCallKeyReceived)(VoIPController*, const unsigned char*);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:437:		struct RecentOutgoingPacket{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:445:		struct PendingOutgoingPacket{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:446:			PendingOutgoingPacket(uint32_t seq, unsigned char type, size_t len, Buffer&& data, int64_t endpoint){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:453:			PendingOutgoingPacket(PendingOutgoingPacket&& other){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:460:			PendingOutgoingPacket& operator=(PendingOutgoingPacket&& other){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:470:			TGVOIP_DISALLOW_COPY_AND_ASSIGN(PendingOutgoingPacket);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:477:		struct QueuedPacket{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:479:			//TGVOIP_DISALLOW_COPY_AND_ASSIGN(QueuedPacket);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:480:			QueuedPacket(QueuedPacket&& other){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:489:			QueuedPacket(){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:501:		virtual void ProcessIncomingPacket(NetworkPacket& packet, Endpoint& srcEndpoint);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:503:		virtual void WritePacketHeader(uint32_t seq, BufferOutputStream* s, unsigned char type, uint32_t length);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:504:		virtual void SendPacket(unsigned char* data, size_t len, Endpoint& ep, PendingOutgoingPacket& srcPacket);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:517:		Endpoint* GetEndpointForPacket(const PendingOutgoingPacket& pkt);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:518:		bool SendOrEnqueuePacket(PendingOutgoingPacket pkt, bool enqueue=true);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:533:			std::shared_ptr<PacketReassembler> packetReassembler;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:567:		struct DebugLoggedPacket{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:569:			double timestamp;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:575:			std::vector<uint32_t> unacknowledgedPackets;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:597:		void SendPacketReliably(unsigned char type, unsigned char* data, size_t len, double retryInterval, double timeout);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:599:		void ActuallySendPacket(NetworkPacket& pkt, Endpoint& ep);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:611:		void UpdateQueuedPackets();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:612:		void SendNopPacket();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:615:		std::string GetPacketTypeString(unsigned char type);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:617:		bool WasOutgoingPacketAcknowledged(uint32_t seq);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:618:		RecentOutgoingPacket* GetRecentOutgoingPacket(uint32_t seq);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:625:		bool runReceiver;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:630:		std::vector<RecentOutgoingPacket> recentOutgoingPackets;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:631:		double recvPacketTimes[32];
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:633:		uint32_t audioTimestampIn;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:634:		uint32_t audioTimestampOut;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:639:		std::vector<PendingOutgoingPacket> sendQueue;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:648:		uint32_t packetsReceived;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:655:		int dontSendPackets;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:671:		std::vector<QueuedPacket> queuedPackets;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:673:		Mutex queuedPacketsMutex;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:675:		double lastRecvPacketTime;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:680:		bool receivedInit;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:681:		bool receivedInitAck;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:709:		bool didReceiveGroupCallKey;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:710:		bool didReceiveGroupCallKeyAck;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:720:		std::unordered_map<uint8_t, uint64_t> lastReceivedExtrasByType;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:726:		std::vector<Buffer> ecAudioPackets;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:732:		bool receivedFirstStreamPacket=false;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:733:		std::atomic<unsigned int> unsentStreamPackets;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:734:		HistoricBuffer<unsigned int, 5> unsentStreamPacketsHistory;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:737:		std::vector<DebugLoggedPacket> debugLoggedPackets;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:764:		uint32_t lastReceivedVideoFrameNumber=UINT32_MAX;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:770:		uint32_t sendVideoPacketID=MessageThread::INVALID_ID;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:771:		uint32_t videoPacketLossCount=0;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:805:		double packetLossToEnableExtraEC;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:806:		uint32_t maxUnsentStreamPackets;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:841:		virtual void ProcessIncomingPacket(NetworkPacket& packet, Endpoint& srcEndpoint);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:845:		virtual void SendPacket(unsigned char* data, size_t len, Endpoint& ep, PendingOutgoingPacket& srcPacket);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:846:		virtual void WritePacketHeader(uint32_t seq, BufferOutputStream* s, unsigned char type, uint32_t length);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:851:		void SendRecentPacketsRequest();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:869:		struct PacketIdMapping{
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:874:		std::vector<PacketIdMapping> recentSentPackets;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:875:		Mutex sentPacketsMutex;
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:102:				s->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_60", 2));
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:104:				s->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_40", 4));
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:106:				s->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_20", 6));
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:218:	SendRecentPacketsRequest();
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:221:void VoIPGroupController::ProcessIncomingPacket(NetworkPacket &packet, Endpoint& srcEndpoint){
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:222:	//LOGD("Received incoming packet from %s:%u, %u bytes", packet.address->ToString().c_str(), packet.port, packet.length);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:223:	if(packet.length<17 || packet.length>2000){
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:224:		LOGW("Received packet has wrong length %d", (int)packet.length);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:227:	BufferOutputStream sigData(packet.length);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:228:	sigData.WriteBytes(packet.data, packet.length-16);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:232:	if(memcmp(sig, packet.data+(packet.length-16), 16)!=0){
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:233:		LOGW("Received packet has incorrect signature");
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:238:	if(memcmp(packet.data, reflectorSelfTagHash, 16)==0 && packet.length>60){
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:242:		memcpy(iv, packet.data+16, 16);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:245:		crypto.aes_cbc_decrypt(packet.data+32, firstBlock, 16, key, iv);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:251:		if(len%4==0 && len+60<=packet.length && packet.length<=1500){
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:252:			lastRecvPacketTime=GetCurrentTime();
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:253:			memcpy(iv, packet.data+16, 16);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:255:			crypto.aes_cbc_decrypt(packet.data+32, buf, len+16, key, iv);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:257:				if(tlid==TLID_UDP_REFLECTOR_LAST_PACKETS_INFO){
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:258:					MutexGuard m(sentPacketsMutex);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:259:					//LOGV("received udpReflector.lastPacketsInfo");
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:266:						LOGW("last packets info: expected vector, got %08X", vectorMagic);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:270:					//LOGV("%d received packets", recvCount);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:273:						//LOGV("Relay received packet: %08X", p);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:276:						for(vector<PacketIdMapping>::iterator pkt=recentSentPackets.begin();pkt!=recentSentPackets.end();++pkt){
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:281:									conctl->PacketAcknowledged(pkt->seq);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:282:									//LOGV("relay acknowledged packet %u", pkt->seq);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:292:						LOGW("last packets info: expected vector, got %08X", vectorMagic);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:296:					//LOGV("%d sent packets", sentCount);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:299:						//LOGV("Sent packet: %08X", p);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:319:	if(packet.length<32)
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:322:	// it's a packet relayed from another participant - find the sender
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:326:		if(memcmp(packet.data, p->memberTagHash, 16)==0){
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:327:			//LOGV("received data packet from user %d", p->userID);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:333:		LOGV("Received data packet is from unknown user");
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:337:	if(memcmp(packet.data+16, keyFingerprint, 8)!=0){
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:338:		LOGW("received packet has wrong key fingerprint");
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:342:	BufferInputStream in(packet.data, packet.length-16);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:355:	uint8_t *decryptOffset = packet.data + in.GetOffset();
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:357:		LOGE("alignment2 packet.data+in.GetOffset()");
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:362:	crypto.aes_ige_decrypt(packet.data+in.GetOffset(), decrypted, decryptedLen, aesKey, aesIv);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:365:	//LOGD("received packet length: %d", in.ReadInt32());
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:375:		LOGW("Received packet from user %d has wrong hash", sender->userID);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:381:		LOGW("Received packet has wrong inner length (%d with total of %u)", (int)innerLen, (unsigned int)decryptedLen);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:385:		LOGW("Received packet has too little padding (%u)", (unsigned int)(decryptedLen-innerLen));
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:392:		LOGW("Received packet has unknown TL ID 0x%08x", tlid);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:398:		LOGW("Received packet has wrong flags");
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:405:		LOGW("Received packet has wrong inner sender tag hash");
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:414:	lastRecvPacketTime=GetCurrentTime();
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:417:		if(state!=STATE_ESTABLISHED && receivedInitAck)
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:442:			audioTimestampIn=pts;
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:489:void VoIPGroupController::SendRecentPacketsRequest(){
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:491:	out.WriteInt32(TLID_UDP_REFLECTOR_REQUEST_PACKETS_INFO); // TL function
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:528:	NetworkPacket pkt={0};
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:534:	ActuallySendPacket(pkt, groupReflector);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:541:		SendRecentPacketsRequest();
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:556:void VoIPGroupController::WritePacketHeader(uint32_t seq, BufferOutputStream *s, unsigned char type, uint32_t length){
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:572:		conctl->PacketSent(seq, length);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:593:void VoIPGroupController::SendPacket(unsigned char *data, size_t len, Endpoint& ep, PendingOutgoingPacket& srcPacket){
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:599:	//LOGV("send group packet %u", len);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:640:	if(srcPacket.type==PKT_STREAM_DATA || srcPacket.type==PKT_STREAM_DATA_X2 || srcPacket.type==PKT_STREAM_DATA_X3){
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:641:		PacketIdMapping mapping={srcPacket.seq, *reinterpret_cast<uint16_t*>(sig+14), 0};
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:642:		MutexGuard m(sentPacketsMutex);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:643:		recentSentPackets.push_back(mapping);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:644:		//LOGD("sent packet with id: %04X", mapping.id);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:645:		while(recentSentPackets.size()>64)
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:646:			recentSentPackets.erase(recentSentPackets.begin());
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:648:	lastSentSeq=srcPacket.seq;
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:655:	NetworkPacket pkt={0};
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:661:	ActuallySendPacket(pkt, ep);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:791:			 conctl->GetSendLossCount(), recvLossCount, encoder ? encoder->GetPacketLoss() : 0,
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:808:							 (*stm)->jitterBuffer->GetMinPacketCount(), (*stm)->jitterBuffer->GetAverageDelay());
+TMessagesProj/jni/voip/libtgvoip/VoIPServerConfig.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/VoIPServerConfig.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/audio/AudioIO.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/audio/AudioIO.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/audio/AudioIOCallback.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/audio/AudioIOCallback.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/audio/AudioInput.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/audio/AudioInput.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/audio/AudioOutput.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/audio/AudioOutput.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/json11.hpp:25: * range +/-2^53, which includes every 'int' on most systems. (Timestamps often use int64
+TMessagesProj/jni/voip/libtgvoip/logging.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/logging.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioInputAndroid.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioInputAndroid.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioInputOpenSLES.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioInputOpenSLES.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:107:        inputReport.audioRenderInputTimestamp = renderStart;
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:115:        latencyReport.audioRenderOutputTimestamp = renderEnd;
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputOpenSLES.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputOpenSLES.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/android/OpenSLEngineWrapper.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/android/OpenSLEngineWrapper.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioInputAudioUnit.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioInputAudioUnit.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioInputAudioUnitOSX.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioInputAudioUnitOSX.cpp:93:OSStatus AudioInputAudioUnitLegacy::BufferCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags, const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData){
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioInputAudioUnitOSX.cpp:96:	AudioUnitRender(input->unit, ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, &input->inBufferList);
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioInputAudioUnitOSX.cpp:277:		.mFramesPerPacket=1, .mChannelsPerFrame=1, .mBitsPerChannel=16, .mBytesPerPacket=2, .mBytesPerFrame=2
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioInputAudioUnitOSX.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioInputAudioUnitOSX.h:28:	static OSStatus BufferCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags, const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData);
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioOutputAudioUnit.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioOutputAudioUnit.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioOutputAudioUnitOSX.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioOutputAudioUnitOSX.cpp:68:		.mFramesPerPacket=1, .mChannelsPerFrame=1, .mBitsPerChannel=16, .mBytesPerPacket=2, .mBytesPerFrame=2
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioOutputAudioUnitOSX.cpp:115:OSStatus AudioOutputAudioUnitLegacy::BufferCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags, const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData){
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioOutputAudioUnitOSX.cpp:307:		.mFramesPerPacket=1, .mChannelsPerFrame=1, .mBitsPerChannel=16, .mBytesPerPacket=2, .mBytesPerFrame=2
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioOutputAudioUnitOSX.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioOutputAudioUnitOSX.h:29:	static OSStatus BufferCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags, const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData);
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioUnitIO.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioUnitIO.cpp:30:                         const AudioTimeStamp* __nullable inStartTime,
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioUnitIO.cpp:86:	audioFormat.mBytesPerPacket		= 2;
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioUnitIO.cpp:91:	audioFormat.mBytesPerPacket		= 4;
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioUnitIO.cpp:94:	audioFormat.mFramesPerPacket	= 1;
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioUnitIO.cpp:151:OSStatus AudioUnitIO::BufferCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags, const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData){
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioUnitIO.cpp:152:	((AudioUnitIO*)inRefCon)->BufferCallback(ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, ioData);
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioUnitIO.cpp:156:void AudioUnitIO::BufferCallback(AudioUnitRenderActionFlags *ioActionFlags, const AudioTimeStamp *inTimeStamp, UInt32 bus, UInt32 numFrames, AudioBufferList *ioData){
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioUnitIO.cpp:165:		AudioUnitRender(unit, ioActionFlags, inTimeStamp, bus, numFrames, &inBufferList);
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioUnitIO.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioUnitIO.h:34:		static OSStatus BufferCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags, const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData);
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioUnitIO.h:35:		void BufferCallback(AudioUnitRenderActionFlags *ioActionFlags, const AudioTimeStamp *inTimeStamp, UInt32 bus, UInt32 numFrames, AudioBufferList* ioData);
+TMessagesProj/jni/voip/libtgvoip/os/darwin/DarwinSpecific.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/DarwinSpecific.mm:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/SampleBufferDisplayLayerRenderer.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/SampleBufferDisplayLayerRenderer.mm:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/TGLogWrapper.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/TGVVideoRenderer.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/TGVVideoRenderer.mm:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/TGVVideoSource.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/TGVVideoSource.mm:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/VideoToolboxEncoderSource.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/VideoToolboxEncoderSource.mm:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/darwin/VideoToolboxEncoderSource.mm:111:		//LOGW("Received non-video CMSampleBuffer");
+TMessagesProj/jni/voip/libtgvoip/os/darwin/VideoToolboxEncoderSource.mm:134:	OSStatus status=VTCompressionSessionEncodeFrame(session, imgBuffer, CMSampleBufferGetPresentationTimeStamp(frame), CMSampleBufferGetDuration(frame), frameProps, NULL, NULL);
+TMessagesProj/jni/voip/libtgvoip/os/linux/AudioInputALSA.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/linux/AudioInputALSA.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/linux/AudioInputPulse.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/linux/AudioInputPulse.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/linux/AudioOutputALSA.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/linux/AudioOutputALSA.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/linux/AudioOutputPulse.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/linux/AudioOutputPulse.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/linux/AudioPulse.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/linux/AudioPulse.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:56:	if(pendingOutgoingPacket)
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:57:		delete pendingOutgoingPacket;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:83:void NetworkSocketPosix::Send(NetworkPacket *packet){
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:84:	if(!packet || (protocol==PROTO_UDP && !packet->address)){
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:85:		LOGW("tried to send null packet");
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:91:		IPv4Address *v4addr=dynamic_cast<IPv4Address *>(packet->address);
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:139:			IPv6Address *v6addr=dynamic_cast<IPv6Address *>(packet->address);
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:144:		addr.sin6_port=htons(packet->port);
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:145:		res=(int)sendto(fd, packet->data, packet->length, 0, (const sockaddr *) &addr, sizeof(addr));
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:147:		res=(int)send(fd, packet->data, packet->length, 0);
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:151:			if(pendingOutgoingPacket){
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:152:				LOGE("Got EAGAIN but there's already a pending packet");
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:156:				pendingOutgoingPacket=new Buffer(packet->length);
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:157:				pendingOutgoingPacket->CopyFrom(packet->data, 0, packet->length);
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:167:	}else if((size_t)res!=packet->length && packet->protocol==PROTO_TCP){
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:168:		if(pendingOutgoingPacket){
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:169:			LOGE("send returned less than packet length but there's already a pending packet");
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:173:			pendingOutgoingPacket=new Buffer(packet->length-res);
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:174:			pendingOutgoingPacket->CopyFrom(packet->data+res, 0, packet->length-res);
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:181:	if(pendingOutgoingPacket){
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:182:		NetworkPacket pkt={0};
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:183:		pkt.data=**pendingOutgoingPacket;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:184:		pkt.length=pendingOutgoingPacket->Length();
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:186:		delete pendingOutgoingPacket;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:187:		pendingOutgoingPacket=NULL;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:194:void NetworkSocketPosix::Receive(NetworkPacket *packet){
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:196:		packet->length=0;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:202:		ssize_t len=recvfrom(fd, packet->data, packet->length, 0, (sockaddr *) &srcAddr, (socklen_t *) &addrLen);
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:204:			packet->length=(size_t) len;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:207:			packet->length=0;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:210:		//LOGV("Received %d bytes from %s:%d at %.5lf", len, inet_ntoa(srcAddr.sin_addr), ntohs(srcAddr.sin_port), GetCurrentTime());
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:218:			packet->address=&lastRecvdV4;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:221:			packet->address=&lastRecvdV6;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:223:		packet->protocol=PROTO_UDP;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:224:		packet->port=ntohs(srcAddr.sin6_port);
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:226:		int res=(int)recv(fd, packet->data, packet->length, 0);
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:230:			packet->length=0;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:232:			packet->length=(size_t)res;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:233:			packet->address=tcpConnectedAddress;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:234:			packet->port=tcpConnectedPort;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:235:			packet->protocol=PROTO_TCP;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.cpp:579:		if (sfd <= 0 || !FD_ISSET(sfd, &readSet) || !(*itr)->OnReadyToReceive()) {
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.h:33:	virtual void Send(NetworkPacket* packet) override;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.h:34:	virtual void Receive(NetworkPacket* packet) override;
+TMessagesProj/jni/voip/libtgvoip/os/posix/NetworkSocketPosix.h:72:	Buffer* pendingOutgoingPacket=NULL;
+TMessagesProj/jni/voip/libtgvoip/os/windows/AudioInputWASAPI.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/windows/AudioInputWASAPI.cpp:374:			res=captureClient->GetNextPacketSize(&bufferSize);
+TMessagesProj/jni/voip/libtgvoip/os/windows/AudioInputWASAPI.cpp:375:			CHECK_RES(res, "captureClient->GetNextPacketSize");
+TMessagesProj/jni/voip/libtgvoip/os/windows/AudioInputWASAPI.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/windows/AudioInputWave.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/windows/AudioInputWave.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/windows/AudioOutputWASAPI.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/windows/AudioOutputWASAPI.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/windows/AudioOutputWave.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/windows/AudioOutputWave.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.cpp:191:	config.logPacketStats=wrapper->logPacketStats;
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.cpp:195:	config.enableVideoReceive=wrapper->enableVideoReceive;
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.h:106:			logPacketStats = false;
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.h:109:			enableVideoReceive = false;
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.h:124:		property bool logPacketStats;
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.h:128:		property bool enableVideoReceive;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:51:	if(pendingOutgoingPacket)
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:52:		delete pendingOutgoingPacket;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:59:void NetworkSocketWinsock::Send(NetworkPacket *packet){
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:60:	if(!packet || (protocol==PROTO_UDP && !packet->address)){
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:61:		LOGW("tried to send null packet");
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:66:		IPv4Address *v4addr=dynamic_cast<IPv4Address *>(packet->address);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:116:				IPv6Address *v6addr=dynamic_cast<IPv6Address *>(packet->address);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:120:			addr.sin6_port=htons(packet->port);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:121:			res=sendto(fd, (const char*)packet->data, packet->length, 0, (const sockaddr *) &addr, sizeof(addr));
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:125:			addr.sin_port=htons(packet->port);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:127:			res=sendto(fd, (const char*)packet->data, packet->length, 0, (const sockaddr*)&addr, sizeof(addr));
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:130:		res=send(fd, (const char*)packet->data, packet->length, 0);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:135:			if(pendingOutgoingPacket){
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:136:				LOGE("Got EAGAIN but there's already a pending packet");
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:140:				pendingOutgoingPacket=new Buffer(packet->length);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:141:				pendingOutgoingPacket->CopyFrom(packet->data, 0, packet->length);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:151:	}else if(res<packet->length && protocol==PROTO_TCP){
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:152:		if(pendingOutgoingPacket){
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:153:			LOGE("send returned less than packet length but there's already a pending packet");
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:157:			pendingOutgoingPacket=new Buffer(packet->length-res);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:158:			pendingOutgoingPacket->CopyFrom(packet->data+res, 0, packet->length-res);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:165:	if(pendingOutgoingPacket){
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:166:		NetworkPacket pkt={0};
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:167:		pkt.data=**pendingOutgoingPacket;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:168:		pkt.length=pendingOutgoingPacket->Length();
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:170:		delete pendingOutgoingPacket;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:171:		pendingOutgoingPacket=NULL;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:178:void NetworkSocketWinsock::Receive(NetworkPacket *packet){
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:183:			int res=recvfrom(fd, (char*)packet->data, packet->length, 0, (sockaddr *) &srcAddr, (socklen_t *) &addrLen);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:185:				packet->length=(size_t) res;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:189:				packet->length=0;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:192:			//LOGV("Received %d bytes from %s:%d at %.5lf", len, inet_ntoa(srcAddr.sin_addr), ntohs(srcAddr.sin_port), GetCurrentTime());
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:200:				packet->address=&lastRecvdV4;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:203:				packet->address=&lastRecvdV6;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:205:			packet->port=ntohs(srcAddr.sin6_port);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:209:			int res=recvfrom(fd, (char*)packet->data, packet->length, 0, (sockaddr *) &srcAddr, (socklen_t *) &addrLen);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:211:				packet->length=(size_t) res;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:214:				packet->length=0;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:218:			packet->address=&lastRecvdV4;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:219:			packet->port=ntohs(srcAddr.sin_port);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:221:		packet->protocol=PROTO_UDP;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:223:		int res=recv(fd, (char*)packet->data, packet->length, 0);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:229:			packet->length=(size_t)res;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:230:			packet->address=tcpConnectedAddress;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:231:			packet->port=tcpConnectedPort;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:232:			packet->protocol=PROTO_TCP;
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.cpp:665:		if(sfd==0 || !FD_ISSET(sfd, &readSet) || !(*itr)->OnReadyToReceive()){
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.h:31:	virtual void Send(NetworkPacket* packet);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.h:32:	virtual void Receive(NetworkPacket* packet);
+TMessagesProj/jni/voip/libtgvoip/os/windows/NetworkSocketWinsock.h:67:	Buffer* pendingOutgoingPacket=NULL;
+TMessagesProj/jni/voip/libtgvoip/os/windows/WindowsSandboxUtils.cpp:5:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/os/windows/WindowsSandboxUtils.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/tests/MockReflector.cpp:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/tests/MockReflector.cpp:73:void MockReflector::SetDropAllPackets(bool drop){
+TMessagesProj/jni/voip/libtgvoip/tests/MockReflector.cpp:74:	dropAllPackets=drop;
+TMessagesProj/jni/voip/libtgvoip/tests/MockReflector.cpp:119:			if(dest->sin_family==AF_INET && !dropAllPackets){
+TMessagesProj/jni/voip/libtgvoip/tests/MockReflector.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/tests/MockReflector.h:32:			void SetDropAllPackets(bool drop);
+TMessagesProj/jni/voip/libtgvoip/tests/MockReflector.h:45:			bool dropAllPackets=false;
+TMessagesProj/jni/voip/libtgvoip/tests/libtgvoipTests.mm:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/tests/libtgvoipTests.mm:148:- (void)testPacketTimeout{
+TMessagesProj/jni/voip/libtgvoip/tests/libtgvoipTests.mm:182:	reflector.SetDropAllPackets(true);
+TMessagesProj/jni/voip/libtgvoip/threading.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/utils.h:4:// you should have received with this source code distribution.
+TMessagesProj/jni/voip/libtgvoip/video/ScreamCongestionController.cpp:216:void ScreamCongestionController::ProcessPacketSent(uint32_t size){
+TMessagesProj/jni/voip/libtgvoip/video/ScreamCongestionController.cpp:232:void ScreamCongestionController::ProcessPacketLost(uint32_t size){
+TMessagesProj/jni/voip/libtgvoip/video/ScreamCongestionController.h:19:			void ProcessPacketSent(uint32_t size);
+TMessagesProj/jni/voip/libtgvoip/video/ScreamCongestionController.h:20:			void ProcessPacketLost(uint32_t size);

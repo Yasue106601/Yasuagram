@@ -1,0 +1,259 @@
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:7:#include "OpusDecoder.h"
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:14:#include <opus/opus.h>
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:16:#include "opus.h"
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:26:tgvoip::OpusDecoder::OpusDecoder(const std::shared_ptr<MediaStreamItf>& dst, bool isAsync, bool needEC){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:27:	dst->SetCallback(OpusDecoder::Callback, this);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:31:tgvoip::OpusDecoder::OpusDecoder(const std::unique_ptr<MediaStreamItf>& dst, bool isAsync, bool needEC){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:32:	dst->SetCallback(OpusDecoder::Callback, this);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:36:tgvoip::OpusDecoder::OpusDecoder(MediaStreamItf* dst, bool isAsync, bool needEC){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:37:	dst->SetCallback(OpusDecoder::Callback, this);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:41:void tgvoip::OpusDecoder::Initialize(bool isAsync, bool needEC){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:44:		decodedQueue=new BlockingQueue<unsigned char*>(33);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:48:		decodedQueue=NULL;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:52:	dec=opus_decoder_create(48000, 1, NULL);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:54:		ecDec=opus_decoder_create(48000, 1, NULL);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:58:	lastDecoded=NULL;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:74:tgvoip::OpusDecoder::~OpusDecoder(){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:75:	opus_decoder_destroy(dec);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:77:		opus_decoder_destroy(ecDec);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:81:	if(decodedQueue)
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:82:		delete decodedQueue;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:88:void tgvoip::OpusDecoder::SetEchoCanceller(EchoCanceller* canceller){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:92:size_t tgvoip::OpusDecoder::Callback(unsigned char *data, size_t len, void *param){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:93:	return ((OpusDecoder*)param)->HandleCallback(data, len);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:96:size_t tgvoip::OpusDecoder::HandleCallback(unsigned char *data, size_t len){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:114:			lastDecoded=(unsigned char *) decodedQueue->GetBlocking();
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:115:			if(!lastDecoded)
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:117:			memcpy(data, lastDecoded, PACKET_SIZE);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:118:			bufferPool->Reuse(lastDecoded);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:130:			LOGE("Opus decoder buffer length != 960 samples");
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:135:			int duration=DecodeNextFrame();
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:158:void tgvoip::OpusDecoder::Start(){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:162:	thread=new Thread(std::bind(&tgvoip::OpusDecoder::RunThread, this));
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:163:	thread->SetName("opus_decoder");
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:168:void tgvoip::OpusDecoder::Stop(){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:177:void tgvoip::OpusDecoder::RunThread(){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:179:	LOGI("decoder: packets per frame %d", packetsPerFrame);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:181:		int playbackDuration=DecodeNextFrame();
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:185:				LOGI("==== decoder exiting ====");
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:199:				decodedQueue->Put(buf);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:201:				LOGW("decoder: no buffers left!");
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:207:int tgvoip::OpusDecoder::DecodeNextFrame(){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:220:		// Yasuagram: Opus Decode Time measurement
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:221:int64_t opusDecodeStart = rtc::TimeMicros();
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:223:size=opus_decode(isEC ? ecDec : dec, buffer, len, (opus_int16 *) decodeBuffer, packetsPerFrame*960, fec ? 1 : 0);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:225:int64_t opusDecodeEnd = rtc::TimeMicros();
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:228:latencyReport.opusDecodeTime =
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:229:    (opusDecodeEnd - opusDecodeStart) / 1000.0;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:235:			// otherwise audible transition between the frames from different decoders. Those are basically an extrapolation
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:236:			// of the previous successfully decoded data -- which is exactly what we need here.
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:237:			size=opus_decode(prevWasEC ? ecDec : dec, NULL, 0, (opus_int16*)nextBuffer, packetsPerFrame*960, 0);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:240:				int16_t* samples=reinterpret_cast<int16_t*>(decodeBuffer);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:249:		prevLastSample=decodeBuffer[size-1];
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:256:			size=opus_decode(prevWasEC ? ecDec : dec, NULL, 0, (opus_int16 *) decodeBuffer, packetsPerFrame*960, 0);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:261:		LOGW("decoder: opus_decode error %d", size);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:265:		audio::Resampler::Rescale60To80((int16_t*) decodeBuffer, (int16_t*) processedBuffer);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:268:		audio::Resampler::Rescale60To40((int16_t*) decodeBuffer, (int16_t*) processedBuffer);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:270:		processedBuffer=decodeBuffer;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:276:void tgvoip::OpusDecoder::SetFrameDuration(uint32_t duration){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:282:void tgvoip::OpusDecoder::SetJitterBuffer(std::shared_ptr<JitterBuffer> jitterBuffer){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:286:void tgvoip::OpusDecoder::SetDTX(bool enable){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:290:void tgvoip::OpusDecoder::SetLevelMeter(AudioLevelMeter *levelMeter){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:294:void tgvoip::OpusDecoder::AddAudioEffect(effects::AudioEffect *effect){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:298:void tgvoip::OpusDecoder::RemoveAudioEffect(effects::AudioEffect *effect){
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:7:#ifndef LIBTGVOIP_OPUSDECODER_H
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:8:#define LIBTGVOIP_OPUSDECODER_H
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:22:struct OpusDecoder;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:25:class OpusDecoder {
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:27:	TGVOIP_DISALLOW_COPY_AND_ASSIGN(OpusDecoder);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:32:	OpusDecoder(const std::shared_ptr<MediaStreamItf>& dst, bool isAsync, bool needEC);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:33:	OpusDecoder(const std::unique_ptr<MediaStreamItf>& dst, bool isAsync, bool needEC);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:34:	OpusDecoder(MediaStreamItf* dst, bool isAsync, bool needEC);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:35:	virtual ~OpusDecoder();
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:49:	int DecodeNextFrame();
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:50:	::OpusDecoder* dec;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:51:	::OpusDecoder* ecDec;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:52:	BlockingQueue<unsigned char*>* decodedQueue;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:55:	unsigned char* lastDecoded;
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:71:	unsigned char decodeBuffer[8192];
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.h:80:#endif //LIBTGVOIP_OPUSDECODER_H
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:7:#include "OpusEncoder.h"
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:13:#include <opus/opus.h>
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:15:#include "opus.h"
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:22:				return OPUS_BANDWIDTH_NARROWBAND;
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:24:				return OPUS_BANDWIDTH_MEDIUMBAND;
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:26:				return OPUS_BANDWIDTH_WIDEBAND;
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:28:				return OPUS_BANDWIDTH_SUPERWIDEBAND;
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:31:				return OPUS_BANDWIDTH_FULLBAND;
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:36:tgvoip::OpusEncoder::OpusEncoder(MediaStreamItf *source, bool needSecondary):queue(11), bufferPool(960*2, 10){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:38:	source->SetCallback(tgvoip::OpusEncoder::Callback, this);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:39:	enc=opus_encoder_create(48000, 1, OPUS_APPLICATION_VOIP, NULL);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:40:	opus_encoder_ctl(enc, OPUS_SET_COMPLEXITY(10));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:41:	opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC(1));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:42:	opus_encoder_ctl(enc, OPUS_SET_INBAND_FEC(1));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:43:	opus_encoder_ctl(enc, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:44:	opus_encoder_ctl(enc, OPUS_SET_BANDWIDTH(OPUS_BANDWIDTH_FULLBAND));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:59:		secondaryEncoder=opus_encoder_create(48000, 1, OPUS_APPLICATION_VOIP, NULL);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:60:		opus_encoder_ctl(secondaryEncoder, OPUS_SET_COMPLEXITY(10));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:61:		opus_encoder_ctl(secondaryEncoder, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:62:		//opus_encoder_ctl(secondaryEncoder, OPUS_SET_VBR(0));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:63:		opus_encoder_ctl(secondaryEncoder, OPUS_SET_BITRATE(8000));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:64:		opus_encoder_ctl(secondaryEncoder, OPUS_SET_BANDWIDTH(secondaryEnabledBandwidth));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:70:tgvoip::OpusEncoder::~OpusEncoder(){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:71:	opus_encoder_destroy(enc);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:73:		opus_encoder_destroy(secondaryEncoder);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:76:void tgvoip::OpusEncoder::Start(){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:80:	thread=new Thread(std::bind(&tgvoip::OpusEncoder::RunThread, this));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:81:	thread->SetName("OpusEncoder");
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:86:void tgvoip::OpusEncoder::Stop(){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:96:void tgvoip::OpusEncoder::SetBitrate(uint32_t bitrate){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:100:void tgvoip::OpusEncoder::Encode(int16_t* data, size_t len){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:102:		opus_encoder_ctl(enc, OPUS_SET_BITRATE(requestedBitrate));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:104:		LOGV("opus_encoder: setting bitrate to %u", currentBitrate);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:110:		opus_encoder_ctl(enc, OPUS_SET_BANDWIDTH(secondaryEncoderEnabled ? secondaryEnabledBandwidth : OPUS_BANDWIDTH_FULLBAND));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:112:	int32_t r=opus_encode(enc, data, static_cast<int>(len), buffer, 4096);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:122:			secondaryLen=opus_encode(secondaryEncoder, data, static_cast<int>(len), secondaryBuffer, sizeof(secondaryBuffer));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:129:size_t tgvoip::OpusEncoder::Callback(unsigned char *data, size_t len, void* param){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:130:	OpusEncoder* e=(OpusEncoder*)param;
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:137:		LOGW("opus_encoder: no buffer slots left");
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:140:			opus_encoder_ctl(e->enc, OPUS_SET_COMPLEXITY(e->complexity));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:147:uint32_t tgvoip::OpusEncoder::GetBitrate(){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:151:void tgvoip::OpusEncoder::SetEchoCanceller(EchoCanceller* aec){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:155:void tgvoip::OpusEncoder::RunThread(){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:186:							opus_encoder_ctl(enc, OPUS_SET_BITRATE(currentBitrate));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:187:							opus_encoder_ctl(enc, OPUS_SET_BANDWIDTH(vadModeVoiceBandwidth));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:189:								opus_encoder_ctl(secondaryEncoder, OPUS_SET_BITRATE(currentBitrate));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:190:								opus_encoder_ctl(secondaryEncoder, OPUS_SET_BANDWIDTH(vadModeVoiceBandwidth));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:193:							opus_encoder_ctl(enc, OPUS_SET_BITRATE(vadNoVoiceBitrate));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:194:							opus_encoder_ctl(enc, OPUS_SET_BANDWIDTH(vadModeNoVoiceBandwidth));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:196:								opus_encoder_ctl(secondaryEncoder, OPUS_SET_BITRATE(vadNoVoiceBitrate));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:197:								opus_encoder_ctl(secondaryEncoder, OPUS_SET_BANDWIDTH(vadModeNoVoiceBandwidth));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:203:						opus_encoder_ctl(enc, OPUS_SET_BITRATE(currentBitrate));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:204:						opus_encoder_ctl(enc, OPUS_SET_BANDWIDTH(secondaryEncoderEnabled ? secondaryEnabledBandwidth : OPUS_AUTO));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:206:							opus_encoder_ctl(secondaryEncoder, OPUS_SET_BITRATE(currentBitrate));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:207:							opus_encoder_ctl(secondaryEncoder, OPUS_SET_BANDWIDTH(secondaryEnabledBandwidth));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:223:void tgvoip::OpusEncoder::SetOutputFrameDuration(uint32_t duration){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:228:void tgvoip::OpusEncoder::SetPacketLoss(int percent){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:230:	opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC(packetLossPercent));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:231:	opus_encoder_ctl(enc, OPUS_SET_INBAND_FEC(percent>0 && !secondaryEncoderEnabled ? 1 : 0));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:234:int tgvoip::OpusEncoder::GetPacketLoss(){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:238:void tgvoip::OpusEncoder::SetDTX(bool enable){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:239:	opus_encoder_ctl(enc, OPUS_SET_DTX(enable ? 1 : 0));
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:242:void tgvoip::OpusEncoder::SetLevelMeter(tgvoip::AudioLevelMeter *levelMeter){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:246:void tgvoip::OpusEncoder::SetCallback(void (*f)(unsigned char *, size_t, unsigned char *, size_t, void *), void *param){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:251:void tgvoip::OpusEncoder::InvokeCallback(unsigned char *data, size_t length, unsigned char *secondaryData, size_t secondaryLength){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:255:void tgvoip::OpusEncoder::SetSecondaryEncoderEnabled(bool enabled){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:259:void tgvoip::OpusEncoder::SetVadMode(bool vad){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:262:void tgvoip::OpusEncoder::AddAudioEffect(effects::AudioEffect *effect){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.cpp:266:void tgvoip::OpusEncoder::RemoveAudioEffect(effects::AudioEffect *effect){
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.h:7:#ifndef LIBTGVOIP_OPUSENCODER_H
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.h:8:#define LIBTGVOIP_OPUSENCODER_H
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.h:20:struct OpusEncoder;
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.h:23:class OpusEncoder{
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.h:25:	TGVOIP_DISALLOW_COPY_AND_ASSIGN(OpusEncoder);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.h:26:	OpusEncoder(MediaStreamItf* source, bool needSecondary);
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.h:27:	virtual ~OpusEncoder();
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.h:53:	::OpusEncoder* enc;
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.h:54:	::OpusEncoder* secondaryEncoder;
+TMessagesProj/jni/voip/libtgvoip/OpusEncoder.h:82:#endif //LIBTGVOIP_OPUSENCODER_H
+TMessagesProj/jni/voip/libtgvoip/PrivateDefines.h:46:#define CODEC_OPUS_OLD 1
+TMessagesProj/jni/voip/libtgvoip/PrivateDefines.h:47:#define CODEC_OPUS FOURCC('O','P','U','S')
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:18:#include "OpusEncoder.h"
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:19:#include "OpusDecoder.h"
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:33:#include <opus.h>
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:35:#include <opus.h>
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:181:	stm->codec=CODEC_OPUS;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:207:		LOGD("before stop decoder");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:208:		if(stm->decoder){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:209:			stm->decoder->Stop();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:235:	if (preprocDecoder) {
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:236:        opus_decoder_destroy(preprocDecoder);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:237:        preprocDecoder=nullptr;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:791:    preprocDecoder=preprocDecoder ? preprocDecoder : opus_decoder_create(48000, 1, NULL);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1105:	if (audioPreprocDataCallback && preprocDecoder) {
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1106:        int size=opus_decode(preprocDecoder, data, len, preprocBuffer, 4096, 0);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1137:	encoder=new OpusEncoder(audioInput, true);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1181:	stm->decoder=make_shared<OpusDecoder>(audioOutput, true, peerVersion>=6);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1182:	stm->decoder->SetEchoCanceller(echoCanceller);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1184:		stm->decoder->AddAudioEffect(&outputVolume);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1186:	stm->decoder->SetJitterBuffer(stm->jitterBuffer);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1187:	stm->decoder->SetFrameDuration(stm->frameDuration);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1188:	stm->decoder->Start();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1418:				out.WriteByte(CODEC_OPUS_OLD);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1422:				out.WriteInt32(CODEC_OPUS);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1423:				out.WriteByte(0); // video codecs count (decode)
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1427:				out.WriteInt32(CODEC_OPUS);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1428:				vector<uint32_t> decoders=config.enableVideoReceive ? video::VideoRenderer::GetAvailableDecoders() : vector<uint32_t>();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1430:				out.WriteByte((unsigned char)decoders.size());
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:1431:				for(uint32_t id:decoders){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2238:			LOGD("Peer video decoders:");
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2239:			unsigned int numSupportedVideoDecoders=in.ReadByte();
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2240:			for(i=0; i<numSupportedVideoDecoders; i++){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2242:				peerVideoDecoders.push_back(id);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2261:				out.WriteByte((unsigned char) ((*s)->codec==CODEC_OPUS ? CODEC_OPUS_OLD : 0));
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2325:					if(codec==CODEC_OPUS_OLD)
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2326:						stm->codec=CODEC_OPUS;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:2345:					stm->decoder=NULL;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3487:			//LOGV("3 before decode %u", (unsigned int)frame.Length());
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3492:			videoRenderer->DecodeAndDisplay(move(frame), pts);
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3505:	if(find(myEncoders.begin(), myEncoders.end(), CODEC_HEVC)!=myEncoders.end() && find(peerVideoDecoders.begin(), peerVideoDecoders.end(), CODEC_HEVC)!=peerVideoDecoders.end()){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3507:	}else if(find(myEncoders.begin(), myEncoders.end(), CODEC_AVC)!=myEncoders.end() && find(peerVideoDecoders.begin(), peerVideoDecoders.end(), CODEC_AVC)!=peerVideoDecoders.end()){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.cpp:3509:	}else if(find(myEncoders.begin(), myEncoders.end(), CODEC_VP8)!=myEncoders.end() && find(peerVideoDecoders.begin(), peerVideoDecoders.end(), CODEC_VP8)!=peerVideoDecoders.end()){
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:33:#include "OpusDecoder.h"
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:34:#include "OpusEncoder.h"
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:532:			std::shared_ptr<OpusDecoder> decoder;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:638:		OpusEncoder* encoder;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:746:		std::vector<uint32_t> peerVideoDecoders;
+TMessagesProj/jni/voip/libtgvoip/VoIPController.h:753:		::OpusDecoder* preprocDecoder=nullptr;
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:98:		if(s->type==STREAM_TYPE_AUDIO && s->codec==CODEC_OPUS && !audioStreamID){
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:108:			s->decoder=make_shared<OpusDecoder>(s->callbackWrapper, false, false);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:109:			s->decoder->SetJitterBuffer(s->jitterBuffer);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:110:			s->decoder->SetFrameDuration(s->frameDuration);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:111:			s->decoder->SetDTX(true);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:112:			s->decoder->SetLevelMeter(p.levelMeter);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:134:			(*stm)->decoder->Stop();
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:135:			//delete (*stm)->decoder;
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:210:	s.WriteInt32(CODEC_OPUS);
+TMessagesProj/jni/voip/libtgvoip/VoIPGroupController.cpp:708:					if((*s)->decoder){
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:14:jmethodID VideoRendererAndroid::decodeAndDisplayMethod=NULL;
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:17:std::vector<uint32_t> VideoRendererAndroid::availableDecoders;
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:35:	/*decoderThread.Post([this]{
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:36:		decoderEnv->DeleteGlobalRef(jobj);
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:50:			Request::Type::ResetDecoder
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:65:void VideoRendererAndroid::DecodeAndDisplay(Buffer frame, uint32_t pts){
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:66:	/*decoderThread.Post(std::bind([this](Buffer frame){
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:68:	//LOGV("2 before decode %u", (unsigned int)frame.Length());
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:71:		Request::Type::DecodeFrame
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:88:		//LOGV("1 before decode %u", (unsigned int)request.Length());
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:90:			LOGI("Shutting down video decoder thread");
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:92:		}else if(request.type==Request::Type::DecodeFrame){
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:101:				env->CallVoidMethod(jobj, decodeAndDisplayMethod, jbuf, (jint) request.buffer.Length(), 0);
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:103:		}else if(request.type==Request::Type::ResetDecoder){
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.cpp:135:	LOGI("==== decoder thread exiting ====");
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.h:21:			virtual void DecodeAndDisplay(Buffer frame, uint32_t pts) override;
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.h:26:			static jmethodID decodeAndDisplayMethod;
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.h:29:			static std::vector<uint32_t> availableDecoders;
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.h:34:					DecodeFrame,
+TMessagesProj/jni/voip/libtgvoip/os/android/VideoRendererAndroid.h:35:					ResetDecoder,
+TMessagesProj/jni/voip/libtgvoip/os/darwin/SampleBufferDisplayLayerRenderer.h:28:			virtual void DecodeAndDisplay(Buffer frame, uint32_t pts) override;
+TMessagesProj/jni/voip/libtgvoip/os/darwin/SampleBufferDisplayLayerRenderer.h:31:			static std::vector<uint32_t> GetAvailableDecoders();
+TMessagesProj/jni/voip/libtgvoip/os/darwin/SampleBufferDisplayLayerRenderer.mm:82:void SampleBufferDisplayLayerRenderer::DecodeAndDisplay(Buffer frame, uint32_t pts){
+TMessagesProj/jni/voip/libtgvoip/os/darwin/SampleBufferDisplayLayerRenderer.mm:135:std::vector<uint32_t> SampleBufferDisplayLayerRenderer::GetAvailableDecoders(){
+TMessagesProj/jni/voip/libtgvoip/os/darwin/SampleBufferDisplayLayerRenderer.mm:139:		if(VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC)){
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.cpp:442:	CryptographicBuffer::CopyToByteArray(CryptographicBuffer::DecodeFromHexString("0000000000000000000000000000000000000000000000000000000000000000"), &data);
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.cpp:443:	CryptographicBuffer::CopyToByteArray(CryptographicBuffer::DecodeFromHexString("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"), &iv);
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.cpp:444:	CryptographicBuffer::CopyToByteArray(CryptographicBuffer::DecodeFromHexString("000102030405060708090a0b0c0d0e0f"), &key);
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.cpp:449:	CryptographicBuffer::CopyToByteArray(CryptographicBuffer::DecodeFromHexString("1A8519A6557BE652E9DA8E43DA4EF4453CF456B4CA488AA383C79C98B34797CB"), &data);
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.cpp:450:	CryptographicBuffer::CopyToByteArray(CryptographicBuffer::DecodeFromHexString("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"), &iv);
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.cpp:451:	CryptographicBuffer::CopyToByteArray(CryptographicBuffer::DecodeFromHexString("000102030405060708090a0b0c0d0e0f"), &key);
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.cpp:456:	CryptographicBuffer::CopyToByteArray(CryptographicBuffer::DecodeFromHexString("99706487A1CDE613BC6DE0B6F24B1C7AA448C8B9C3403E3467A8CAD89340F53B"), &data);
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.cpp:457:	CryptographicBuffer::CopyToByteArray(CryptographicBuffer::DecodeFromHexString("6D656E746174696F6E206F6620494745206D6F646520666F72204F70656E5353"), &iv);
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.cpp:458:	CryptographicBuffer::CopyToByteArray(CryptographicBuffer::DecodeFromHexString("5468697320697320616E20696D706C65"), &key);
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.cpp:463:	CryptographicBuffer::CopyToByteArray(CryptographicBuffer::DecodeFromHexString("4C2E204C6574277320686F70652042656E20676F74206974207269676874210A"), &data);
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.cpp:464:	CryptographicBuffer::CopyToByteArray(CryptographicBuffer::DecodeFromHexString("6D656E746174696F6E206F6620494745206D6F646520666F72204F70656E5353"), &iv);
+TMessagesProj/jni/voip/libtgvoip/os/windows/CXWrapper.cpp:465:	CryptographicBuffer::CopyToByteArray(CryptographicBuffer::DecodeFromHexString("5468697320697320616E20696D706C65"), &key);
+TMessagesProj/jni/voip/libtgvoip/video/VideoRenderer.cpp:13:std::vector<uint32_t> tgvoip::video::VideoRenderer::GetAvailableDecoders(){
+TMessagesProj/jni/voip/libtgvoip/video/VideoRenderer.cpp:15:	return VideoRendererAndroid::availableDecoders;
+TMessagesProj/jni/voip/libtgvoip/video/VideoRenderer.cpp:17:	return SampleBufferDisplayLayerRenderer::GetAvailableDecoders();
+TMessagesProj/jni/voip/libtgvoip/video/VideoRenderer.h:15:			static std::vector<uint32_t> GetAvailableDecoders();
+TMessagesProj/jni/voip/libtgvoip/video/VideoRenderer.h:18:			virtual void DecodeAndDisplay(Buffer frame, uint32_t pts)=0;

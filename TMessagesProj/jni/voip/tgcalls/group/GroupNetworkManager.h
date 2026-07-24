@@ -126,6 +126,18 @@ private:
 
     bool _isConnected = false;
     int64_t _lastNetworkActivityMs = 0;
+
+
+    // Yasuagram latency measurement
+    int64_t _latencyLastReceiveTimestamp = 0;
+    // Yasuagram real UDP arrival timestamp
+    int64_t _latencyLastUdpReceiveTimestamp = 0;
+    uint64_t _latencyReceivedPackets = 0;
+
+    // Yasuagram real RTP jitter measurement
+    int64_t _latencyPreviousReceiveTimestamp = 0;
+    int64_t _latencyPreviousDelta = 0;
+    double _latencyJitter = 0;
 };
 
 } // namespace tgcalls

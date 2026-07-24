@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include "../../logging.h"
 #include "tgnet/FileLog.h"
+#include "../../latency_dashboard/LatencyDashboard.h"
 
 extern JavaVM* sharedJVM;
 
@@ -100,7 +101,22 @@ void AudioOutputAndroid::HandleCallback(JNIEnv* env, jbyteArray buffer){
 		return;
 	unsigned char* buf=(unsigned char*) env->GetByteArrayElements(buffer, NULL);
 	size_t len=(size_t) env->GetArrayLength(buffer);
-	InvokeCallback(buf, len);
+	int64_t renderStart = rtc::TimeMicros();
+
+        LatencyReport inputReport;
+        inputReport.audioRenderInputTimestamp = renderStart;
+        LatencyDashboard::Instance().Update(inputReport);
+
+        InvokeCallback(buf, len);
+
+        int64_t renderEnd = rtc::TimeMicros();
+
+        LatencyReport latencyReport;
+        latencyReport.audioRenderOutputTimestamp = renderEnd;
+        latencyReport.audioRenderQueueDelay =
+            (renderEnd - renderStart) / 1000.0;
+
+        LatencyDashboard::Instance().Update(latencyReport);
 	env->ReleaseByteArrayElements(buffer, (jbyte *) buf, 0);
 }
 

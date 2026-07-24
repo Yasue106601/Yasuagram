@@ -1,4 +1,6 @@
 #include "group/GroupNetworkManager.h"
+#include <cmath>
+#include "LatencyDashboard.h"
 
 #include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/client/basic_port_allocator.h"
@@ -616,15 +618,69 @@ void GroupNetworkManager::transportReadyToSend(cricket::IceTransportInternal *tr
 void GroupNetworkManager::transportPacketReceived(rtc::PacketTransportInternal *transport, const char *bytes, size_t size, const int64_t &timestamp, int unused) {
     assert(_threads->getNetworkThread()->IsCurrent());
 
+    // Yasuagram: store real UDP receive timestamp
+    int64_t udpPacketReceiveTime = rtc::TimeMicros();
+
+    _latencyLastUdpReceiveTimestamp = udpPacketReceiveTime;
+
+    LatencyReport udpReport;
+    udpReport.lastReceiveTimestamp = _latencyLastUdpReceiveTimestamp;
+    LatencyDashboard::Instance().Update(udpReport);
+
     _lastNetworkActivityMs = rtc::TimeMillis();
 }
 
 void GroupNetworkManager::RtpPacketReceived_n(webrtc::RtpPacketReceived const &packet, bool isUnresolved) {
+
+    // Yasuagram: calculate RTP processing delay
+    int64_t rtpProcessTime = rtc::TimeMicros();
+
+    // Yasuagram: real incoming RTP timestamp
+    _latencyLastReceiveTimestamp = rtc::TimeMicros();
+    _latencyReceivedPackets++;
+
+    // Yasuagram: calculate real RTP arrival jitter
+    if (_latencyPreviousReceiveTimestamp != 0) {
+        int64_t delta = _latencyLastReceiveTimestamp - _latencyPreviousReceiveTimestamp;
+
+        if (_latencyPreviousDelta != 0) {
+            double variation = std::abs(
+                (double)delta - (double)_latencyPreviousDelta
+            );
+
+            _latencyJitter += (variation - _latencyJitter) / 16.0;
+        }
+
+        _latencyPreviousDelta = delta;
+    }
+
+    _latencyPreviousReceiveTimestamp = _latencyLastReceiveTimestamp;
+
+    // Yasuagram: update latency dashboard with real receive timestamp
+    LatencyReport report;
+    report.lastReceiveTimestamp = _latencyLastReceiveTimestamp;
+    report.incomingPacketCount = _latencyReceivedPackets;
+
+    // Yasuagram: real receive processing delay
+    if (_latencyLastUdpReceiveTimestamp != 0) {
+        report.incomingPacketDelay =
+            (_latencyLastReceiveTimestamp - _latencyLastUdpReceiveTimestamp) / 1000.0;
+    }
+    // Yasuagram: send real calculated RTP jitter to dashboard
+    report.jitter = _latencyJitter;
+
+    LatencyDashboard::Instance().Update(report);
+
     if (packet.HasExtension(webrtc::kRtpExtensionAudioLevel)) {
         uint8_t audioLevel = 0;
         bool isSpeech = false;
 
         if (packet.GetExtension<webrtc::AudioLevel>(&isSpeech, &audioLevel)) {
+            // Yasuagram: Audio Level metrics
+            LatencyReport audioLevelReport;
+            audioLevelReport.audioInputLevel = audioLevel;
+            audioLevelReport.audioInputIsSpeech = isSpeech;
+            LatencyDashboard::Instance().Update(audioLevelReport);
             if (_audioActivityUpdated) {
                 _audioActivityUpdated(packet.Ssrc(), audioLevel, isSpeech);
             }

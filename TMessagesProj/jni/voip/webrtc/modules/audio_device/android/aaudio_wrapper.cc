@@ -1,3 +1,4 @@
+#include "../../../../latency_dashboard/LatencyDashboard.h"
 #if __ANDROID_API__ >= 26
 /*
  *  Copyright (c) 2018 The WebRTC project authors. All Rights Reserved.
@@ -539,7 +540,16 @@ int32_t AAudioWrapper::device_id() const {
 
 int32_t AAudioWrapper::xrun_count() const {
   RTC_DCHECK(stream_);
-  return AAudioStream_getXRunCount(stream_);
+  int xruns = AAudioStream_getXRunCount(stream_);
+
+LatencyReport report;
+report.xrunCount = xruns;
+report.audioBufferFrames = AAudioStream_getBufferSizeInFrames(stream_);
+report.framesPerBurst = AAudioStream_getFramesPerBurst(stream_);
+
+LatencyDashboard::Instance().Update(report);
+
+return xruns;
 }
 
 int32_t AAudioWrapper::format() const {

@@ -1988,6 +1988,12 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
+
+            if (id == 9001) {
+                showLatencyDashboard();
+                return;
+            }
+
                 if (id == -1) {
                     onBackPressed();
                 } else if (id == eveyone_can_speak_item) {
@@ -4688,6 +4694,13 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
         otherItem.setContentDescription(getString(R.string.AccDescrMoreOptions));
         otherItem.setSubMenuOpenSide(2);
         otherItem.setDelegate(id -> actionBar.getActionBarMenuOnItemClick().onItemClick(id));
+
+        otherItem.addSubItem(
+                9001,
+                "Yasuagram Latency Dashboard"
+        );
+
+
         otherItem.setBackgroundDrawable(Theme.createSelectorDrawable(Theme.getColor(Theme.key_voipgroup_actionBarItemsSelector), 6));
         otherItem.setOnClickListener(v -> {
             if (call == null || renderersContainer.inFullscreenMode) {
@@ -10900,5 +10913,54 @@ private void createLatencyMonitor() {
             )
         );
     }
+
+
+    private void showLatencyDashboard() {
+
+        if (getCurrentGroupCall() == null) {
+            return;
+        }
+
+        String report = "";
+
+        try {
+
+            VoIPService service = VoIPService.getSharedInstance();
+
+            if (service != null) {
+                report = service.getLatencyStats();
+            }
+
+        } catch (Exception e) {
+            report = "Latency error: " + e.getMessage();
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+
+        builder.setTitle("Yasuagram Latency Dashboard");
+
+        builder.setMessage(report);
+
+        builder.setPositiveButton("Copy", (dialog, which) -> {
+
+            android.content.ClipboardManager clipboard =
+                    (android.content.ClipboardManager)
+                    getContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+
+            android.content.ClipData clip =
+                    android.content.ClipData.newPlainText(
+                            "Latency Report",
+                            report
+                    );
+
+            clipboard.setPrimaryClip(clip);
+
+        });
+
+        builder.setNegativeButton("Close", null);
+
+        builder.show();
+    }
+
 
 }

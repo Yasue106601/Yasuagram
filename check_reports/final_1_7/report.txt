@@ -1,0 +1,159 @@
+===== Yasuagram Elements 1-7 Full Audit =====
+Fri Jul 24 02:39:11 +03 2026
+
+===== LatencyDashboard Structure =====
+#pragma once
+#include <stdint.h>
+#include <string>
+#include <mutex>
+
+struct LatencyReport {
+    int audioBufferFrames = 0;
+    int framesPerBurst = 0;
+    int xrunCount = 0;
+
+    double networkRTT = 0;
+    double jitter = 0;
+    double packetLoss = 0;
+
+    int ringBufferFill = 0;
+
+
+    // Yasuagram incoming audio latency metrics
+    int64_t lastReceiveTimestamp = 0;
+    uint64_t incomingPacketCount = 0;
+    double incomingPacketDelay = 0;
+
+    // Yasuagram Opus decoder timing
+    double opusDecodeTime = 0;
+
+    // Yasuagram Audio Render Queue Delay
+    double audioRenderQueueDelay = 0;
+
+    // Real render timestamps
+    int64_t audioRenderInputTimestamp = 0;
+    int64_t audioRenderOutputTimestamp = 0;
+
+    // Yasuagram AAudio metrics
+    uint32_t audioFramesPerCallback = 0;
+    uint32_t audioBurstSize = 0;
+    uint32_t audioXrunCount = 0;
+
+    // Yasuagram Jitter Buffer metrics
+    double jitterBufferCurrentDelay = 0;
+    double jitterBufferTargetDelay = 0;
+    uint64_t jitterBufferPacketsWaiting = 0;
+
+    std::string GenerateText();
+};
+
+class LatencyDashboard {
+public:
+    static LatencyDashboard& Instance();
+
+    void Update(const LatencyReport& report);
+    std::string GetReport();
+
+private:
+    LatencyDashboard() {}
+    std::mutex mutex;
+    LatencyReport current;
+};
+
+===== Dashboard Update Logic =====
+#include "LatencyDashboard.h"
+#include <sstream>
+
+LatencyDashboard& LatencyDashboard::Instance(){
+    static LatencyDashboard instance;
+    return instance;
+}
+
+void LatencyDashboard::Update(const LatencyReport& r){
+    std::lock_guard<std::mutex> lock(mutex);
+
+    if (r.audioBufferFrames)
+        current.audioBufferFrames = r.audioBufferFrames;
+
+    if (r.framesPerBurst)
+        current.framesPerBurst = r.framesPerBurst;
+
+    if (r.xrunCount)
+        current.xrunCount = r.xrunCount;
+
+    if (r.networkRTT)
+        current.networkRTT = r.networkRTT;
+
+    if (r.jitter)
+        current.jitter = r.jitter;
+
+    if (r.packetLoss)
+        current.packetLoss = r.packetLoss;
+
+    if (r.ringBufferFill)
+        current.ringBufferFill = r.ringBufferFill;
+
+    if (r.lastReceiveTimestamp)
+        current.lastReceiveTimestamp = r.lastReceiveTimestamp;
+
+    if (r.incomingPacketCount)
+        current.incomingPacketCount = r.incomingPacketCount;
+
+    if (r.incomingPacketDelay)
+        current.incomingPacketDelay = r.incomingPacketDelay;
+}
+
+std::string LatencyDashboard::GetReport(){
+    std::lock_guard<std::mutex> lock(mutex);
+    return current.GenerateText();
+}
+
+std::string LatencyReport::GenerateText(){
+
+    std::stringstream s;
+
+    s<<"=== Yasuagram Latency Report ===\n";
+
+    s<<"Audio Buffer: "<<audioBufferFrames<<" frames\n";
+    s<<"Frames Burst: "<<framesPerBurst<<"\n";
+    s<<"XRuns: "<<xrunCount<<"\n";
+
+    s<<"Network RTT: "<<networkRTT<<" ms\n";
+    s<<"Jitter: "<<jitter<<" ms\n";
+    s<<"Packet Loss: "<<packetLoss<<" %\n";
+
+    s<<"Ring Buffer: "<<ringBufferFill<<"\n";
+
+    s<<"Last Receive Timestamp: "<<lastReceiveTimestamp<<" us\n";
+    s<<"Incoming Packets: "<<incomingPacketCount<<"\n";
+    s<<"Incoming Packet Delay: "<<incomingPacketDelay<<" ms\n";
+    s<<"Opus Decode Time: "<<opusDecodeTime<<" ms\n";
+    s<<"Audio Render Queue Delay: "<<audioRenderQueueDelay<<" ms\n";
+    s<<"Render Timestamp Difference: "
+     <<(audioRenderOutputTimestamp - audioRenderInputTimestamp)/1000.0
+     <<" ms\n";
+    s<<"Audio Frames Per Callback: "<<audioFramesPerCallback<<"\n";
+    s<<"Audio Burst Size: "<<audioBurstSize<<"\n";
+    s<<"Audio XRun Count: "<<audioXrunCount<<"\n";
+    s<<"Jitter Buffer Current Delay: "<<jitterBufferCurrentDelay<<" ms\n";
+    s<<"Jitter Buffer Target Delay: "<<jitterBufferTargetDelay<<" ms\n";
+    s<<"Jitter Buffer Packets Waiting: "<<jitterBufferPacketsWaiting<<"\n";
+
+    return s.str();
+}
+
+===== All Dashboard Updates =====
+
+===== Element 1 Network Timing =====
+
+===== Element 2 Packet Delay =====
+
+===== Element 3-4 Jitter Buffer =====
+
+===== Element 5 Queue =====
+
+===== Element 6 Opus =====
+
+===== Element 7 Render =====
+
+===== Include Errors =====

@@ -5858,4 +5858,25 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 		public boolean cameraAlertWasShowed;
 		public boolean wasVideoCall;
 	}
+
+    public String getLatencyStats() {
+
+        try {
+
+            if (tgVoip != null && tgVoip.length > 0 && tgVoip[0] != null) {
+
+                return tgVoip[0].getLatencyStats();
+
+            }
+
+        } catch (Exception e) {
+
+            return "Latency error: " + e.getMessage();
+
+        }
+
+        return "No active VoIP instance";
+    }
+
+
 }
