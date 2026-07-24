@@ -1,0 +1,9 @@
+TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp:89:        LatencyDashboard::Instance().Update(report);
+TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp:231:LatencyDashboard::Instance().Update(latencyReport);
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:108:        LatencyDashboard::Instance().Update(inputReport);
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:119:        LatencyDashboard::Instance().Update(latencyReport);
+TMessagesProj/jni/voip/tgcalls/MediaManager.cpp:643:LatencyDashboard::Instance().Update(report);
+TMessagesProj/jni/voip/tgcalls/group/GroupNetworkManager.cpp:628:    LatencyDashboard::Instance().Update(udpReport);
+TMessagesProj/jni/voip/tgcalls/group/GroupNetworkManager.cpp:672:    LatencyDashboard::Instance().Update(report);
+TMessagesProj/jni/voip/webrtc/modules/audio_device/android/aaudio_player.cc:246:  LatencyDashboard::Instance().Update(latencyReport);
+TMessagesProj/jni/voip/webrtc/modules/audio_device/android/aaudio_wrapper.cc:550:LatencyDashboard::Instance().Update(report);

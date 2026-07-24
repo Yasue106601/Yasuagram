@@ -1,0 +1,9 @@
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:107:        inputReport.audioRenderInputTimestamp = renderStart;
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:115:        latencyReport.audioRenderOutputTimestamp = renderEnd;
+TMessagesProj/jni/voip/libtgvoip/os/android/AudioOutputAndroid.cpp:116:        latencyReport.audioRenderQueueDelay =
+TMessagesProj/jni/voip/webrtc/modules/audio_device/android/aaudio_player.cc:234:  latencyReport.audioRenderQueueDelay =
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.h:27:    double audioRenderQueueDelay = 0;
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.h:30:    int64_t audioRenderInputTimestamp = 0;
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.h:31:    int64_t audioRenderOutputTimestamp = 0;
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.cpp:68:    s<<"Audio Render Queue Delay: "<<audioRenderQueueDelay<<" ms\n";
+TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.cpp:70:     <<(audioRenderOutputTimestamp - audioRenderInputTimestamp)/1000.0

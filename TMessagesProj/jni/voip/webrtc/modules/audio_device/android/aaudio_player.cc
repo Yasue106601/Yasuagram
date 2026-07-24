@@ -18,6 +18,7 @@
 #include "api/task_queue/task_queue_base.h"
 #include "modules/audio_device/android/audio_manager.h"
 #include "modules/audio_device/fine_audio_buffer.h"
+#include "../../../../latency_dashboard/LatencyDashboard.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 
@@ -225,6 +226,33 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
   // Estimate latency between writing an audio frame to the output stream and
   // the time that same frame is played out on the output audio device.
   latency_millis_ = aaudio_.EstimateLatencyMillis();
+
+
+  // Yasuagram: AAudio real output latency monitor
+  LatencyReport latencyReport;
+
+  latencyReport.audioRenderQueueDelay =
+      latency_millis_;
+
+  latencyReport.audioFramesPerCallback =
+      num_frames;
+
+  latencyReport.audioBurstSize =
+      aaudio_.frames_per_burst();
+
+  latencyReport.audioXrunCount =
+      aaudio_.xrun_count();
+
+  LatencyDashboard::Instance().Update(latencyReport);
+
+  // Yasuagram: AAudio device detailed metrics
+  LatencyReport aaudioMetrics;
+  if (stream_) {
+    aaudioMetrics.aaudioBufferCapacity = AAudioStream_getBufferCapacity(stream_);
+    aaudioMetrics.aaudioFramesPerDataCallback = AAudioStream_getFramesPerDataCallback(stream_);
+    aaudioMetrics.aaudioPositionFrames = AAudioStream_getFramesRead(stream_);
+    LatencyDashboard::Instance().Update(aaudioMetrics);
+  }
   // TODO(henrika): use for development only.
   if (aaudio_.frames_written() % (1000 * aaudio_.frames_per_burst()) == 0) {
     RTC_DLOG(LS_INFO) << "output latency: " << latency_millis_

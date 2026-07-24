@@ -8,6 +8,7 @@
 #include "JitterBuffer.h"
 #include "logging.h"
 #include "VoIPServerConfig.h"
+#include "../latency_dashboard/LatencyDashboard.h"
 #include <math.h>
 
 using namespace tgvoip;
@@ -77,6 +78,16 @@ void JitterBuffer::HandleInput(unsigned char *data, size_t len, uint32_t timesta
 	pkt.buffer=data;
 	pkt.timestamp=timestamp;
 	pkt.isEC=isEC;
+
+        // Yasuagram: JitterBuffer metrics
+        LatencyReport report;
+
+        report.jitterBufferCurrentDelay = GetCurrentDelay();
+        report.jitterBufferTargetDelay = GetAverageDelay();
+        report.jitterBufferPacketsWaiting = GetMinPacketCount();
+
+        LatencyDashboard::Instance().Update(report);
+
 	PutInternal(&pkt, !isEC);
 	//LOGV("in, ts=%d, ec=%d", timestamp, isEC);
 

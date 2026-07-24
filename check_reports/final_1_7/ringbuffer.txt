@@ -1,0 +1,32 @@
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:87:class SampleRingBuffer {
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:89:    SampleRingBuffer(size_t size) {
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:93:    ~SampleRingBuffer() {
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:112:    RingBuffer *_buffer = nullptr;
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:247:    _audioRingBuffer(_audioDataRingBufferMaxSize),
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:374:                    const auto result = (_audioRingBuffer.availableForWriting() >= 480 * _audioRingBufferNumChannels);
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:411:                    if (frameOut.num_channels() == _audioRingBufferNumChannels) {
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:412:                        _audioRingBuffer.write(frameOut.data(), frameOut.samples_per_channel() * frameOut.num_channels());
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:414:                        if (_stereoShuffleBuffer.size() < frameOut.samples_per_channel() * _audioRingBufferNumChannels) {
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:415:                            _stereoShuffleBuffer.resize(frameOut.samples_per_channel() * _audioRingBufferNumChannels);
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:418:                            for (int j = 0; j < _audioRingBufferNumChannels; j++) {
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:419:                                _stereoShuffleBuffer[i * _audioRingBufferNumChannels + j] = frameOut.data()[i];
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:422:                        _audioRingBuffer.write(_stereoShuffleBuffer.data(), frameOut.samples_per_channel() * _audioRingBufferNumChannels);
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:429:                    const auto result = (_audioRingBuffer.availableForWriting() >= 480 * _audioRingBufferNumChannels);
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:450:                    } else if (numChannels == _audioRingBufferNumChannels) {
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:503:                    if (frameOut.num_channels() == _audioRingBufferNumChannels) {
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:504:                        _audioRingBuffer.write(frameOut.data(), frameOut.samples_per_channel() * frameOut.num_channels());
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:506:                        if (_stereoShuffleBuffer.size() < frameOut.samples_per_channel() * _audioRingBufferNumChannels) {
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:507:                            _stereoShuffleBuffer.resize(frameOut.samples_per_channel() * _audioRingBufferNumChannels);
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:510:                            for (int j = 0; j < _audioRingBufferNumChannels; j++) {
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:511:                                _stereoShuffleBuffer[i * _audioRingBufferNumChannels + j] = frameOut.data()[i];
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:514:                        _audioRingBuffer.write(_stereoShuffleBuffer.data(), frameOut.samples_per_channel() * _audioRingBufferNumChannels);
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:581:        if (num_channels == _audioRingBufferNumChannels) {
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:584:            if (_tempAudioBuffer.size() < num_samples * _audioRingBufferNumChannels) {
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:585:                _tempAudioBuffer.resize(num_samples * _audioRingBufferNumChannels);
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:591:        size_t readSamples = _audioRingBuffer.read(buffer, num_samples * _audioRingBufferNumChannels);
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:594:        if (num_channels != _audioRingBufferNumChannels) {
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:595:            for (size_t sampleIndex = 0; sampleIndex < readSamples / _audioRingBufferNumChannels; sampleIndex++) {
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:597:                    audio_samples[sampleIndex * num_channels + channelIndex] = _tempAudioBuffer[sampleIndex * _audioRingBufferNumChannels + 0];
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:1066:    const int _audioRingBufferNumChannels = 2;
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:1067:    const size_t _audioDataRingBufferMaxSize = 4800 * 8;
+TMessagesProj/jni/voip/tgcalls/group/StreamingMediaContext.cpp:1069:    SampleRingBuffer _audioRingBuffer;
