@@ -10963,10 +10963,21 @@ private void createLatencyMonitor() {
             (android.content.ClipboardManager)
             getContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE);
 
+            String liveReport;
+
+            try {
+                liveReport =
+                    org.telegram.messenger.voip.VoIPService
+                    .getSharedInstance()
+                    .getLatencyStats();
+            } catch(Exception e) {
+                liveReport = "No latency report available";
+            }
+
             android.content.ClipData clip =
             android.content.ClipData.newPlainText(
                     "Latency Report",
-                    finalReport
+                    liveReport
             );
 
             clipboard.setPrimaryClip(clip);
@@ -11004,7 +11015,7 @@ private void createLatencyMonitor() {
             window.setAttributes(params);
         }
 
-        layout.setOnTouchListener(new View.OnTouchListener() {
+        title.setOnTouchListener(new View.OnTouchListener() {
 
             float downX;
             float downY;
