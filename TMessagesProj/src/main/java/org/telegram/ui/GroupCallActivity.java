@@ -11045,8 +11045,6 @@ private void createLatencyMonitor() {
         dashboardDialog.show();
 
         
-
-        builder.show();
     }
 
 
