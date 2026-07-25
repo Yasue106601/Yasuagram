@@ -1,3 +1,4 @@
+// YASUAGRAM_DISABLE_STORIES
 package org.telegram.ui.Stories;
 
 import static android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;

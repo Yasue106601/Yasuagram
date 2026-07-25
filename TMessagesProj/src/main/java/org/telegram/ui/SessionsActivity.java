@@ -1145,8 +1145,8 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
                 if (getParentActivity() == null) {
                     return;
                 }
-                if (Build.VERSION.SDK_INT >= 23 && getParentActivity().checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                    getParentActivity().requestPermissions(new String[]{Manifest.permission.CAMERA}, ActionIntroActivity.CAMERA_PERMISSION_REQUEST_CODE);
+                if (Build.VERSION.SDK_INT >= 23 && getParentActivity().checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED) {
+                    getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_CAMERA }, ActionIntroActivity.CAMERA_PERMISSION_REQUEST_CODE);
                     return;
                 }
                 openCameraScanActivity();

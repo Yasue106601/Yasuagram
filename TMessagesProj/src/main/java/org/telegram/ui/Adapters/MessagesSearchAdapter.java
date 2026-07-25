@@ -274,9 +274,9 @@ public class MessagesSearchAdapter extends RecyclerListView.SelectionAdapter imp
 
                 @Override
                 public void openStory(DialogCell dialogCell, Runnable onDone) {
-                    if (MessagesController.getInstance(currentAccount).getStoriesController().hasStories(dialogCell.getDialogId())) {
+                    if (false && MessagesController.getInstance(currentAccount).getStoriesController().hasStories(dialogCell.getDialogId())) {
                         fragment.getOrCreateStoryViewer().doOnAnimationReady(onDone);
-                        fragment.getOrCreateStoryViewer().open(mContext, dialogCell.getDialogId(), StoriesListPlaceProvider.of((RecyclerListView) dialogCell.getParent()));
+                        // DISABLED_STORY_OPEN fragment.getOrCreateStoryViewer().open(mContext, dialogCell.getDialogId(), StoriesListPlaceProvider.of((RecyclerListView) dialogCell.getParent()));
                         return;
                     }
                 }

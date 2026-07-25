@@ -3359,7 +3359,7 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
                 livePeerView.set(livePeer = peer);
             })
             .whenSelectedRules((privacy, allowComments, allowScreenshots, keepInProfile, isRtmpStream, sendAs, pricePerComment, whenDone, cancelled) -> {
-                PermissionRequest.ensureAllPermissions(R.raw.permission_request_camera, R.string.PermissionNoCameraMicVideo, isRtmpStream ? new String[] {} : new String[] { Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO }, granted -> {
+                PermissionRequest.ensureAllPermissions(R.raw.permission_request_camera, R.string.PermissionNoCameraMicVideo, isRtmpStream ? new String[] {} : new String[] { // YASUAGRAM_DISABLED_Manifest_permission_CAMERA , // YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO  }, granted -> {
                     if (!granted) {
                         if (cancelled != null) {
                             cancelled.run();
@@ -5813,12 +5813,12 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
                 }
                 if (Build.VERSION.SDK_INT >= 33) {
                     if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                        activity.requestPermissions(new String[]{Manifest.permission.READ_MEDIA_AUDIO}, 115);
+                        activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.READ_MEDIA_AUDIO}, 115);
                         audioGrantedCallback = granted;
                         return false;
                     }
-                } else if (Build.VERSION.SDK_INT >= 23 && activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    activity.requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 115);
+                } else if (Build.VERSION.SDK_INT >= 23 && activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) != PackageManager.PERMISSION_GRANTED) {
+                    activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE }, 115);
                     audioGrantedCallback = granted;
                     return false;
                 }
@@ -7212,14 +7212,14 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         noCameraPermission = false;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && activity != null) {
-            noCameraPermission = activity.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED;
+            noCameraPermission = activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED;
             if (noCameraPermission) {
                 Drawable iconDrawable = getContext().getResources().getDrawable(R.drawable.story_camera).mutate();
                 iconDrawable.setColorFilter(new PorterDuffColorFilter(0x3dffffff, PorterDuff.Mode.MULTIPLY));
                 CombinedDrawable drawable = new CombinedDrawable(new ColorDrawable(0xff222222), iconDrawable);
                 drawable.setIconSize(dp(64), dp(64));
                 collageLayoutView.setCameraThumb(drawable);
-                if (activity.shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
+                if (activity.shouldShowRequestPermissionRationale(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA )) {
                     new AlertDialog.Builder(getContext(), resourcesProvider)
                         .setTopAnimation(R.raw.permission_request_camera, AlertsCreator.PERMISSIONS_REQUEST_TOP_ICON_SIZE, false, Theme.getColor(Theme.key_dialogTopBackground))
                         .setMessage(AndroidUtilities.replaceTags(getString(R.string.PermissionNoCameraWithHint)))
@@ -7237,7 +7237,7 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
                         .show();
                     return;
                 }
-                activity.requestPermissions(new String[]{Manifest.permission.CAMERA}, 111);
+                activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_CAMERA }, 111);
                 requestedCameraPermission = true;
             }
         }
@@ -7256,16 +7256,16 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
             boolean noGalleryPermission = false;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 noGalleryPermission = (
-                    activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED ||
-                    activity.checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED
+                    activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES ) != PackageManager.PERMISSION_GRANTED ||
+                    activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO ) != PackageManager.PERMISSION_GRANTED
                 );
                 if (noGalleryPermission) {
-                    activity.requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO}, 114);
+                    activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES , // YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO }, 114);
                 }
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                noGalleryPermission = activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED;
+                noGalleryPermission = activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) != PackageManager.PERMISSION_GRANTED;
                 if (noGalleryPermission) {
-                    activity.requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 114);
+                    activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE }, 114);
                 }
             }
             return !noGalleryPermission;
@@ -7275,9 +7275,9 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
 
     private boolean requestAudioPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && activity != null) {
-            boolean granted = activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+            boolean granted = activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ) == PackageManager.PERMISSION_GRANTED;
             if (!granted) {
-                activity.requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 112);
+                activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO }, 112);
                 return false;
             }
         }

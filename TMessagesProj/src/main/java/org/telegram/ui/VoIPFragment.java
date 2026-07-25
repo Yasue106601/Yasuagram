@@ -1136,8 +1136,8 @@ public class VoIPFragment implements
                         FileLog.e(e);
                     }
                 } else {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                        activity.requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 101);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED) {
+                        activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO }, 101);
                     } else {
                         if (VoIPService.getSharedState() != null) {
                             runAcceptCallAnimation(() -> {
@@ -2761,8 +2761,8 @@ public class VoIPFragment implements
             bottomButton.setOnBtnClickedListener(view -> {
                 AndroidUtilities.cancelRunOnUIThread(hideUIRunnable);
                 hideUiRunnableWaiting = false;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && activity.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                    activity.requestPermissions(new String[]{Manifest.permission.CAMERA}, 102);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED) {
+                    activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_CAMERA }, 102);
                 } else {
                     if (Build.VERSION.SDK_INT < 21 && service.privateCall != null && !service.privateCall.video && !callingUserIsVideo && !service.sharedUIParams.cameraAlertWasShowed) {
                         AlertDialog.Builder builder = new AlertDialog.Builder(activity);
@@ -2997,7 +2997,7 @@ public class VoIPFragment implements
                     }
                 });
             } else {
-                if (!activity.shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
+                if (!activity.shouldShowRequestPermissionRationale(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO )) {
                     if (VoIPService.getSharedState() != null) {
                         VoIPService.getSharedState().declineIncomingCall();
                     }

@@ -4634,8 +4634,8 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                             updateMuteButton(MUTE_BUTTON_STATE_RAISED_HAND, true);
                         }
                     } else if (muteButtonState == MUTE_BUTTON_STATE_UNMUTE) {
-                        if (Build.VERSION.SDK_INT >= 23 && getParentActivity() != null && getParentActivity().checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                            PermissionRequest.ensurePermission(R.raw.permission_request_microphone, R.string.VoipNeedMicPermissionWithHint, Manifest.permission.RECORD_AUDIO, success -> {
+                        if (Build.VERSION.SDK_INT >= 23 && getParentActivity() != null && getParentActivity().checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED) {
+                            PermissionRequest.ensurePermission(R.raw.permission_request_microphone, R.string.VoipNeedMicPermissionWithHint, // YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO , success -> {
                                 if (success) {
                                     // reload mic
                                 }
@@ -5859,8 +5859,8 @@ disableComments = otherItem.addSubItem(comments_disable_item, R.drawable._menu_s
         avatarsViewPager.setPinchToZoomHelper(pinchToZoomHelper);
 
         cameraButton.setOnClickListener((View) -> {
-            if (Build.VERSION.SDK_INT >= 23 && parentActivity != null && parentActivity.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                parentActivity.requestPermissions(new String[]{Manifest.permission.CAMERA}, 104);
+            if (Build.VERSION.SDK_INT >= 23 && parentActivity != null && parentActivity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED) {
+                parentActivity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_CAMERA }, 104);
                 return;
             }
             if (VoIPService.getSharedInstance() == null) {
