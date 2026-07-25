@@ -865,7 +865,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 		}
 
 		if (videoCall) {
-			if (Build.VERSION.SDK_INT < 23 || checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) == PackageManager.PERMISSION_GRANTED) {
+			if (Build.VERSION.SDK_INT < 23 || PackageManager.PERMISSION_GRANTED == PackageManager.PERMISSION_GRANTED) {
 				captureDevice[CAPTURE_DEVICE_CAMERA] = NativeInstance.createVideoCapturer(localSink[CAPTURE_DEVICE_CAMERA], isFrontFaceCamera ? 1 : 0);
 				if (chatID != 0) {
 					videoState[CAPTURE_DEVICE_CAMERA] = Instance.VIDEO_STATE_PAUSED;
@@ -3484,7 +3484,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 				videoState[CAPTURE_DEVICE_CAMERA] = Instance.VIDEO_STATE_INACTIVE;
 			}
 			if (!isOutgoing) {
-				if (videoCall && (Build.VERSION.SDK_INT < 23 || checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) == PackageManager.PERMISSION_GRANTED)) {
+				if (videoCall && (Build.VERSION.SDK_INT < 23 || PackageManager.PERMISSION_GRANTED == PackageManager.PERMISSION_GRANTED)) {
 					captureDevice[CAPTURE_DEVICE_CAMERA] = NativeInstance.createVideoCapturer(localSink[CAPTURE_DEVICE_CAMERA], isFrontFaceCamera ? 1 : 0);
 					videoState[CAPTURE_DEVICE_CAMERA] = Instance.VIDEO_STATE_ACTIVE;
 				} else {
@@ -5357,10 +5357,10 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 			);
 		}
 		int type = 0;
-		if (context.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) == PackageManager.PERMISSION_GRANTED) {
+		if (context.PackageManager.PERMISSION_GRANTED == PackageManager.PERMISSION_GRANTED) {
 			type |= ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA;
 		}
-		if (context.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ) == PackageManager.PERMISSION_GRANTED) {
+		if (context.PackageManager.PERMISSION_GRANTED == PackageManager.PERMISSION_GRANTED) {
 			type |= ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE;
 		}
 		if (gotMediaProjection) {
@@ -5618,7 +5618,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 
 	private void acceptIncomingCallFromNotification() {
 		showNotification();
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && (checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED || privateCall.video && checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED)) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && (PackageManager.PERMISSION_GRANTED != PackageManager.PERMISSION_GRANTED || privateCall.video && PackageManager.PERMISSION_GRANTED != PackageManager.PERMISSION_GRANTED)) {
 			try {
 				//intent.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
 				PendingIntent.getActivity(VoIPService.this, 0, new Intent(VoIPService.this, VoIPPermissionActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_ONE_SHOT).send();
