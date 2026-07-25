@@ -902,14 +902,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 			if (!mic) {
 				micMute = true;
 			} else {
-				if (!PermissionRequest.hasPermission(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO )) {
-					micMute = true;
-					PermissionRequest.// YASUAGRAM_DISABLED_requestPermission // YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO , granted -> {
-						if (sharedInstance == null) return;
-						if (!granted) return;
-						setMicMute(false, false, true);
-					});
-				}
+				micMute = true;
 			}
 			startConferenceGroupCall(false, 0, null, false);
 			if (!isBtHeadsetConnected && !isHeadsetPlugged) {
