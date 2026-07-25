@@ -5357,10 +5357,10 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 			);
 		}
 		int type = 0;
-		if (context.PackageManager.PERMISSION_GRANTED == PackageManager.PERMISSION_GRANTED) {
+		if (context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
 			type |= ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA;
 		}
-		if (context.PackageManager.PERMISSION_GRANTED == PackageManager.PERMISSION_GRANTED) {
+		if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
 			type |= ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE;
 		}
 		if (gotMediaProjection) {
