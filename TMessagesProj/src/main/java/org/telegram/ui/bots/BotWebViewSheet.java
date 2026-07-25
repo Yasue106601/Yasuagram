@@ -1,3 +1,4 @@
+// YASUAGRAM_DISABLED_FEATURE
 package org.telegram.ui.bots;
 
 import static org.telegram.messenger.AndroidUtilities.dp;

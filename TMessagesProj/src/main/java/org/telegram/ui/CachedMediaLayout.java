@@ -166,7 +166,7 @@ public class CachedMediaLayout extends FrameLayout implements NestedSizeNotifier
                                 storyItem.id = Objects.hash(itemInner.file.file.getAbsolutePath());
                                 storyItem.attachPath = itemInner.file.file.getAbsolutePath();
                                 storyItem.date = -1;
-                                parentFragment.getOrCreateStoryViewer().open(context, storyItem, StoriesListPlaceProvider.of(recyclerListView));
+                                // DISABLED_STORY_OPEN parentFragment.getOrCreateStoryViewer().open(context, storyItem, StoriesListPlaceProvider.of(recyclerListView));
                             } else {
                                 openPhoto(itemInner, (MediaAdapter) adapter, recyclerListView, (SharedPhotoVideoCell2) view);
                             }

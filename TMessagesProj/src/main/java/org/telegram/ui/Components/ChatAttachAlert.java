@@ -2758,11 +2758,11 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
                     }
                     if (Build.VERSION.SDK_INT >= 33) {
                         if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                            activity.requestPermissions(new String[]{Manifest.permission.READ_MEDIA_AUDIO}, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
+                            activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.READ_MEDIA_AUDIO}, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
                             return;
                         }
-                    } else if (Build.VERSION.SDK_INT >= 23 && activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                        AndroidUtilities.findActivity(getContext()).requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
+                    } else if (Build.VERSION.SDK_INT >= 23 && activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) != PackageManager.PERMISSION_GRANTED) {
+                        AndroidUtilities.findActivity(getContext()).// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
                         return;
                     }
                     openAudioLayout(true);
@@ -2771,13 +2771,13 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
                         return;
                     }
                     if (Build.VERSION.SDK_INT >= 33) {
-                        if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED ||
-                                activity.checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
-                            activity.requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO}, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
+                        if (activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES ) != PackageManager.PERMISSION_GRANTED ||
+                                activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO ) != PackageManager.PERMISSION_GRANTED) {
+                            activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES , // YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
                             return;
                         }
-                    } else if (Build.VERSION.SDK_INT >= 23 && activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                        AndroidUtilities.findActivity(getContext()).requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
+                    } else if (Build.VERSION.SDK_INT >= 23 && activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) != PackageManager.PERMISSION_GRANTED) {
+                        AndroidUtilities.findActivity(getContext()).// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
                         return;
                     }
                     openDocumentsLayout(true);
@@ -2787,7 +2787,7 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
                     }
                     if (Build.VERSION.SDK_INT >= 23 && plainTextEnabled) {
                         if (getContext().checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
-                            AndroidUtilities.findActivity(getContext()).requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, BasePermissionsActivity.REQUEST_CODE_ATTACH_CONTACT);
+                            AndroidUtilities.findActivity(getContext()).// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.READ_CONTACTS}, BasePermissionsActivity.REQUEST_CODE_ATTACH_CONTACT);
                             return;
                         }
                     }
@@ -4436,11 +4436,11 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
             if (activity != null) {
                 if (Build.VERSION.SDK_INT >= 33) {
                     if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                        activity.requestPermissions(new String[]{Manifest.permission.READ_MEDIA_AUDIO}, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
+                        activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.READ_MEDIA_AUDIO}, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
                         return;
                     }
-                } else if (Build.VERSION.SDK_INT >= 23 && activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    activity.requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
+                } else if (Build.VERSION.SDK_INT >= 23 && activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) != PackageManager.PERMISSION_GRANTED) {
+                    activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
                     return;
                 }
             }
@@ -6357,11 +6357,11 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
 
     private static boolean checkPhotoAndCameraPermission(Context context) {
         if (Build.VERSION.SDK_INT >= 33) {
-            return ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED
-                && ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED
-                && ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+            return ContextCompat.checkSelfPermission(context, // YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES ) == PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(context, // YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO ) == PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(context, // YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) == PackageManager.PERMISSION_GRANTED;
         } else if (Build.VERSION.SDK_INT >= 23) {
-            return ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+            return ContextCompat.checkSelfPermission(context, // YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) == PackageManager.PERMISSION_GRANTED;
         }
 
         return true;
@@ -6369,10 +6369,10 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
 
     private static boolean checkPhotoAndDocumentsPermission(Context context) {
         if (Build.VERSION.SDK_INT >= 33) {
-            return ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED
-                && ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VIDEO) == PackageManager.PERMISSION_GRANTED;
+            return ContextCompat.checkSelfPermission(context, // YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES ) == PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(context, // YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO ) == PackageManager.PERMISSION_GRANTED;
         } else if (Build.VERSION.SDK_INT >= 23) {
-            return ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+            return ContextCompat.checkSelfPermission(context, // YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) == PackageManager.PERMISSION_GRANTED;
         }
 
         return true;
@@ -6451,7 +6451,7 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
     }
 
     private static boolean checkMusicPermission(Context context) {
-        return Build.VERSION.SDK_INT < 23 || ContextCompat.checkSelfPermission(context, Build.VERSION.SDK_INT >= 33 ? Manifest.permission.READ_MEDIA_AUDIO : Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+        return Build.VERSION.SDK_INT < 23 || ContextCompat.checkSelfPermission(context, Build.VERSION.SDK_INT >= 33 ? Manifest.permission.READ_MEDIA_AUDIO : // YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) == PackageManager.PERMISSION_GRANTED;
     }
 
     private class ButtonsAdapter extends RecyclerListView.SelectionAdapter {

@@ -1272,9 +1272,9 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
     @Override
     public void openStory(DialogCell dialogCell, Runnable onDone) {
         MessagesController messagesController = MessagesController.getInstance(currentAccount);
-        if (MessagesController.getInstance(currentAccount).getStoriesController().hasStories(dialogCell.getDialogId())) {
+        if (false /* YASUAGRAM_DISABLE_STORIES */ && MessagesController.getInstance(currentAccount).getStoriesController().hasStories(dialogCell.getDialogId())) {
             parentFragment.getOrCreateStoryViewer().doOnAnimationReady(onDone);
-            parentFragment.getOrCreateStoryViewer().open(parentFragment.getContext(), dialogCell.getDialogId(), StoriesListPlaceProvider.of((RecyclerListView) dialogCell.getParent()));
+            // DISABLED_STORY_OPEN parentFragment.getOrCreateStoryViewer().open(parentFragment.getContext(), dialogCell.getDialogId(), StoriesListPlaceProvider.of((RecyclerListView) dialogCell.getParent()));
             return;
         }
     }
@@ -1299,7 +1299,7 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
             }
         }
 
-        parentFragment.getOrCreateStoryViewer().open(mContext, null, peerIds, 0, null, null, StoriesListPlaceProvider.of(recyclerListView, true), false);
+        // DISABLED_STORY_OPEN parentFragment.getOrCreateStoryViewer().open(mContext, null, peerIds, 0, null, null, StoriesListPlaceProvider.of(recyclerListView, true), false);
     }
 
     public void setIsTransitionSupport() {

@@ -3659,10 +3659,10 @@ public class AndroidUtilities {
             !BuildVars.NO_SCOPED_STORAGE ||
             (
                 Build.VERSION.SDK_INT >= 33 &&
-                ApplicationLoader.applicationContext.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED
+                ApplicationLoader.applicationContext.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES ) != PackageManager.PERMISSION_GRANTED
             ) || (
                 Build.VERSION.SDK_INT >= 23 && Build.VERSION.SDK_INT <= 33 &&
-                ApplicationLoader.applicationContext.checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+                ApplicationLoader.applicationContext.checkSelfPermission(android.// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) != PackageManager.PERMISSION_GRANTED
             )
         ) {
             return FileLoader.getDirectory(FileLoader.MEDIA_DIR_IMAGE);

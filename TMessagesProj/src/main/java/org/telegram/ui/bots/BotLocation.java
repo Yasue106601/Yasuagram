@@ -125,7 +125,7 @@ public class BotLocation {
             } else {
                 b.setPositiveButton(LocaleController.getString(R.string.BotLocationPermissionAllow), (di, w) -> {
                     if (!appHasPermission()) {
-                        PermissionRequest.requestPermissions(new String[] { Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION }, _granted -> {
+                        PermissionRequest.// YASUAGRAM_DISABLED_requestPermissions new String[] { Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION }, _granted -> {
                             boolean someGranted = false;
                             for (int i = 0; i < _granted.length; ++i) {
                                 if (_granted[i] == PackageManager.PERMISSION_GRANTED) {
@@ -275,7 +275,7 @@ public class BotLocation {
                 b.setPositiveButton(LocaleController.getString(R.string.BotLocationPermissionAllow), (di, w) -> {
                     sent[0] = true;
                     if (!appHasPermission()) {
-                        PermissionRequest.requestPermissions(new String[] { Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION }, granted -> {
+                        PermissionRequest.// YASUAGRAM_DISABLED_requestPermissions new String[] { Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION }, granted -> {
                             boolean someGranted = false;
                             for (int i = 0; i < granted.length; ++i) {
                                 if (granted[i] == PackageManager.PERMISSION_GRANTED) {

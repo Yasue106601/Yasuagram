@@ -7057,7 +7057,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 checkPermission = false;
                 boolean hasNotContactsPermission = activity.checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED;
                 boolean hasNotStoragePermission = (Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED;
-                boolean hasNotNotificationsPermission = Build.VERSION.SDK_INT >= 33 && activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED;
+                boolean hasNotNotificationsPermission = false; // YASUAGRAM_DISABLE_NOTIFICATION_REQUEST
                 AndroidUtilities.runOnUIThread(() -> {
                     if (getParentActivity() == null) {
                         return;
@@ -7066,14 +7066,14 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     if (hasNotNotificationsPermission || hasNotContactsPermission || hasNotStoragePermission) {
                         askingForPermissions = true;
                         if (hasNotNotificationsPermission && NotificationPermissionDialog.shouldAsk(activity)) {
-                            PermissionRequest.requestPermission(Manifest.permission.POST_NOTIFICATIONS, granted -> {
+                            PermissionRequest.// YASUAGRAM_DISABLED_requestPermission Manifest.permission.POST_NOTIFICATIONS, granted -> {
                                 if (!granted) {
                                     showDialog(new NotificationPermissionDialog(activity, !PermissionRequest.canAskPermission(Manifest.permission.POST_NOTIFICATIONS), granted2 -> {
                                         if (!granted2) return;
                                         if (!PermissionRequest.canAskPermission(Manifest.permission.POST_NOTIFICATIONS)) {
                                             PermissionRequest.showPermissionSettings(Manifest.permission.POST_NOTIFICATIONS);
                                         } else {
-                                            activity.requestPermissions(new String[] { Manifest.permission.POST_NOTIFICATIONS }, 1);
+                                            // YASUAGRAM_DISABLE_NOTIFICATION_REQUEST
                                         }
                                     }));
                                 }
@@ -10352,7 +10352,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     if (!PermissionRequest.canAskPermission(Manifest.permission.POST_NOTIFICATIONS)) {
                         PermissionRequest.showPermissionSettings(Manifest.permission.POST_NOTIFICATIONS);
                     } else {
-                        activity.requestPermissions(new String[] { Manifest.permission.POST_NOTIFICATIONS }, 1);
+                        // YASUAGRAM_DISABLE_NOTIFICATION_REQUEST
                     }
                 }));
                 return;
@@ -10374,17 +10374,17 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             permissons.add(Manifest.permission.GET_ACCOUNTS);
         }
         if (Build.VERSION.SDK_INT >= 33) {
-            if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
-                permissons.add(Manifest.permission.READ_MEDIA_IMAGES);
+            if (activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES ) != PackageManager.PERMISSION_GRANTED) {
+                permissons.add(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES );
             }
-            if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
-                permissons.add(Manifest.permission.READ_MEDIA_VIDEO);
+            if (activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO ) != PackageManager.PERMISSION_GRANTED) {
+                permissons.add(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO );
             }
             if (activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 permissons.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
         } else if ((Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            permissons.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+            permissons.add(// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE );
             permissons.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
         }
         if (permissons.isEmpty()) {
@@ -10396,7 +10396,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
         String[] items = permissons.toArray(new String[0]);
         try {
-            activity.requestPermissions(items, 1);
+            activity.// YASUAGRAM_DISABLED_requestPermissions items, 1);
         } catch (Exception ignore) {
         }
     }

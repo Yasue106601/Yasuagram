@@ -1069,14 +1069,14 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         if (Build.VERSION.SDK_INT >= 23) {
             if (dialog == permissionsDialog && !permissionsItems.isEmpty() && getParentActivity() != null) {
                 try {
-                    getParentActivity().requestPermissions(permissionsItems.toArray(new String[0]), 6);
+                    getParentActivity().// YASUAGRAM_DISABLED_requestPermissions permissionsItems.toArray(new String[0]), 6);
                 } catch (Exception ignore) {
 
                 }
             } else if (dialog == permissionsShowDialog && !permissionsShowItems.isEmpty() && getParentActivity() != null) {
                 AndroidUtilities.runOnUIThread(() -> needRequestPermissions = false, 200);
                 try {
-                    getParentActivity().requestPermissions(permissionsShowItems.toArray(new String[0]), 7);
+                    getParentActivity().// YASUAGRAM_DISABLED_requestPermissions permissionsShowItems.toArray(new String[0]), 7);
                 } catch (Exception ignore) {
 
                 }
@@ -2947,11 +2947,12 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                                             resId = R.raw.incoming_calls;
                                         }
                                         builder.setTopAnimation(resId, 46, false, Theme.getColor(Theme.key_dialogTopBackground));
-                                        permissionsDialog = showDialog(builder.create());
+                                        // YASUAGRAM_DISABLE_LOGIN_PERMISSION_DIALOG
+// // YASUAGRAM_DISABLE_LOGIN_PERMISSION_DIALOG
                                         confirmedNumber = true;
                                     } else {
                                         try {
-                                            getParentActivity().requestPermissions(permissionsItems.toArray(new String[0]), 6);
+                                            getParentActivity().// YASUAGRAM_DISABLED_requestPermissions permissionsItems.toArray(new String[0]), 6);
                                         } catch (Exception e) {
                                             FileLog.e(e);
                                         }
@@ -3024,11 +3025,12 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                                 resId = R.raw.incoming_calls;
                             }
                             builder.setTopAnimation(resId, 46, false, Theme.getColor(Theme.key_dialogTopBackground));
-                            permissionsDialog = showDialog(builder.create());
+                            // YASUAGRAM_DISABLE_LOGIN_PERMISSION_DIALOG
+// // YASUAGRAM_DISABLE_LOGIN_PERMISSION_DIALOG
                             confirmedNumber = true;
                         } else {
                             try {
-                                getParentActivity().requestPermissions(permissionsItems.toArray(new String[0]), 6);
+                                getParentActivity().// YASUAGRAM_DISABLED_requestPermissions permissionsItems.toArray(new String[0]), 6);
                             } catch (Exception e) {
                                 FileLog.e(e);
                             }
@@ -3152,7 +3154,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 changePhoneCode.settings = settings;
                 req = changePhoneCode;
             } else {
-                ConnectionsManager.getInstance(currentAccount).cleanup(false);
+                // // YASUAGRAM_FAST_LOGIN_PATCH disabled cleanup
 
                 TLRPC.TL_auth_sendCode sendCode = new TLRPC.TL_auth_sendCode();
                 sendCode.api_hash = BuildVars.APP_HASH;
@@ -3281,10 +3283,11 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                                         builder.setTopAnimation(R.raw.incoming_calls, 46, false, Theme.getColor(Theme.key_dialogTopBackground));
                                         builder.setPositiveButton(getString("Continue", R.string.Continue), null);
                                         builder.setMessage(getString("AllowFillNumber", R.string.AllowFillNumber));
-                                        permissionsShowDialog = showDialog(builder.create(), true, null);
+                                        // YASUAGRAM_DISABLE_LOGIN_PERMISSION_SHOW_DIALOG
+// // YASUAGRAM_DISABLE_LOGIN_PERMISSION_SHOW_DIALOG
                                         needRequestPermissions = true;
                                     } else {
-                                        getParentActivity().requestPermissions(callbackPermissionItems.toArray(new String[0]), BasePermissionsActivity.REQUEST_CODE_CALLS);
+                                        getParentActivity().// YASUAGRAM_DISABLED_requestPermissions callbackPermissionItems.toArray(new String[0]), BasePermissionsActivity.REQUEST_CODE_CALLS);
                                     }
                                 };
                                 if (isAnimatingIntro) {

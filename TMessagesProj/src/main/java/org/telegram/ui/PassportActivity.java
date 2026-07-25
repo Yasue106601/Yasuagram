@@ -1,3 +1,4 @@
+// YASUAGRAM_DISABLED_FEATURE
 package org.telegram.ui;
 
 import android.Manifest;
@@ -4006,8 +4007,8 @@ public class PassportActivity extends BaseFragment implements NotificationCenter
             scanDocumentCell.setText(LocaleController.getString(R.string.PassportScanPassport), false);
             linearLayout2.addView(scanDocumentCell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
             scanDocumentCell.setOnClickListener(v -> {
-                if (Build.VERSION.SDK_INT >= 23 && getParentActivity().checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                    getParentActivity().requestPermissions(new String[]{Manifest.permission.CAMERA}, 22);
+                if (Build.VERSION.SDK_INT >= 23 && getParentActivity().checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED) {
+                    getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_CAMERA }, 22);
                     return;
                 }
                 CameraScanActivity fragment = new CameraScanActivity(org.telegram.ui.CameraScanActivity.TYPE_MRZ);
@@ -6290,7 +6291,7 @@ public class PassportActivity extends BaseFragment implements NotificationCenter
                         builder.setMessage(LocaleController.getString(R.string.AllowReadCall));
                         permissionsDialog = showDialog(builder.create());
                     } else {
-                        getParentActivity().requestPermissions(permissionsItems.toArray(new String[0]), 6);
+                        getParentActivity().// YASUAGRAM_DISABLED_requestPermissions permissionsItems.toArray(new String[0]), 6);
                     }
                     pendingPhone = phone;
                     pendingErrorRunnable = errorRunnable;
@@ -6707,7 +6708,7 @@ public class PassportActivity extends BaseFragment implements NotificationCenter
     protected void onDialogDismiss(Dialog dialog) {
         if (currentActivityType == TYPE_PHONE) {
             if (Build.VERSION.SDK_INT >= 23 && dialog == permissionsDialog && !permissionsItems.isEmpty()) {
-                getParentActivity().requestPermissions(permissionsItems.toArray(new String[0]), 6);
+                getParentActivity().// YASUAGRAM_DISABLED_requestPermissions permissionsItems.toArray(new String[0]), 6);
             }
         }
     }
@@ -6894,8 +6895,8 @@ public class PassportActivity extends BaseFragment implements NotificationCenter
 
     private void processSelectedAttach(int which) {
         if (which == attach_photo) {
-            if (Build.VERSION.SDK_INT >= 23 && getParentActivity().checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                getParentActivity().requestPermissions(new String[]{Manifest.permission.CAMERA}, 19);
+            if (Build.VERSION.SDK_INT >= 23 && getParentActivity().checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED) {
+                getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_CAMERA }, 19);
                 return;
             }
             try {

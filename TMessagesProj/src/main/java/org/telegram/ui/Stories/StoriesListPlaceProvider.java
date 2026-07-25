@@ -1,3 +1,4 @@
+// YASUAGRAM_DISABLE_STORIES
 package org.telegram.ui.Stories;
 
 import static org.telegram.messenger.AndroidUtilities.dp;

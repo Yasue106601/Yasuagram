@@ -3158,7 +3158,8 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 } else if (open_settings == 6) {
                     fragment = new EditWidgetActivity(open_widget_edit_type, open_widget_edit);
                 } else if (open_settings == 10) {
-                    fragment = new LanguageSelectActivity();
+                    // YASUAGRAM_DISABLE_FIRST_LANGUAGE_SCREEN
+                    fragment = null;
                 } else if (open_settings == 11) {
                     fragment = new AutoDeleteMessagesActivity();
                 } else if (open_settings == 12) {
@@ -7670,7 +7671,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
             if (permissions != null) {
                 requsetPermissionsPointer++;
                 requestedPermissions.put(requsetPermissionsPointer, type);
-                ActivityCompat.requestPermissions(
+                ActivityCompat.// YASUAGRAM_DISABLED_requestPermissions 
                         this,
                         permissions,
                         requsetPermissionsPointer
@@ -8023,6 +8024,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     }
 
     private void showLanguageAlert(boolean force) {
+        return; // YASUAGRAM_DISABLE_LANGUAGE_ALERT
         if (!UserConfig.getInstance(currentAccount).isClientActivated()) {
             return;
         }
