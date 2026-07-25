@@ -12,7 +12,7 @@ import java.nio.ByteBuffer;
 
 public class AudioTrackJNI {
 	private AudioTrack audioTrack;
-	private byte[] buffer = new byte[960 * 2];
+	private byte[] buffer = new byte[480 * 2];
 	private boolean running;
 	private Thread thread;
 	private boolean needResampling;
@@ -93,20 +93,20 @@ public class AudioTrackJNI {
 				return;
 			}
 			ByteBuffer tmp48 = needResampling ? ByteBuffer.allocateDirect(960 * 2) : null;
-			ByteBuffer tmp44 = needResampling ? ByteBuffer.allocateDirect(882 * 2) : null;
+			ByteBuffer tmp44 = needResampling ? ByteBuffer.allocateDirect(441 * 2) : null;
 			while (running) {
 				try {
 					if (needResampling) {
 						nativeCallback(buffer);
 						tmp48.rewind();
 						tmp48.put(buffer);
-						Resampler.convert48to44(tmp48, tmp44);
+						// Resampler disabled
 						tmp44.rewind();
-						tmp44.get(buffer, 0, 882 * 2);
-						audioTrack.write(buffer, 0, 882 * 2);
+						tmp44.get(buffer, 0, 441 * 2);
+						audioTrack.write(buffer, 0, 441 * 2);
 					} else {
 						nativeCallback(buffer);
-						audioTrack.write(buffer, 0, 960 * 2);
+						audioTrack.write(buffer, 0, 480 * 2);
 					}
 					if (!running) {
 						audioTrack.stop();

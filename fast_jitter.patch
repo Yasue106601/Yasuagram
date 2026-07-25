@@ -1,0 +1,19 @@
+commit fe3fb11ab2d43f1138ba08644c4e77c295714337
+Author: Yasue106601 <Ysu106601@gmail.com>
+Date:   Fri Jul 24 23:39:22 2026 +0300
+
+    Fast adaptive jitter buffer
+
+diff --git a/TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp b/TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp
+index 53ca651e..c328746b 100755
+--- a/TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp
++++ b/TMessagesProj/jni/voip/libtgvoip/JitterBuffer.cpp
+@@ -368,7 +368,7 @@ void JitterBuffer::Tick(){
+ 	}
+ 
+ 	delayHistory.Add(GetCurrentDelay());
+-	avgDelay=delayHistory.Average(32);
++	avgDelay=delayHistory.Average(10);
+ 
+ 	double stddev=0;
+ 	double avgdev=deviationHistory.Average();
