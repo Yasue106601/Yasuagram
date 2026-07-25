@@ -1733,7 +1733,7 @@ public class ChatAttachAlertLocationLayout extends ChatAttachAlert.AttachAlertLa
                         if (adapter != null) {
                             adapter.setMyLocationDenied(locationDenied, askedForLocation);
                         }
-                        activity.requestPermissions permissions, BasePermissionsActivity.REQUEST_CODE_GEOLOCATION);
+                        activity.requestPermissions(permissions, BasePermissionsActivity.REQUEST_CODE_GEOLOCATION);
                     } else if (Build.VERSION.SDK_INT >= 29 && parentAlert.isStoryLocationPicker && parentAlert.storyLocationPickerPhotoFile != null && activity.checkSelfPermission(Manifest.permission.ACCESS_MEDIA_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                         askedForLocation = true;
                         if (adapter != null) {

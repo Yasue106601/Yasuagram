@@ -911,7 +911,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                         } else {
                             permissions[0] = Manifest.permission.CAMERA ;
                         }
-                        parentActivity.requestPermissions permissions, BasePermissionsActivity.REQUEST_CODE_VIDEO_MESSAGE);
+                        parentActivity.requestPermissions(permissions, BasePermissionsActivity.REQUEST_CODE_VIDEO_MESSAGE);
                         return;
                     }
                 }
@@ -5327,7 +5327,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                     }
                     if (BuildCompat.isAtLeastNMR1() && (flags & InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION) != 0) {
                         try {
-                            inputContentInfo.requestPermission );
+                            inputContentInfo.requestPermission();
                         } catch (Exception e) {
                             return false;
                         }

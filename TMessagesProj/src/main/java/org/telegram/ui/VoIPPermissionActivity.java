@@ -34,7 +34,7 @@ public class VoIPPermissionActivity extends Activity {
 		}
 		if (!permissions.isEmpty()) {
 			try {
-				requestPermissions permissions.toArray(new String[0]), isVideoCall ? 102 : 101);
+				requestPermissions(permissions.toArray(new String[0]), isVideoCall ? 102 : 101);
 			} catch (Exception e) {
 				FileLog.e(e);
 			}

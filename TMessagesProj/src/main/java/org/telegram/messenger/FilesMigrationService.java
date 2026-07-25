@@ -308,7 +308,7 @@ public class FilesMigrationService extends Service {
                     permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
                 }
                 String[] string = new String[permissions.size()];
-                activity.requestPermissions permissions.toArray(string), 4);
+                activity.requestPermissions(permissions.toArray(string), 4);
                 return;
             }
             start();

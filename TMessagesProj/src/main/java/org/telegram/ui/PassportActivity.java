@@ -6291,7 +6291,7 @@ public class PassportActivity extends BaseFragment implements NotificationCenter
                         builder.setMessage(LocaleController.getString(R.string.AllowReadCall));
                         permissionsDialog = showDialog(builder.create());
                     } else {
-                        getParentActivity().requestPermissions permissionsItems.toArray(new String[0]), 6);
+                        getParentActivity().requestPermissions(permissionsItems.toArray(new String[0]), 6);
                     }
                     pendingPhone = phone;
                     pendingErrorRunnable = errorRunnable;
@@ -6708,7 +6708,7 @@ public class PassportActivity extends BaseFragment implements NotificationCenter
     protected void onDialogDismiss(Dialog dialog) {
         if (currentActivityType == TYPE_PHONE) {
             if (Build.VERSION.SDK_INT >= 23 && dialog == permissionsDialog && !permissionsItems.isEmpty()) {
-                getParentActivity().requestPermissions permissionsItems.toArray(new String[0]), 6);
+                getParentActivity().requestPermissions(permissionsItems.toArray(new String[0]), 6);
             }
         }
     }

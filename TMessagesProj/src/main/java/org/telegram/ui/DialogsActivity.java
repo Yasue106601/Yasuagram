@@ -7066,7 +7066,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     if (hasNotNotificationsPermission || hasNotContactsPermission || hasNotStoragePermission) {
                         askingForPermissions = true;
                         if (hasNotNotificationsPermission && NotificationPermissionDialog.shouldAsk(activity)) {
-                            PermissionRequest.requestPermission Manifest.permission.POST_NOTIFICATIONS, granted -> {
+                            PermissionRequest.requestPermission(Manifest.permission.POST_NOTIFICATIONS, granted -> {
                                 if (!granted) {
                                     showDialog(new NotificationPermissionDialog(activity, !PermissionRequest.canAskPermission(Manifest.permission.POST_NOTIFICATIONS), granted2 -> {
                                         if (!granted2) return;
@@ -10396,7 +10396,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
         String[] items = permissons.toArray(new String[0]);
         try {
-            activity.requestPermissions items, 1);
+            activity.requestPermissions(items, 1);
         } catch (Exception ignore) {
         }
     }
