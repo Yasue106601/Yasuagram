@@ -686,7 +686,7 @@ public abstract class BotWebViewContainer extends FrameLayout implements Notific
                 onPermissionsRequestResultCallback = ()-> callback.accept(checkPermissions(permissions));
 
                 if (parentActivity != null) {
-                    parentActivity.requestPermissions permissions, REQUEST_CODE_WEB_PERMISSION);
+                    parentActivity.requestPermissions(permissions, REQUEST_CODE_WEB_PERMISSION);
                 }
             }
         }

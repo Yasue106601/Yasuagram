@@ -114,7 +114,7 @@ public class VoIPHelper {
 			if (permissions.isEmpty()) {
 				initiateCall(user, null, null, videoCall, canVideoCall, false, null, activity, null, accountInstance);
 			} else {
-				activity.requestPermissions permissions.toArray(new String[0]), videoCall ? 102 : 101);
+				activity.requestPermissions(permissions.toArray(new String[0]), videoCall ? 102 : 101);
 			}
 		} else {
 			initiateCall(user, null, null, videoCall, canVideoCall, false, null, activity, null, accountInstance);
