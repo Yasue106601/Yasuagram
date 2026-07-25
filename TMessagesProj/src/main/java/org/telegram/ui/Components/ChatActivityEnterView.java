@@ -899,19 +899,19 @@ public class ChatActivityEnterView extends FrameLayout implements
             audioToSend = null;
             if (isInVideoMode()) {
                 if (Build.VERSION.SDK_INT >= 23) {
-                    boolean hasAudio = parentActivity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ) == PackageManager.PERMISSION_GRANTED;
-                    boolean hasVideo = parentActivity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) == PackageManager.PERMISSION_GRANTED;
+                    boolean hasAudio = parentActivity.checkSelfPermission(Manifest.permission.RECORD_AUDIO ) == PackageManager.PERMISSION_GRANTED;
+                    boolean hasVideo = parentActivity.checkSelfPermission(Manifest.permission.CAMERA ) == PackageManager.PERMISSION_GRANTED;
                     if (!hasAudio || !hasVideo) {
                         String[] permissions = new String[!hasAudio && !hasVideo ? 2 : 1];
                         if (!hasAudio && !hasVideo) {
-                            permissions[0] = // YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ;
-                            permissions[1] = // YASUAGRAM_DISABLED_Manifest_permission_CAMERA ;
+                            permissions[0] = Manifest.permission.RECORD_AUDIO ;
+                            permissions[1] = Manifest.permission.CAMERA ;
                         } else if (!hasAudio) {
-                            permissions[0] = // YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ;
+                            permissions[0] = Manifest.permission.RECORD_AUDIO ;
                         } else {
-                            permissions[0] = // YASUAGRAM_DISABLED_Manifest_permission_CAMERA ;
+                            permissions[0] = Manifest.permission.CAMERA ;
                         }
-                        parentActivity.// YASUAGRAM_DISABLED_requestPermissions permissions, BasePermissionsActivity.REQUEST_CODE_VIDEO_MESSAGE);
+                        parentActivity.requestPermissions permissions, BasePermissionsActivity.REQUEST_CODE_VIDEO_MESSAGE);
                         return;
                     }
                 }
@@ -931,8 +931,8 @@ public class ChatActivityEnterView extends FrameLayout implements
                     }
                 }
             } else {
-                if (Build.VERSION.SDK_INT >= 23 && parentActivity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED) {
-                    parentActivity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO }, 3);
+                if (Build.VERSION.SDK_INT >= 23 && parentActivity.checkSelfPermission(Manifest.permission.RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED) {
+                    parentActivity.requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO }, 3);
                     return;
                 }
 
@@ -5327,7 +5327,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                     }
                     if (BuildCompat.isAtLeastNMR1() && (flags & InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION) != 0) {
                         try {
-                            inputContentInfo.// YASUAGRAM_DISABLED_requestPermission );
+                            inputContentInfo.requestPermission );
                         } catch (Exception e) {
                             return false;
                         }
@@ -11466,7 +11466,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             builder.setMessage(getString("ShareYouLocationInfo", R.string.ShareYouLocationInfo));
             builder.setPositiveButton(getString("OK", R.string.OK), (dialogInterface, i) -> {
                 if (Build.VERSION.SDK_INT >= 23 && parentActivity.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    parentActivity.// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 2);
+                    parentActivity.requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 2);
                     pendingMessageObject = messageObject;
                     pendingLocationButton = button;
                     return;

@@ -1604,7 +1604,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             PermissionRequest.ensurePermission(
                 R.raw.permission_request_camera,
                 R.string.AgeVerificationNeedCameraPermission,
-                // YASUAGRAM_DISABLED_Manifest_permission_CAMERA ,
+                Manifest.permission.CAMERA ,
                 granted -> {
                     if (!granted) {
                         button.setLoading(false);
@@ -1689,7 +1689,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             Activity activity = getParentActivity();
             if (activity != null) {
                 if (activity.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 2);
+                    activity.requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 2);
                     return;
                 }
             }

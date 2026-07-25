@@ -79,7 +79,7 @@ public class PermissionRequest {
                 if (whenDone != null) whenDone.run(false);
                 return;
             }
-            // YASUAGRAM_DISABLED_requestPermissions requestPermissions, ids -> {
+            requestPermissions requestPermissions, ids -> {
                 boolean now_granted = false;
                 for (String permission : requestPermissions) {
                     if (activity.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED) {
@@ -142,7 +142,7 @@ public class PermissionRequest {
                 if (whenDone != null) whenDone.run(false);
                 return;
             }
-            // YASUAGRAM_DISABLED_requestPermissions requestPermissions, ids -> {
+            requestPermissions requestPermissions, ids -> {
                 boolean now_granted = true;
                 for (String permission : requestPermissions) {
                     if (activity.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
@@ -157,13 +157,13 @@ public class PermissionRequest {
         }
     }
 
-    public static void // YASUAGRAM_DISABLED_requestPermission String permission, Utilities.Callback<Boolean> whenDone) {
-        // YASUAGRAM_DISABLED_requestPermissions new String[] { permission }, whenDone != null ? res -> {
+    public static void requestPermission String permission, Utilities.Callback<Boolean> whenDone) {
+        requestPermissions(new String[] { permission }, whenDone != null ? res -> {
             whenDone.run(res.length >= 1 && res[0] == PackageManager.PERMISSION_GRANTED);
         } : null);
     }
 
-    public static void // YASUAGRAM_DISABLED_requestPermissions String[] permissions, Utilities.Callback<int[]> whenDone) {
+    public static void requestPermissions String[] permissions, Utilities.Callback<int[]> whenDone) {
         Activity _activity = LaunchActivity.instance;
         if (_activity == null) _activity = AndroidUtilities.findActivity(ApplicationLoader.applicationContext);
         if (_activity == null) return;
@@ -189,7 +189,7 @@ public class PermissionRequest {
                 }
             };
             NotificationCenter.getGlobalInstance().addObserver(observer[0], NotificationCenter.activityPermissionsGranted);
-            activity.// YASUAGRAM_DISABLED_requestPermissions permissions, code);
+            activity.requestPermissions permissions, code);
         } else if (whenDone != null) {
             int[] res = new int[ permissions.length ];
             for (int i = 0; i < permissions.length; ++i) {

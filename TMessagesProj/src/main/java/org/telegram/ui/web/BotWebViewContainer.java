@@ -686,7 +686,7 @@ public abstract class BotWebViewContainer extends FrameLayout implements Notific
                 onPermissionsRequestResultCallback = ()-> callback.accept(checkPermissions(permissions));
 
                 if (parentActivity != null) {
-                    parentActivity.// YASUAGRAM_DISABLED_requestPermissions permissions, REQUEST_CODE_WEB_PERMISSION);
+                    parentActivity.requestPermissions permissions, REQUEST_CODE_WEB_PERMISSION);
                 }
             }
         }
@@ -1436,7 +1436,7 @@ public abstract class BotWebViewContainer extends FrameLayout implements Notific
                     lastQrText = jsonObject.optString("text");
                     hasQRPending = true;
 
-                    if (Build.VERSION.SDK_INT >= 23 && parentActivity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED) {
+                    if (Build.VERSION.SDK_INT >= 23 && parentActivity.checkSelfPermission(Manifest.permission.CAMERA ) != PackageManager.PERMISSION_GRANTED) {
                         NotificationCenter.getGlobalInstance().addObserver(new NotificationCenter.NotificationCenterDelegate() {
                             @Override
                             public void didReceivedNotification(int id, int account, Object... args) {
@@ -1457,7 +1457,7 @@ public abstract class BotWebViewContainer extends FrameLayout implements Notific
                                 }
                             }
                         }, NotificationCenter.onRequestPermissionResultReceived);
-                        parentActivity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_CAMERA }, REQUEST_CODE_QR_CAMERA_PERMISSION);
+                        parentActivity.requestPermissions(new String[]{Manifest.permission.CAMERA }, REQUEST_CODE_QR_CAMERA_PERMISSION);
                         return;
                     }
 
@@ -4622,7 +4622,7 @@ public abstract class BotWebViewContainer extends FrameLayout implements Notific
                                 lastPermissionsDialog = AlertsCreator.createWebViewPermissionsRequestDialog(
                                     botWebViewContainer.parentActivity,
                                     botWebViewContainer.resourcesProvider,
-                                    new String[] {// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO },
+                                    new String[] {Manifest.permission.RECORD_AUDIO },
                                     R.raw.permission_request_microphone,
                                     formatString(bot ? R.string.BotWebViewRequestMicrophonePermission : R.string.WebViewRequestMicrophonePermission, name),
                                     formatString(bot ? R.string.BotWebViewRequestMicrophonePermissionWithHint : R.string.WebViewRequestMicrophonePermissionWithHint, name),
@@ -4631,7 +4631,7 @@ public abstract class BotWebViewContainer extends FrameLayout implements Notific
                                             lastPermissionsDialog = null;
 
                                             if (allow) {
-                                                botWebViewContainer.runWithPermissions(new String[] {// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO }, allowSystem -> {
+                                                botWebViewContainer.runWithPermissions(new String[] {Manifest.permission.RECORD_AUDIO }, allowSystem -> {
                                                     if (allowSystem) {
                                                         request.grant(new String[] {resource});
                                                         botWebViewContainer.hasUserPermissions = true;
@@ -4652,7 +4652,7 @@ public abstract class BotWebViewContainer extends FrameLayout implements Notific
                                 lastPermissionsDialog = AlertsCreator.createWebViewPermissionsRequestDialog(
                                     botWebViewContainer.parentActivity,
                                     botWebViewContainer.resourcesProvider,
-                                    new String[] {// YASUAGRAM_DISABLED_Manifest_permission_CAMERA },
+                                    new String[] {Manifest.permission.CAMERA },
                                     R.raw.permission_request_camera,
                                     formatString(bot ? R.string.BotWebViewRequestCameraPermission : R.string.WebViewRequestCameraPermission, name),
                                     formatString(bot ? R.string.BotWebViewRequestCameraPermissionWithHint : R.string.WebViewRequestCameraPermissionWithHint, name),
@@ -4661,7 +4661,7 @@ public abstract class BotWebViewContainer extends FrameLayout implements Notific
                                             lastPermissionsDialog = null;
 
                                             if (allow) {
-                                                botWebViewContainer.runWithPermissions(new String[] {// YASUAGRAM_DISABLED_Manifest_permission_CAMERA }, allowSystem -> {
+                                                botWebViewContainer.runWithPermissions(new String[] {Manifest.permission.CAMERA }, allowSystem -> {
                                                     if (allowSystem) {
                                                         request.grant(new String[] {resource});
                                                         botWebViewContainer.hasUserPermissions = true;
@@ -4687,7 +4687,7 @@ public abstract class BotWebViewContainer extends FrameLayout implements Notific
                         lastPermissionsDialog = AlertsCreator.createWebViewPermissionsRequestDialog(
                             botWebViewContainer.parentActivity,
                             botWebViewContainer.resourcesProvider,
-                            new String[] {// YASUAGRAM_DISABLED_Manifest_permission_CAMERA , // YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO },
+                            new String[] {Manifest.permission.CAMERA , Manifest.permission.RECORD_AUDIO },
                             R.raw.permission_request_camera,
                             formatString(bot ? R.string.BotWebViewRequestCameraMicPermission : R.string.WebViewRequestCameraMicPermission, name),
                             formatString(bot ? R.string.BotWebViewRequestCameraMicPermissionWithHint : R.string.WebViewRequestCameraMicPermissionWithHint, name),
@@ -4696,7 +4696,7 @@ public abstract class BotWebViewContainer extends FrameLayout implements Notific
                                     lastPermissionsDialog = null;
 
                                     if (allow) {
-                                        botWebViewContainer.runWithPermissions(new String[] {// YASUAGRAM_DISABLED_Manifest_permission_CAMERA , // YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO }, allowSystem -> {
+                                        botWebViewContainer.runWithPermissions(new String[] {Manifest.permission.CAMERA , Manifest.permission.RECORD_AUDIO }, allowSystem -> {
                                             if (allowSystem) {
                                                 request.grant(new String[] {resources[0], resources[1]});
                                                 botWebViewContainer.hasUserPermissions = true;

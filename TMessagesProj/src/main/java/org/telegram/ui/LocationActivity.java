@@ -2997,7 +2997,7 @@ public class LocationActivity extends BaseFragment implements NotificationCenter
             if (activity != null) {
                 checkPermission = false;
                 if (activity.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 2);
+                    activity.requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 2);
                 }
             }
         }

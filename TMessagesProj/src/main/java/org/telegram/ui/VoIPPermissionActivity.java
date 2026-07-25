@@ -26,15 +26,15 @@ public class VoIPPermissionActivity extends Activity {
 			VoIPPreNotificationService.isVideo();
 
 		ArrayList<String> permissions = new ArrayList<>();
-		if (checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED) {
-			permissions.add(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO );
+		if (checkSelfPermission(Manifest.permission.RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED) {
+			permissions.add(Manifest.permission.RECORD_AUDIO );
 		}
-		if (isVideoCall && checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED) {
-			permissions.add(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA );
+		if (isVideoCall && checkSelfPermission(Manifest.permission.CAMERA ) != PackageManager.PERMISSION_GRANTED) {
+			permissions.add(Manifest.permission.CAMERA );
 		}
 		if (!permissions.isEmpty()) {
 			try {
-				// YASUAGRAM_DISABLED_requestPermissions permissions.toArray(new String[0]), isVideoCall ? 102 : 101);
+				requestPermissions permissions.toArray(new String[0]), isVideoCall ? 102 : 101);
 			} catch (Exception e) {
 				FileLog.e(e);
 			}
@@ -60,7 +60,7 @@ public class VoIPPermissionActivity extends Activity {
 				finish();
 				startActivity(new Intent(this, LaunchActivity.class).setAction("voip"));
 			} else {
-				if (!shouldShowRequestPermissionRationale(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO )) {
+				if (!shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO )) {
 					if (VoIPService.getSharedInstance() != null) {
 						VoIPService.getSharedInstance().declineIncomingCall();
 					} else {

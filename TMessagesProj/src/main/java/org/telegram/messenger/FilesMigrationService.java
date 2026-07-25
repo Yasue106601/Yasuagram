@@ -286,29 +286,29 @@ public class FilesMigrationService extends Service {
             boolean canWrite = activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
             boolean canRead = (
                 Build.VERSION.SDK_INT >= 33 && (
-                    activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES ) == PackageManager.PERMISSION_GRANTED &&
-                    activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO ) == PackageManager.PERMISSION_GRANTED &&
+                    activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES ) == PackageManager.PERMISSION_GRANTED &&
+                    activity.checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO ) == PackageManager.PERMISSION_GRANTED &&
                     activity.checkSelfPermission(Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED
                 ) ||
-                Build.VERSION.SDK_INT < 33 && activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) == PackageManager.PERMISSION_GRANTED
+                Build.VERSION.SDK_INT < 33 && activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE ) == PackageManager.PERMISSION_GRANTED
             );
 
             if (!canRead || !canWrite) {
                 ArrayList<String> permissions = new ArrayList<>();
                 if (!canRead) {
                     if (Build.VERSION.SDK_INT >= 33) {
-                        permissions.add(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES );
-                        permissions.add(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO );
+                        permissions.add(Manifest.permission.READ_MEDIA_IMAGES );
+                        permissions.add(Manifest.permission.READ_MEDIA_VIDEO );
                         permissions.add(Manifest.permission.READ_MEDIA_AUDIO);
                     } else {
-                        permissions.add(// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE );
+                        permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE );
                     }
                 }
                 if (!canWrite) {
                     permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
                 }
                 String[] string = new String[permissions.size()];
-                activity.// YASUAGRAM_DISABLED_requestPermissions permissions.toArray(string), 4);
+                activity.requestPermissions permissions.toArray(string), 4);
                 return;
             }
             start();

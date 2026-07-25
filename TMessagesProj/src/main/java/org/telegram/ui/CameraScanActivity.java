@@ -681,13 +681,13 @@ public class CameraScanActivity extends BaseFragment {
                     }
                     final Activity activity = getParentActivity();
                     if (Build.VERSION.SDK_INT >= 33) {
-                        if (activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES ) != PackageManager.PERMISSION_GRANTED) {
-                            activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES , // YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
+                        if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES ) != PackageManager.PERMISSION_GRANTED) {
+                            activity.requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES , Manifest.permission.READ_MEDIA_VIDEO }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
                             return;
                         }
                     } else if (Build.VERSION.SDK_INT >= 23) {
-                        if (activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) != PackageManager.PERMISSION_GRANTED) {
-                            activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
+                        if (activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE ) != PackageManager.PERMISSION_GRANTED) {
+                            activity.requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
                             return;
                         }
                     }

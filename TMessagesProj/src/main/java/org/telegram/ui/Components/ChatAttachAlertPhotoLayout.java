@@ -920,7 +920,7 @@ public class ChatAttachAlertPhotoLayout extends ChatAttachAlert.AttachAlertLayou
             if (Build.VERSION.SDK_INT >= 23) {
                 if (adapter.needCamera && selectedAlbumEntry == galleryAlbumEntry && position == 0 && noCameraPermissions) {
                     try {
-                        fragment.getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_CAMERA }, 18);
+                        fragment.getParentActivity().requestPermissions(new String[]{Manifest.permission.CAMERA }, 18);
                     } catch (Exception ignore) {
 
                     }
@@ -928,11 +928,11 @@ public class ChatAttachAlertPhotoLayout extends ChatAttachAlert.AttachAlertLayou
                 } else if (noGalleryPermissions) {
                     if (Build.VERSION.SDK_INT >= 33) {
                         try {
-                            fragment.getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO , // YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
+                            fragment.getParentActivity().requestPermissions(new String[]{Manifest.permission.READ_MEDIA_VIDEO , Manifest.permission.READ_MEDIA_IMAGES }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
                         } catch (Exception ignore) {}
                     } else {
                         try {
-                            fragment.getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
+                            fragment.getParentActivity().requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
                         } catch (Exception ignore) {}
                     }
                     return;
@@ -1272,9 +1272,9 @@ public class ChatAttachAlertPhotoLayout extends ChatAttachAlert.AttachAlertLayou
                     return false;
                 }
                 if (Build.VERSION.SDK_INT >= 23) {
-                    if (getContext().checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED) {
+                    if (getContext().checkSelfPermission(Manifest.permission.RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED) {
                         requestingPermissions = true;
-                        baseFragment.getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO }, 21);
+                        baseFragment.getParentActivity().requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO }, 21);
                         return false;
                     }
                 }
@@ -1511,18 +1511,18 @@ public class ChatAttachAlertPhotoLayout extends ChatAttachAlert.AttachAlertLayou
     private void requestGalleryPermission() {
         try {
             if (Build.VERSION.SDK_INT >= 33) {
-                parentAlert.baseFragment.getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO , // YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
+                parentAlert.baseFragment.getParentActivity().requestPermissions(new String[]{Manifest.permission.READ_MEDIA_VIDEO , Manifest.permission.READ_MEDIA_IMAGES }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                parentAlert.baseFragment.getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
+                parentAlert.baseFragment.getParentActivity().requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
             }
         } catch (Exception ignore) {}
     }
 
     private void openCameraWithPermissionCheck() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(parentAlert.baseFragment.getParentActivity(), // YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(parentAlert.baseFragment.getParentActivity(), Manifest.permission.CAMERA ) != PackageManager.PERMISSION_GRANTED) {
                 try {
-                    parentAlert.baseFragment.getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_CAMERA }, 18);
+                    parentAlert.baseFragment.getParentActivity().requestPermissions(new String[]{Manifest.permission.CAMERA }, 18);
                 } catch (Exception ignore) {
                 }
                 return;
@@ -2413,10 +2413,10 @@ public class ChatAttachAlertPhotoLayout extends ChatAttachAlert.AttachAlertLayou
             deviceHasGoodCamera = false;
         } else {
             if (Build.VERSION.SDK_INT >= 23) {
-                if (noCameraPermissions = (fragment.getParentActivity().checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED)) {
+                if (noCameraPermissions = (fragment.getParentActivity().checkSelfPermission(Manifest.permission.CAMERA ) != PackageManager.PERMISSION_GRANTED)) {
                     if (request) {
                         try {
-                            parentAlert.baseFragment.getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_CAMERA , // YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE }, 17);
+                            parentAlert.baseFragment.getParentActivity().requestPermissions(new String[]{Manifest.permission.CAMERA , Manifest.permission.READ_EXTERNAL_STORAGE }, 17);
                         } catch (Exception ignore) {
 
                         }
@@ -3194,10 +3194,10 @@ public class ChatAttachAlertPhotoLayout extends ChatAttachAlert.AttachAlertLayou
         return Build.VERSION.SDK_INT >= 23 && (
             activity == null ||
                 Build.VERSION.SDK_INT >= 33 && (
-                    activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES ) != PackageManager.PERMISSION_GRANTED ||
-                        activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO ) != PackageManager.PERMISSION_GRANTED
+                    activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES ) != PackageManager.PERMISSION_GRANTED ||
+                        activity.checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO ) != PackageManager.PERMISSION_GRANTED
                 ) ||
-                Build.VERSION.SDK_INT < 33 && activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) != PackageManager.PERMISSION_GRANTED
+                Build.VERSION.SDK_INT < 33 && activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE ) != PackageManager.PERMISSION_GRANTED
         );
     }
 

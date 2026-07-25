@@ -105,16 +105,16 @@ public class VoIPHelper {
 		if (Build.VERSION.SDK_INT >= 23) {
 			int code;
 			ArrayList<String> permissions = new ArrayList<>();
-			if (activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED) {
-				permissions.add(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO );
+			if (activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED) {
+				permissions.add(Manifest.permission.RECORD_AUDIO );
 			}
-			if (videoCall && activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED) {
-				permissions.add(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA );
+			if (videoCall && activity.checkSelfPermission(Manifest.permission.CAMERA ) != PackageManager.PERMISSION_GRANTED) {
+				permissions.add(Manifest.permission.CAMERA );
 			}
 			if (permissions.isEmpty()) {
 				initiateCall(user, null, null, videoCall, canVideoCall, false, null, activity, null, accountInstance);
 			} else {
-				activity.// YASUAGRAM_DISABLED_requestPermissions permissions.toArray(new String[0]), videoCall ? 102 : 101);
+				activity.requestPermissions permissions.toArray(new String[0]), videoCall ? 102 : 101);
 			}
 		} else {
 			initiateCall(user, null, null, videoCall, canVideoCall, false, null, activity, null, accountInstance);
@@ -417,7 +417,7 @@ public class VoIPHelper {
 	@TargetApi(Build.VERSION_CODES.M)
 	public static void permissionDenied(final Activity activity, final Runnable onFinish, int code) {
 		boolean mergedRequest = code == 102;
-		if (!activity.shouldShowRequestPermissionRationale(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ) || mergedRequest && !activity.shouldShowRequestPermissionRationale(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA )) {
+		if (!activity.shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO ) || mergedRequest && !activity.shouldShowRequestPermissionRationale(Manifest.permission.CAMERA )) {
 			AlertDialog.Builder dlg = new AlertDialog.Builder(activity)
 					.setMessage(AndroidUtilities.replaceTags(mergedRequest ? LocaleController.getString(R.string.VoipNeedMicCameraPermissionWithHint) : LocaleController.getString(R.string.VoipNeedMicPermissionWithHint)))
 					.setPositiveButton(LocaleController.getString(R.string.Settings), (dialog, which) -> {

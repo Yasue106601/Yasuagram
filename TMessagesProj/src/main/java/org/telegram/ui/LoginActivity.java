@@ -1069,14 +1069,14 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         if (Build.VERSION.SDK_INT >= 23) {
             if (dialog == permissionsDialog && !permissionsItems.isEmpty() && getParentActivity() != null) {
                 try {
-                    getParentActivity().// YASUAGRAM_DISABLED_requestPermissions permissionsItems.toArray(new String[0]), 6);
+                    getParentActivity().requestPermissions permissionsItems.toArray(new String[0]), 6);
                 } catch (Exception ignore) {
 
                 }
             } else if (dialog == permissionsShowDialog && !permissionsShowItems.isEmpty() && getParentActivity() != null) {
                 AndroidUtilities.runOnUIThread(() -> needRequestPermissions = false, 200);
                 try {
-                    getParentActivity().// YASUAGRAM_DISABLED_requestPermissions permissionsShowItems.toArray(new String[0]), 7);
+                    getParentActivity().requestPermissions permissionsShowItems.toArray(new String[0]), 7);
                 } catch (Exception ignore) {
 
                 }
@@ -2952,7 +2952,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                                         confirmedNumber = true;
                                     } else {
                                         try {
-                                            getParentActivity().// YASUAGRAM_DISABLED_requestPermissions permissionsItems.toArray(new String[0]), 6);
+                                            getParentActivity().requestPermissions permissionsItems.toArray(new String[0]), 6);
                                         } catch (Exception e) {
                                             FileLog.e(e);
                                         }
@@ -3030,7 +3030,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                             confirmedNumber = true;
                         } else {
                             try {
-                                getParentActivity().// YASUAGRAM_DISABLED_requestPermissions permissionsItems.toArray(new String[0]), 6);
+                                getParentActivity().requestPermissions permissionsItems.toArray(new String[0]), 6);
                             } catch (Exception e) {
                                 FileLog.e(e);
                             }
@@ -3287,7 +3287,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 // // YASUAGRAM_DISABLE_LOGIN_PERMISSION_SHOW_DIALOG
                                         needRequestPermissions = true;
                                     } else {
-                                        getParentActivity().// YASUAGRAM_DISABLED_requestPermissions callbackPermissionItems.toArray(new String[0]), BasePermissionsActivity.REQUEST_CODE_CALLS);
+                                        getParentActivity().requestPermissions callbackPermissionItems.toArray(new String[0]), BasePermissionsActivity.REQUEST_CODE_CALLS);
                                     }
                                 };
                                 if (isAnimatingIntro) {

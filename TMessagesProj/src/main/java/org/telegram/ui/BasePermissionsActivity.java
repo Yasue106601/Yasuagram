@@ -73,9 +73,9 @@ public class BasePermissionsActivity extends FragmentActivity {
             boolean audioGranted = true;
             boolean cameraGranted = true;
             for (int i = 0, size = Math.min(permissions.length, grantResults.length); i < size; i++) {
-                if (// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO .equals(permissions[i])) {
+                if (Manifest.permission.RECORD_AUDIO .equals(permissions[i])) {
                     audioGranted = grantResults[i] == PackageManager.PERMISSION_GRANTED;
-                } else if (// YASUAGRAM_DISABLED_Manifest_permission_CAMERA .equals(permissions[i])) {
+                } else if (Manifest.permission.CAMERA .equals(permissions[i])) {
                     cameraGranted = grantResults[i] == PackageManager.PERMISSION_GRANTED;
                 }
             }
