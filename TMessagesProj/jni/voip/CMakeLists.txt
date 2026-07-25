@@ -23,7 +23,7 @@ add_library(tgvoip STATIC
         voip/libtgvoip/EchoCanceller.cpp
         voip/libtgvoip/CongestionControl.cpp
         voip/libtgvoip/VoIPServerConfig.cpp
-        voip/libtgvoip/audio/Resampler.cpp
+        
         voip/libtgvoip/NetworkSocket.cpp
         voip/libtgvoip/os/posix/NetworkSocketPosix.cpp
         voip/libtgvoip/PacketReassembler.cpp

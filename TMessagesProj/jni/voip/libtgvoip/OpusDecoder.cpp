@@ -5,7 +5,6 @@
 //
 
 #include "OpusDecoder.h"
-#include "audio/Resampler.h"
 #include "logging.h"
 #include <assert.h>
 #include <math.h>
@@ -261,16 +260,8 @@ LatencyDashboard::Instance().Update(latencyReport);
 	if(size<0)
 		LOGW("decoder: opus_decode error %d", size);
 	remainingDataLen=size;
-	if(playbackDuration==80){
-		processedBuffer=buffer;
-		audio::Resampler::Rescale60To80((int16_t*) decodeBuffer, (int16_t*) processedBuffer);
-	}else if(playbackDuration==40){
-		processedBuffer=buffer;
-		audio::Resampler::Rescale60To40((int16_t*) decodeBuffer, (int16_t*) processedBuffer);
-	}else{
-		processedBuffer=decodeBuffer;
-	}
-	return playbackDuration;
+	processedBuffer=decodeBuffer;
+        return playbackDuration;
 }
 
 
