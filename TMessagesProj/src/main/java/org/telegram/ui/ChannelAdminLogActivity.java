@@ -2121,7 +2121,7 @@ public class ChannelAdminLogActivity extends BaseFragment implements Notificatio
                 }
                 if (selectedObject.type == MessageObject.TYPE_VIDEO || selectedObject.type == MessageObject.TYPE_PHOTO) {
                     if (Build.VERSION.SDK_INT >= 23 && (Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && getParentActivity().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                        getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
+                        getParentActivity().requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
                         selectedObject = null;
                         selectedParticipant = null;
                         return;
@@ -2237,7 +2237,7 @@ public class ChannelAdminLogActivity extends BaseFragment implements Notificatio
                     path = getFileLoader().getPathToMessage(selectedObject.messageOwner).toString();
                 }
                 if (Build.VERSION.SDK_INT >= 23 && (Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && getParentActivity().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
+                    getParentActivity().requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
                     selectedObject = null;
                     selectedParticipant = null;
                     return;
@@ -2251,7 +2251,7 @@ public class ChannelAdminLogActivity extends BaseFragment implements Notificatio
             }
             case OPTION_SAVE_TO_DOWNLOADS_OR_MUSIC: {
                 if (Build.VERSION.SDK_INT >= 23 && (Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && getParentActivity().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
+                    getParentActivity().requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
                     selectedObject = null;
                     selectedParticipant = null;
                     return;

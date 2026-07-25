@@ -337,7 +337,7 @@ public class EmuDetector {
     private boolean checkFiles(String[] targets, EmulatorTypes type) { //TODO scoped storage
         for (String pipe : targets) {
             File qemu_file;
-            if (ContextCompat.checkSelfPermission(mContext, // YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) == PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(mContext, Manifest.permission.READ_EXTERNAL_STORAGE ) == PackageManager.PERMISSION_GRANTED) {
                 if ((pipe.contains("/") && type == EmulatorTypes.NOX) || type == EmulatorTypes.BLUE) {
                     qemu_file = new File(Environment.getExternalStorageDirectory() + pipe);
                 } else {

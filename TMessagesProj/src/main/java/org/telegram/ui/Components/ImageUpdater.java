@@ -652,8 +652,8 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
             return;
         }
         try {
-            if (Build.VERSION.SDK_INT >= 23 && parentFragment.getParentActivity().checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED) {
-                parentFragment.getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_CAMERA }, BasePermissionsActivity.REQUEST_CODE_OPEN_CAMERA);
+            if (Build.VERSION.SDK_INT >= 23 && parentFragment.getParentActivity().checkSelfPermission(Manifest.permission.CAMERA ) != PackageManager.PERMISSION_GRANTED) {
+                parentFragment.getParentActivity().requestPermissions(new String[]{Manifest.permission.CAMERA }, BasePermissionsActivity.REQUEST_CODE_OPEN_CAMERA);
                 return;
             }
             Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -679,8 +679,8 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
             return;
         }
         try {
-            if (Build.VERSION.SDK_INT >= 23 && parentFragment.getParentActivity().checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED) {
-                parentFragment.getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_CAMERA }, 19);
+            if (Build.VERSION.SDK_INT >= 23 && parentFragment.getParentActivity().checkSelfPermission(Manifest.permission.CAMERA ) != PackageManager.PERMISSION_GRANTED) {
+                parentFragment.getParentActivity().requestPermissions(new String[]{Manifest.permission.CAMERA }, 19);
                 return;
             }
             Intent takeVideoIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
@@ -722,13 +722,13 @@ public class ImageUpdater implements NotificationCenter.NotificationCenterDelega
         }
         final Activity activity = parentFragment.getParentActivity();
         if (Build.VERSION.SDK_INT >= 33 && activity != null) {
-            if (activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES ) != PackageManager.PERMISSION_GRANTED || activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO ) != PackageManager.PERMISSION_GRANTED) {
-                activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES , // YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE_FOR_AVATAR);
+            if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES ) != PackageManager.PERMISSION_GRANTED || activity.checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO ) != PackageManager.PERMISSION_GRANTED) {
+                activity.requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES , Manifest.permission.READ_MEDIA_VIDEO }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE_FOR_AVATAR);
                 return;
             }
         } else if (Build.VERSION.SDK_INT >= 23 && activity != null) {
-            if (activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) != PackageManager.PERMISSION_GRANTED) {
-                activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE_FOR_AVATAR);
+            if (activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE ) != PackageManager.PERMISSION_GRANTED) {
+                activity.requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE_FOR_AVATAR);
                 return;
             }
         }

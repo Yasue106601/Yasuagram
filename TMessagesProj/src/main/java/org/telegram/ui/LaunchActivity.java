@@ -7671,7 +7671,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
             if (permissions != null) {
                 requsetPermissionsPointer++;
                 requestedPermissions.put(requsetPermissionsPointer, type);
-                ActivityCompat.// YASUAGRAM_DISABLED_requestPermissions 
+                ActivityCompat.requestPermissions 
                         this,
                         permissions,
                         requsetPermissionsPointer

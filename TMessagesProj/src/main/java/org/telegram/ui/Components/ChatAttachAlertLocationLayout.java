@@ -1733,13 +1733,13 @@ public class ChatAttachAlertLocationLayout extends ChatAttachAlert.AttachAlertLa
                         if (adapter != null) {
                             adapter.setMyLocationDenied(locationDenied, askedForLocation);
                         }
-                        activity.// YASUAGRAM_DISABLED_requestPermissions permissions, BasePermissionsActivity.REQUEST_CODE_GEOLOCATION);
+                        activity.requestPermissions permissions, BasePermissionsActivity.REQUEST_CODE_GEOLOCATION);
                     } else if (Build.VERSION.SDK_INT >= 29 && parentAlert.isStoryLocationPicker && parentAlert.storyLocationPickerPhotoFile != null && activity.checkSelfPermission(Manifest.permission.ACCESS_MEDIA_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                         askedForLocation = true;
                         if (adapter != null) {
                             adapter.setMyLocationDenied(locationDenied, askedForLocation);
                         }
-                        activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.ACCESS_MEDIA_LOCATION}, BasePermissionsActivity.REQUEST_CODE_MEDIA_GEO);
+                        activity.requestPermissions(new String[]{Manifest.permission.ACCESS_MEDIA_LOCATION}, BasePermissionsActivity.REQUEST_CODE_MEDIA_GEO);
                     }
                 }
             }

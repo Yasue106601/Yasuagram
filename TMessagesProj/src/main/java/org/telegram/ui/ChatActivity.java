@@ -12816,8 +12816,8 @@ public class ChatActivity extends BaseFragment implements
             }
         }
         if (Build.VERSION.SDK_INT >= 23 && getParentActivity() != null) {
-            if (getParentActivity().checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED) {
-                getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO }, 3);
+            if (getParentActivity().checkSelfPermission(Manifest.permission.RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED) {
+                getParentActivity().requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO }, 3);
                 return true;
             }
         }
@@ -13723,8 +13723,8 @@ public class ChatActivity extends BaseFragment implements
 
     private void processSelectedAttach(int which) {
         if (which == attach_photo) {
-            if (Build.VERSION.SDK_INT >= 23 && getParentActivity().checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED) {
-                getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_CAMERA }, 19);
+            if (Build.VERSION.SDK_INT >= 23 && getParentActivity().checkSelfPermission(Manifest.permission.CAMERA ) != PackageManager.PERMISSION_GRANTED) {
+                getParentActivity().requestPermissions(new String[]{Manifest.permission.CAMERA }, 19);
                 return;
             }
             try {
@@ -13747,16 +13747,16 @@ public class ChatActivity extends BaseFragment implements
         } else if (which == attach_gallery) {
             final Activity activity = getParentActivity();
             if (Build.VERSION.SDK_INT >= 33) {
-                if (activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES ) != PackageManager.PERMISSION_GRANTED) {
+                if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES ) != PackageManager.PERMISSION_GRANTED) {
                     try {
-                        getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_IMAGES , // YASUAGRAM_DISABLED_Manifest_permission_READ_MEDIA_VIDEO }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
+                        getParentActivity().requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES , Manifest.permission.READ_MEDIA_VIDEO }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
                     } catch (Throwable ignore) {}
                     return;
                 }
             } else if (Build.VERSION.SDK_INT >= 23) {
-                if (activity.checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE ) != PackageManager.PERMISSION_GRANTED) {
+                if (activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE ) != PackageManager.PERMISSION_GRANTED) {
                     try {
-                        getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_READ_EXTERNAL_STORAGE }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
+                        getParentActivity().requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE }, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
                     } catch (Throwable ignore) {}
                     return;
                 }
@@ -13800,9 +13800,9 @@ public class ChatActivity extends BaseFragment implements
             });
             presentFragment(fragment);
         } else if (which == attach_video) {
-            if (Build.VERSION.SDK_INT >= 23 && getParentActivity().checkSelfPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA ) != PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT >= 23 && getParentActivity().checkSelfPermission(Manifest.permission.CAMERA ) != PackageManager.PERMISSION_GRANTED) {
                 try {
-                    getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{// YASUAGRAM_DISABLED_Manifest_permission_CAMERA }, BasePermissionsActivity.REQUEST_CODE_OPEN_CAMERA);
+                    getParentActivity().requestPermissions(new String[]{Manifest.permission.CAMERA }, BasePermissionsActivity.REQUEST_CODE_OPEN_CAMERA);
                 } catch (Throwable ignore) {
 
                 }
@@ -33159,7 +33159,7 @@ public class ChatActivity extends BaseFragment implements
             }
             case OPTION_SAVE_TO_GALLERY: {
                 if (Build.VERSION.SDK_INT >= 23 && (Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && getParentActivity().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
+                    getParentActivity().requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
                     selectedObject = null;
                     selectedObjectGroup = null;
                     selectedObjectToEditCaption = null;
@@ -33314,7 +33314,7 @@ public class ChatActivity extends BaseFragment implements
                     }
                 }
                 if (Build.VERSION.SDK_INT >= 23 && (Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && getParentActivity().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
+                    getParentActivity().requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
                     selectedObject = null;
                     selectedObjectGroup = null;
                     selectedObjectToEditCaption = null;
@@ -33390,7 +33390,7 @@ public class ChatActivity extends BaseFragment implements
             }
             case OPTION_SAVE_TO_DOWNLOADS_OR_MUSIC: {
                 if (Build.VERSION.SDK_INT >= 23 && (Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && getParentActivity().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    getParentActivity().// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
+                    getParentActivity().requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
                     selectedObject = null;
                     selectedObjectGroup = null;
                     selectedObjectToEditCaption = null;

@@ -1305,7 +1305,7 @@ public class ContactsActivity extends BaseFragment implements FactorAnimator.Tar
         permissons.add(Manifest.permission.GET_ACCOUNTS);
         String[] items = permissons.toArray(new String[0]);
         try {
-            activity.// YASUAGRAM_DISABLED_requestPermissions items, 1);
+            activity.requestPermissions items, 1);
         } catch (Exception e) {
             FileLog.e(e);
         }

@@ -97,7 +97,7 @@ public class LivePlayer implements NotificationCenter.NotificationCenterDelegate
     public void continueStreaming() {
         if (outgoing) return;
 
-        PermissionRequest.ensureAllPermissions(R.raw.permission_request_camera, R.string.PermissionNoCameraMicVideo, new String[] { // YASUAGRAM_DISABLED_Manifest_permission_CAMERA , // YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO  }, granted -> {
+        PermissionRequest.ensureAllPermissions(R.raw.permission_request_camera, R.string.PermissionNoCameraMicVideo, new String[] { Manifest.permission.CAMERA , Manifest.permission.RECORD_AUDIO  }, granted -> {
             if (!granted) return;
 
             if (destroyed) return;

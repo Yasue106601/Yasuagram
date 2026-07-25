@@ -3006,7 +3006,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
 
     private void saveToMusic(MessageObject messageObject) {
         if (Build.VERSION.SDK_INT >= 23 && (Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && parentActivity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            parentActivity.// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
+            parentActivity.requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
             return;
         }
         String fileName = FileLoader.getDocumentFileName(messageObject.getDocument());

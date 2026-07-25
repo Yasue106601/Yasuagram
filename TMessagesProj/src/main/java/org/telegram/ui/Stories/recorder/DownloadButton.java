@@ -112,7 +112,7 @@ public class DownloadButton extends ImageView {
         if (Build.VERSION.SDK_INT >= 23 && (Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && getContext().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             final Activity activity = AndroidUtilities.findActivity(getContext());
             if (activity != null) {
-                activity.// YASUAGRAM_DISABLED_requestPermissions new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 113);
+                activity.requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 113);
             }
             return;
         }

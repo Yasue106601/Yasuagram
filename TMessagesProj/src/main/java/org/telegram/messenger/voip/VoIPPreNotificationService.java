@@ -499,8 +499,8 @@ public class VoIPPreNotificationService { // } extends Service implements AudioM
         } else {
             pendingVoIP.putExtra("openFragment", true);
             if (
-                !PermissionRequest.hasPermission(// YASUAGRAM_DISABLED_Manifest_permission_RECORD_AUDIO ) ||
-                isVideo() && !PermissionRequest.hasPermission(// YASUAGRAM_DISABLED_Manifest_permission_CAMERA )
+                !PermissionRequest.hasPermission(Manifest.permission.RECORD_AUDIO ) ||
+                isVideo() && !PermissionRequest.hasPermission(Manifest.permission.CAMERA )
             ) {
                 try {
                     PendingIntent.getActivity(context, 0, new Intent(context, VoIPPermissionActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_ONE_SHOT).send();
