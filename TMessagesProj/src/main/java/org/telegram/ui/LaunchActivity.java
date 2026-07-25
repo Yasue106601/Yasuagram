@@ -8023,7 +8023,6 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     }
 
     private void showLanguageAlert(boolean force) {
-        return; // YASUAGRAM_DISABLE_LANGUAGE_ALERT
         if (!UserConfig.getInstance(currentAccount).isClientActivated()) {
             return;
         }
