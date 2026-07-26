@@ -1,0 +1,134 @@
+diff --git a/TMessagesProj/jni/voip/CMakeLists.txt b/TMessagesProj/jni/voip/CMakeLists.txt
+index d5b93ef4..d06f5efe 100644
+--- a/TMessagesProj/jni/voip/CMakeLists.txt
++++ b/TMessagesProj/jni/voip/CMakeLists.txt
+@@ -23,7 +23,7 @@ add_library(tgvoip STATIC
+         voip/libtgvoip/EchoCanceller.cpp
+         voip/libtgvoip/CongestionControl.cpp
+         voip/libtgvoip/VoIPServerConfig.cpp
+-        voip/libtgvoip/audio/Resampler.cpp
++        
+         voip/libtgvoip/NetworkSocket.cpp
+         voip/libtgvoip/os/posix/NetworkSocketPosix.cpp
+         voip/libtgvoip/PacketReassembler.cpp
+diff --git a/TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp b/TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp
+index a78b883d..19f754b0 100755
+--- a/TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp
++++ b/TMessagesProj/jni/voip/libtgvoip/OpusDecoder.cpp
+@@ -5,7 +5,6 @@
+ //
+ 
+ #include "OpusDecoder.h"
+-#include "audio/Resampler.h"
+ #include "logging.h"
+ #include <assert.h>
+ #include <math.h>
+@@ -261,16 +260,8 @@ LatencyDashboard::Instance().Update(latencyReport);
+ 	if(size<0)
+ 		LOGW("decoder: opus_decode error %d", size);
+ 	remainingDataLen=size;
+-	if(playbackDuration==80){
+-		processedBuffer=buffer;
+-		audio::Resampler::Rescale60To80((int16_t*) decodeBuffer, (int16_t*) processedBuffer);
+-	}else if(playbackDuration==40){
+-		processedBuffer=buffer;
+-		audio::Resampler::Rescale60To40((int16_t*) decodeBuffer, (int16_t*) processedBuffer);
+-	}else{
+-		processedBuffer=decodeBuffer;
+-	}
+-	return playbackDuration;
++	processedBuffer=decodeBuffer;
++        return playbackDuration;
+ }
+ 
+ 
+diff --git a/TMessagesProj/jni/voip/tg_voip_jni.cpp b/TMessagesProj/jni/voip/tg_voip_jni.cpp
+index 5b372595..c43f6b36 100644
+--- a/TMessagesProj/jni/voip/tg_voip_jni.cpp
++++ b/TMessagesProj/jni/voip/tg_voip_jni.cpp
+@@ -15,7 +15,6 @@
+ #include "libtgvoip/os/android/AudioInputOpenSLES.h"
+ #include "libtgvoip/os/android/AudioInputAndroid.h"
+ #include "libtgvoip/os/android/AudioOutputAndroid.h"
+-#include "libtgvoip/audio/Resampler.h"
+ #include "libtgvoip/os/android/JNIUtilities.h"
+ #include "libtgvoip/PrivateDefines.h"
+ #include "libtgvoip/logging.h"
+@@ -238,14 +237,6 @@ namespace tgvoip {
+ 		ServerConfig::GetSharedInstance()->Update(jni::JavaStringToStdString(env, jsonString));
+ 	}
+ 
+-	jint Resampler_convert44to48(JNIEnv *env, jclass cls, jobject from, jobject to) {
+-		return (jint) tgvoip::audio::Resampler::Convert44To48((int16_t *) env->GetDirectBufferAddress(from), (int16_t *) env->GetDirectBufferAddress(to), (size_t) (env->GetDirectBufferCapacity(from) / 2), (size_t) (env->GetDirectBufferCapacity(to) / 2));
+-	}
+-
+-	jint Resampler_convert48to44(JNIEnv *env, jclass cls, jobject from, jobject to) {
+-		return (jint) tgvoip::audio::Resampler::Convert48To44((int16_t *) env->GetDirectBufferAddress(from), (int16_t *) env->GetDirectBufferAddress(to), (size_t) (env->GetDirectBufferCapacity(from) / 2), (size_t) (env->GetDirectBufferCapacity(to) / 2));
+-	}
+-
+ 	template<int level>
+ 	void VLog_log(JNIEnv *env, jclass cls, jstring jmsg) {
+ 		const char *format = "[java] %s";
+@@ -369,8 +360,7 @@ int tgvoipOnJNILoad(JavaVM *vm, JNIEnv *env) {
+ 
+     // Resampler
+     JNINativeMethod resamplerMethods[] = {
+-            {"convert44to48", "(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)I", (void *) &tgvoip::Resampler_convert44to48},
+-            {"convert48to44", "(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)I", (void *) &tgvoip::Resampler_convert48to44}
++            
+     };
+     env->RegisterNatives(resampler, resamplerMethods, sizeof(resamplerMethods) / sizeof(JNINativeMethod));
+ 
+diff --git a/TMessagesProj/src/main/java/org/telegram/messenger/voip/AudioRecordJNI.java b/TMessagesProj/src/main/java/org/telegram/messenger/voip/AudioRecordJNI.java
+index 2f3e1e10..d5907b2c 100755
+--- a/TMessagesProj/src/main/java/org/telegram/messenger/voip/AudioRecordJNI.java
++++ b/TMessagesProj/src/main/java/org/telegram/messenger/voip/AudioRecordJNI.java
+@@ -188,7 +188,8 @@ public class AudioRecordJNI {
+ 						audioRecord.read(buffer, 960 * 2);
+ 					} else {
+ 						audioRecord.read(tmpBuf, 882 * 2);
+-						Resampler.convert44to48(tmpBuf, buffer);
++						tmpBuf.rewind();
++                    tmpBuf.get(buffer);
+ 					}
+ 					if (!running) {
+ 						audioRecord.stop();
+diff --git a/TMessagesProj/src/main/java/org/telegram/messenger/voip/AudioTrackJNI.java b/TMessagesProj/src/main/java/org/telegram/messenger/voip/AudioTrackJNI.java
+index e9ef0286..077ae358 100644
+--- a/TMessagesProj/src/main/java/org/telegram/messenger/voip/AudioTrackJNI.java
++++ b/TMessagesProj/src/main/java/org/telegram/messenger/voip/AudioTrackJNI.java
+@@ -12,7 +12,7 @@ import java.nio.ByteBuffer;
+ 
+ public class AudioTrackJNI {
+ 	private AudioTrack audioTrack;
+-	private byte[] buffer = new byte[960 * 2];
++	private byte[] buffer = new byte[480 * 2];
+ 	private boolean running;
+ 	private Thread thread;
+ 	private boolean needResampling;
+@@ -93,20 +93,20 @@ public class AudioTrackJNI {
+ 				return;
+ 			}
+ 			ByteBuffer tmp48 = needResampling ? ByteBuffer.allocateDirect(960 * 2) : null;
+-			ByteBuffer tmp44 = needResampling ? ByteBuffer.allocateDirect(882 * 2) : null;
++			ByteBuffer tmp44 = needResampling ? ByteBuffer.allocateDirect(441 * 2) : null;
+ 			while (running) {
+ 				try {
+ 					if (needResampling) {
+ 						nativeCallback(buffer);
+ 						tmp48.rewind();
+ 						tmp48.put(buffer);
+-						Resampler.convert48to44(tmp48, tmp44);
++						// Resampler disabled
+ 						tmp44.rewind();
+-						tmp44.get(buffer, 0, 882 * 2);
+-						audioTrack.write(buffer, 0, 882 * 2);
++						tmp44.get(buffer, 0, 441 * 2);
++						audioTrack.write(buffer, 0, 441 * 2);
+ 					} else {
+ 						nativeCallback(buffer);
+-						audioTrack.write(buffer, 0, 960 * 2);
++						audioTrack.write(buffer, 0, 480 * 2);
+ 					}
+ 					if (!running) {
+ 						audioTrack.stop();
