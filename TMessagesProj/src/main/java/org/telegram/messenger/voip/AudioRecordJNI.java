@@ -189,7 +189,9 @@ public class AudioRecordJNI {
 					} else {
 						audioRecord.read(tmpBuf, 882 * 2);
 						tmpBuf.rewind();
-                    tmpBuf.get(buffer);
+                                                buffer.clear();
+                                                buffer.put(tmpBuf);
+                                                buffer.flip();
 					}
 					if (!running) {
 						audioRecord.stop();
