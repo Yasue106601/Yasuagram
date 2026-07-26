@@ -368,7 +368,7 @@ void JitterBuffer::Tick(){
 	}
 
 	delayHistory.Add(GetCurrentDelay());
-	avgDelay=delayHistory.Average(10);
+	avgDelay=delayHistory.Average(8);
 
 	double stddev=0;
 	double avgdev=deviationHistory.Average();

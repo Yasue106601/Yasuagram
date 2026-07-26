@@ -182,6 +182,7 @@ public class AudioRecordJNI {
 		running = true;
 		final ByteBuffer tmpBuf = needResampling ? ByteBuffer.allocateDirect(882 * 2) : null;
 		thread = new Thread(() -> {
+android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
 			while (running) {
 				try {
 					if (!needResampling) {

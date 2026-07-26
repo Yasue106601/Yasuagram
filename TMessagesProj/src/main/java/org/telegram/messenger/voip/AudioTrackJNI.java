@@ -86,6 +86,7 @@ public class AudioTrackJNI {
 		}
 		running = true;
 		thread = new Thread(() -> {
+android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
 			try {
 				audioTrack.play();
 			} catch (Exception x) {
