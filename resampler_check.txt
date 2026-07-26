@@ -1,0 +1,9 @@
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioInputAudioUnitOSX.cpp:11:#include "../../audio/Resampler.h"
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioInputAudioUnitOSX.cpp:106:		if(hardwareSampleRate!=48000){
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioInputAudioUnitOSX.cpp:107:			len=tgvoip::audio::Resampler::Convert((int16_t*)buf.mData, (int16_t*)(remainingData+remainingDataSize), buf.mDataByteSize/2, (10240-(buf.mDataByteSize+remainingDataSize))/2, 48000, hardwareSampleRate)*2;
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioInputAudioUnitOSX.cpp:273:	hardwareSampleRate=hardwareFormat.mSampleRate;
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioInputAudioUnitOSX.cpp:283:	LOGD("Switched capture device, new sample rate %d", hardwareSampleRate);
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioInputAudioUnitOSX.h:35:	int hardwareSampleRate;
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioOutputAudioUnitOSX.cpp:303:	hardwareSampleRate=hardwareFormat.mSampleRate;
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioOutputAudioUnitOSX.cpp:313:	LOGD("Switched playback device, new sample rate %d", hardwareSampleRate);
+TMessagesProj/jni/voip/libtgvoip/os/darwin/AudioOutputAudioUnitOSX.h:36:	int hardwareSampleRate;
