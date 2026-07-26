@@ -15,6 +15,7 @@
 #include "libtgvoip/os/android/AudioInputOpenSLES.h"
 #include "libtgvoip/os/android/AudioInputAndroid.h"
 #include "libtgvoip/os/android/AudioOutputAndroid.h"
+#include "libtgvoip/audio/Resampler.h"
 #include "libtgvoip/os/android/JNIUtilities.h"
 #include "libtgvoip/PrivateDefines.h"
 #include "libtgvoip/logging.h"
@@ -237,6 +238,14 @@ namespace tgvoip {
 		ServerConfig::GetSharedInstance()->Update(jni::JavaStringToStdString(env, jsonString));
 	}
 
+	jint Resampler_convert44to48(JNIEnv *env, jclass cls, jobject from, jobject to) {
+		return (jint) tgvoip::audio::Resampler::Convert44To48((int16_t *) env->GetDirectBufferAddress(from), (int16_t *) env->GetDirectBufferAddress(to), (size_t) (env->GetDirectBufferCapacity(from) / 2), (size_t) (env->GetDirectBufferCapacity(to) / 2));
+	}
+
+	jint Resampler_convert48to44(JNIEnv *env, jclass cls, jobject from, jobject to) {
+		return (jint) tgvoip::audio::Resampler::Convert48To44((int16_t *) env->GetDirectBufferAddress(from), (int16_t *) env->GetDirectBufferAddress(to), (size_t) (env->GetDirectBufferCapacity(from) / 2), (size_t) (env->GetDirectBufferCapacity(to) / 2));
+	}
+
 	template<int level>
 	void VLog_log(JNIEnv *env, jclass cls, jstring jmsg) {
 		const char *format = "[java] %s";
@@ -360,7 +369,8 @@ int tgvoipOnJNILoad(JavaVM *vm, JNIEnv *env) {
 
     // Resampler
     JNINativeMethod resamplerMethods[] = {
-            
+            {"convert44to48", "(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)I", (void *) &tgvoip::Resampler_convert44to48},
+            {"convert48to44", "(Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)I", (void *) &tgvoip::Resampler_convert48to44}
     };
     env->RegisterNatives(resampler, resamplerMethods, sizeof(resamplerMethods) / sizeof(JNINativeMethod));
 
