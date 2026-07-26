@@ -188,8 +188,7 @@ public class AudioRecordJNI {
 						audioRecord.read(buffer, 960 * 2);
 					} else {
 						audioRecord.read(tmpBuf, 882 * 2);
-						tmpBuf.rewind();
-                    buffer.put(tmpBuf);
+						Resampler.convert44to48(tmpBuf, buffer);
 					}
 					if (!running) {
 						audioRecord.stop();
