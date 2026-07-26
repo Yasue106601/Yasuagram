@@ -36,7 +36,7 @@ EchoCanceller::EchoCanceller(bool enableAEC, bool enableNS, bool enableAGC){
 #else
 	config.echo_canceller.mobile_mode = false;
 #endif
-	config.high_pass_filter.enabled = enableAEC;
+	config.high_pass_filter.enabled = false;
 	config.gain_controller2.enabled = enableAGC;
 
     using Level = webrtc::AudioProcessing::Config::NoiseSuppression::Level;
