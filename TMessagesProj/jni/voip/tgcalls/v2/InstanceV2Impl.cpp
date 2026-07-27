@@ -169,7 +169,7 @@ public:
             if (payloadType.name == "opus") {
                 cricket::AudioCodec codec = cricket::CreateAudioCodec(payloadType.id, payloadType.name, payloadType.clockrate, payloadType.channels);
 
-                codec.SetParam(cricket::kCodecParamUseInbandFec, 0);
+                codec.SetParam(cricket::kCodecParamUseInbandFec, 1);
                 codec.SetParam(cricket::kCodecParamPTime, 60);
 
                 for (const auto &feedbackType : payloadType.feedbackTypes) {
