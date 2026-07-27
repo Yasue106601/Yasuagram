@@ -948,7 +948,7 @@ bool AAudioWrapper::OptimizeBuffers() {
       << frames_per_burst;
 
 
-  int32_t target_buffer = frames_per_burst / 2;
+  int32_t target_buffer = 64;
 
   if (target_buffer < 64) {
     target_buffer = frames_per_burst;

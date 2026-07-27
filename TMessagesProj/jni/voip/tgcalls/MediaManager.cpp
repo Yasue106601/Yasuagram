@@ -384,7 +384,7 @@ _platformContext(platformContext) {
         const uint8_t opusMinBitrateKbps = 6;
         const uint8_t opusMaxBitrateKbps = 24;
         const uint8_t opusStartBitrateKbps = 12;
-        const uint8_t opusPTimeMs = 20;
+        const uint8_t opusPTimeMs = 10;
         cricket::AudioCodec opusCodec = cricket::CreateAudioCodec(opusSdpPayload, opusSdpName, opusClockrate, opusSdpChannels);
         opusCodec.AddFeedbackParam(cricket::FeedbackParam(cricket::kRtcpFbParamTransportCc));
         opusCodec.SetParam(cricket::kCodecParamMinBitrate, opusMinBitrateKbps);

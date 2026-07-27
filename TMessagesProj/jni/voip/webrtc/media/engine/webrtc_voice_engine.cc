@@ -437,9 +437,9 @@ void WebRtcVoiceEngine::Init() {
 #endif
     options.highpass_filter = true;
     options.stereo_swapping = false;
-    options.audio_jitter_buffer_max_packets = 20;
+    options.audio_jitter_buffer_max_packets = 10;
     options.audio_jitter_buffer_fast_accelerate = true;
-    options.audio_jitter_buffer_min_delay_ms = 10;
+    options.audio_jitter_buffer_min_delay_ms = 5;
     ApplyOptions(options);
   }
   initialized_ = true;
@@ -580,7 +580,7 @@ void WebRtcVoiceEngine::ApplyOptions(const AudioOptions& options_in) {
 
   if (options.audio_jitter_buffer_max_packets) {
     audio_jitter_buffer_max_packets_ =
-        std::max(20, *options.audio_jitter_buffer_max_packets);
+        std::max(10, *options.audio_jitter_buffer_max_packets);
   }
   if (options.audio_jitter_buffer_fast_accelerate) {
     audio_jitter_buffer_fast_accelerate_ =
