@@ -948,7 +948,18 @@ bool AAudioWrapper::OptimizeBuffers() {
       << frames_per_burst;
 
 
-  AAudioStream_setBufferSizeInFrames(stream_, frames_per_burst);
+  int32_t target_buffer = frames_per_burst / 2;
+
+  if (target_buffer < 64) {
+    target_buffer = frames_per_burst;
+  }
+
+  aaudio_result_t result =
+      AAudioStream_setBufferSizeInFrames(stream_, target_buffer);
+
+  if (result < 0) {
+    AAudioStream_setBufferSizeInFrames(stream_, frames_per_burst);
+  }
 
 
   int32_t buffer_size = AAudioStream_getBufferSizeInFrames(stream_);
@@ -957,7 +968,7 @@ bool AAudioWrapper::OptimizeBuffers() {
   RTC_LOG(LS_INFO)
       << "Actual Buffer Size After Set: "
       << buffer_size;
-  if (buffer_size != frames_per_burst) {
+  if (buffer_size > frames_per_burst) {
     RTC_LOG(LS_ERROR) << "Failed to use optimal buffer burst size";
     return false;
   }

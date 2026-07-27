@@ -379,18 +379,18 @@ _platformContext(platformContext) {
         const uint32_t opusClockrate = 48000;
         const uint16_t opusSdpPayload = 111;
         const char *opusSdpName = "opus";
-        const uint8_t opusSdpChannels = 2;
+        const uint8_t opusSdpChannels = 1;
 
         const uint8_t opusMinBitrateKbps = 6;
-        const uint8_t opusMaxBitrateKbps = 32;
-        const uint8_t opusStartBitrateKbps = 8;
-        const uint8_t opusPTimeMs = 120;
+        const uint8_t opusMaxBitrateKbps = 24;
+        const uint8_t opusStartBitrateKbps = 12;
+        const uint8_t opusPTimeMs = 20;
         cricket::AudioCodec opusCodec = cricket::CreateAudioCodec(opusSdpPayload, opusSdpName, opusClockrate, opusSdpChannels);
         opusCodec.AddFeedbackParam(cricket::FeedbackParam(cricket::kRtcpFbParamTransportCc));
         opusCodec.SetParam(cricket::kCodecParamMinBitrate, opusMinBitrateKbps);
         opusCodec.SetParam(cricket::kCodecParamStartBitrate, opusStartBitrateKbps);
         opusCodec.SetParam(cricket::kCodecParamMaxBitrate, opusMaxBitrateKbps);
-        opusCodec.SetParam(cricket::kCodecParamUseInbandFec, 1);
+        opusCodec.SetParam(cricket::kCodecParamUseInbandFec, 0);
         opusCodec.SetParam(cricket::kCodecParamPTime, opusPTimeMs);
 
         cricket::AudioSenderParameter audioSendPrameters;

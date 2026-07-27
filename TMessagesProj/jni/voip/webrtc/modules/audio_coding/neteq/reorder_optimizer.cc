@@ -19,7 +19,7 @@ namespace webrtc {
 namespace {
 
 constexpr int kDelayBuckets = 100;
-constexpr int kBucketSizeMs = 20;
+constexpr int kBucketSizeMs = 8;
 
 }  // namespace
 
@@ -58,7 +58,7 @@ int ReorderOptimizer::MinimizeCostFunction(int base_delay_ms) const {
     int64_t delay_ms =
         static_cast<int64_t>(std::max(0, i * kBucketSizeMs - base_delay_ms))
         << 30;
-    int64_t cost = delay_ms + 100 * ms_per_loss_percent_ * loss_probability;
+    int64_t cost = delay_ms + 50 * ms_per_loss_percent_ * loss_probability;
 
     if (cost < min_cost) {
       min_cost = cost;

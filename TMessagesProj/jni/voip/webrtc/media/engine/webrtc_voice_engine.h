@@ -172,9 +172,9 @@ class WebRtcVoiceEngine final : public VoiceEngineInterface {
   bool initialized_ = false;
 
   // Jitter buffer settings for new streams.
-  size_t audio_jitter_buffer_max_packets_ = 200;
+  size_t audio_jitter_buffer_max_packets_ = 20;
   bool audio_jitter_buffer_fast_accelerate_ = false;
-  int audio_jitter_buffer_min_delay_ms_ = 0;
+  int audio_jitter_buffer_min_delay_ms_ = 10;
 
   const bool minimized_remsampling_on_mobile_trial_enabled_;
 };

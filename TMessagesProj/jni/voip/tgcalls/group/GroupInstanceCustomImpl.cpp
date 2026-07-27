@@ -1396,7 +1396,7 @@ public:
         threads->getWorkerThread()->BlockingCall([this, rtpTransport, ssrc, onAudioFrame = std::move(onAudioFrame), onAudioLevelUpdated = std::move(onAudioLevelUpdated), isRawPcm, userId, e2eEncryptDecrypt, payloadTypeMapping, setAudioLevelAndSpeech]() mutable {
             cricket::AudioOptions audioOptions;
             audioOptions.audio_jitter_buffer_fast_accelerate = true;
-            audioOptions.audio_jitter_buffer_min_delay_ms = 20;
+            audioOptions.audio_jitter_buffer_min_delay_ms = 10;
 
             std::string streamId = std::string("stream") + ssrc.name();
 
@@ -1409,7 +1409,7 @@ public:
             const uint8_t opusPTimeMs = 20;
 
             cricket::AudioCodec opusCodec = cricket::CreateAudioCodec(111, "opus", 48000, 2);
-            opusCodec.SetParam(cricket::kCodecParamUseInbandFec, 1);
+            opusCodec.SetParam(cricket::kCodecParamUseInbandFec, 0);
             opusCodec.SetParam(cricket::kCodecParamPTime, opusPTimeMs);
 
             cricket::AudioCodec pcmCodec = cricket::CreateAudioCodec(112, "l16", 48000, 1);
@@ -2568,7 +2568,7 @@ public:
         opusCodec.SetParam(cricket::kCodecParamMinBitrate, opusMinBitrateKbps);
         opusCodec.SetParam(cricket::kCodecParamStartBitrate, opusStartBitrateKbps);
         opusCodec.SetParam(cricket::kCodecParamMaxBitrate, opusMaxBitrateKbps);
-        opusCodec.SetParam(cricket::kCodecParamUseInbandFec, 1);
+        opusCodec.SetParam(cricket::kCodecParamUseInbandFec, 0);
         opusCodec.SetParam(cricket::kCodecParamPTime, opusPTimeMs);
 
         auto outgoingAudioDescription = std::make_unique<cricket::AudioContentDescription>();

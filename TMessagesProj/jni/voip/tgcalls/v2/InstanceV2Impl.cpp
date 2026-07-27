@@ -169,7 +169,7 @@ public:
             if (payloadType.name == "opus") {
                 cricket::AudioCodec codec = cricket::CreateAudioCodec(payloadType.id, payloadType.name, payloadType.clockrate, payloadType.channels);
 
-                codec.SetParam(cricket::kCodecParamUseInbandFec, 1);
+                codec.SetParam(cricket::kCodecParamUseInbandFec, 0);
                 codec.SetParam(cricket::kCodecParamPTime, 60);
 
                 for (const auto &feedbackType : payloadType.feedbackTypes) {
@@ -336,7 +336,7 @@ public:
 
         cricket::AudioOptions audioOptions;
         audioOptions.audio_jitter_buffer_fast_accelerate = true;
-        audioOptions.audio_jitter_buffer_min_delay_ms = 50;
+        audioOptions.audio_jitter_buffer_min_delay_ms = 10;
 
         const auto streamId = std::to_string(_ssrc);
 
