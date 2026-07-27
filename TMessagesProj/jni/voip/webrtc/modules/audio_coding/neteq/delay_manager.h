@@ -31,14 +31,14 @@ class DelayManager {
     void Log();
 
     // Options that can be configured via field trial.
-    double quantile = 0.95;
-    double forget_factor = 0.983;
+    double quantile = 0.85;
+    double forget_factor = 0.950;
     absl::optional<double> start_forget_weight = 2;
     absl::optional<int> resample_interval_ms = 500;
 
     bool use_reorder_optimizer = true;
-    double reorder_forget_factor = 0.9993;
-    int ms_per_loss_percent = 20;
+    double reorder_forget_factor = 0.990;
+    int ms_per_loss_percent = 10;
 
     // Options that are externally populated.
     int max_packets_in_buffer = 200;
