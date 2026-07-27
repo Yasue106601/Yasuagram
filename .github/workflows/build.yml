@@ -46,11 +46,11 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p output
-          cp $(find TMessagesProj_App/build/outputs/apk -name "*.apk" | head -n1) output/app.apk
+          cp $(find TMessagesProj_App/build/outputs/apk -name "*.apk" | head -n1) output/Yasuagram.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Yasuagram
-          path: output/app.apk
+          path: output/Yasuagram.apk
           if-no-files-found: error
