@@ -42,7 +42,7 @@ void tgvoip::OpusDecoder::Initialize(bool isAsync, bool needEC){
 	async=isAsync;
 	if(async){
 		decodedQueue=new BlockingQueue<unsigned char*>(33);
-		bufferPool=new BufferPool(PACKET_SIZE, 32);
+		bufferPool=new BufferPool(PACKET_SIZE, 4);
 		semaphore=new Semaphore(32, 0);
 	}else{
 		decodedQueue=NULL;
@@ -58,7 +58,7 @@ void tgvoip::OpusDecoder::Initialize(bool isAsync, bool needEC){
 	lastDecoded=NULL;
 	outputBufferSize=0;
 	echoCanceller=NULL;
-	frameDuration=20;
+	frameDuration=10;
 	consecutiveLostPackets=0;
 	enableDTX=false;
 	silentPacketCount=0;
@@ -267,7 +267,7 @@ LatencyDashboard::Instance().Update(latencyReport);
 
 void tgvoip::OpusDecoder::SetFrameDuration(uint32_t duration){
 	frameDuration=duration;
-	packetsPerFrame=frameDuration/20;
+	packetsPerFrame=duration < 20 ? 1 : duration/20;
 }
 
 

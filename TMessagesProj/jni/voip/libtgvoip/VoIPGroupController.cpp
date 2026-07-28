@@ -99,11 +99,11 @@ void VoIPGroupController::AddGroupCallParticipant(int32_t userID, unsigned char 
 			audioStreamID=s->id;
 			s->jitterBuffer=make_shared<JitterBuffer>(nullptr, s->frameDuration);
 			if(s->frameDuration>50)
-				s->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_60", 2));
+				s->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_60", 0));
 			else if(s->frameDuration>30)
-				s->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_40", 4));
+				s->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_40", 0));
 			else
-				s->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_20", 6));
+				s->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_20", 0));
 			s->callbackWrapper=make_shared<CallbackWrapper>();
 			s->decoder=make_shared<OpusDecoder>(s->callbackWrapper, false, false);
 			s->decoder->SetJitterBuffer(s->jitterBuffer);

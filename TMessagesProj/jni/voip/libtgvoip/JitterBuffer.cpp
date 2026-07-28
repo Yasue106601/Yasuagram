@@ -21,15 +21,15 @@ JitterBuffer::JitterBuffer(MediaStreamItf *out, uint32_t step):bufferPool(JITTER
 	if(step<30){
 		minMinDelay=(uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_min_delay_20", 1);
 		maxMinDelay=(uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_max_delay_20", 4);
-		maxUsedSlots=(uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_max_slots_20", 50);
+		maxUsedSlots=(uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_max_slots_20", 4);
 	}else if(step<50){
 		minMinDelay=(uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_min_delay_40", 1);
 		maxMinDelay=(uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_max_delay_40", 3);
-		maxUsedSlots=(uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_max_slots_40", 30);
+		maxUsedSlots=(uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_max_slots_40", 4);
 	}else{
 		minMinDelay=(uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_min_delay_60", 1);
 		maxMinDelay=(uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_max_delay_60", 3);
-		maxUsedSlots=(uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_max_slots_60", 20);
+		maxUsedSlots=(uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_max_slots_60", 3);
 	}
 	lossesToReset=(uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_losses_to_reset", 20);
 	resyncThreshold=ServerConfig::GetSharedInstance()->GetDouble("jitter_resync_threshold", 1.0);
@@ -145,10 +145,10 @@ size_t JitterBuffer::HandleOutput(unsigned char *buffer, size_t len, int offsetI
 	if(outstandingDelayChange!=0){
 		if(outstandingDelayChange<0){
 			playbackScaledDuration=40;
-			outstandingDelayChange+=20;
+			outstandingDelayChange+=5;
 		}else{
 			playbackScaledDuration=80;
-			outstandingDelayChange-=20;
+			outstandingDelayChange-=2;
 		}
 		//LOGV("outstanding delay change: %d", outstandingDelayChange);
 	}else if(advance && GetCurrentDelay()==0){
@@ -378,10 +378,11 @@ void JitterBuffer::Tick(){
 	}
 	stddev=sqrt(stddev/64);
 	uint32_t stddevDelay=(uint32_t)ceil(stddev*2*1000/step);
-	if(stddevDelay<minMinDelay)
-		stddevDelay=minMinDelay;
-	if(stddevDelay>maxMinDelay)
-		stddevDelay=maxMinDelay;
+    // Yasuagram ultra low latency jitter limit
+    if(stddevDelay<1)
+            stddevDelay=1;
+    if(stddevDelay>3)
+            stddevDelay=2;
 	if(stddevDelay!=minDelay){
 		int32_t diff=(int32_t)(stddevDelay-minDelay);
 		if(diff>0){
@@ -394,7 +395,7 @@ void JitterBuffer::Tick(){
 		if((diff>0 && dontIncMinDelay==0) || (diff<0 && dontDecMinDelay==0)){
 			//nextTimestamp+=diff*(int32_t)step;
 			minDelay+=diff;
-			outstandingDelayChange+=diff*60;
+			outstandingDelayChange+=diff*30;
 			dontChangeDelay+=32;
 			//LOGD("new delay from stddev %f", minDelay);
 			if(diff<0){
@@ -410,10 +411,10 @@ void JitterBuffer::Tick(){
 	//LOGV("stddev=%.3f, avg=%.3f, ndelay=%d, dontDec=%u", stddev, avgdev, stddevDelay, dontDecMinDelay);
 	if(dontChangeDelay==0){
 		if(avgDelay>minDelay+0.5){
-			outstandingDelayChange-=avgDelay>minDelay+2 ? 60 : 20;
+			outstandingDelayChange-=avgDelay>minDelay+2 ? 3 : 1;
 			dontChangeDelay+=10;
 		}else if(avgDelay<minDelay-0.3){
-			outstandingDelayChange+=20;
+			outstandingDelayChange+=5;
 			dontChangeDelay+=10;
 		}
 	}

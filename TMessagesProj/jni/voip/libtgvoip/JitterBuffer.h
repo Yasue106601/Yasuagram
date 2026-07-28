@@ -15,7 +15,7 @@
 #include "Buffers.h"
 #include "threading.h"
 
-#define JITTER_SLOT_COUNT 64
+#define JITTER_SLOT_COUNT 2
 #define JITTER_SLOT_SIZE 1024
 #define JR_OK 1
 #define JR_MISSING 2
@@ -59,7 +59,7 @@ private:
 	jitter_packet_t slots[JITTER_SLOT_COUNT];
 	int64_t nextTimestamp=0;
 	uint32_t step;
-	double minDelay=6;
+	double minDelay=1;
 	uint32_t minMinDelay;
 	uint32_t maxMinDelay;
 	uint32_t maxUsedSlots;

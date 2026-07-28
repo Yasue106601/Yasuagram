@@ -33,13 +33,13 @@ namespace{
 	}
 }
 
-tgvoip::OpusEncoder::OpusEncoder(MediaStreamItf *source, bool needSecondary):queue(11), bufferPool(960*2, 10){
+tgvoip::OpusEncoder::OpusEncoder(MediaStreamItf *source, bool needSecondary):queue(3), bufferPool(480*2, 3){
 	this->source=source;
 	source->SetCallback(tgvoip::OpusEncoder::Callback, this);
 	enc=opus_encoder_create(48000, 1, OPUS_APPLICATION_VOIP, NULL);
-	opus_encoder_ctl(enc, OPUS_SET_COMPLEXITY(6));
-	opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC(1));
-	opus_encoder_ctl(enc, OPUS_SET_INBAND_FEC(1));
+	opus_encoder_ctl(enc, OPUS_SET_COMPLEXITY(3));
+	opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC(0));
+	opus_encoder_ctl(enc, OPUS_SET_INBAND_FEC(0));
 	opus_encoder_ctl(enc, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE));
 	opus_encoder_ctl(enc, OPUS_SET_BANDWIDTH(OPUS_BANDWIDTH_FULLBAND));
 	requestedBitrate=20000;
@@ -47,7 +47,7 @@ tgvoip::OpusEncoder::OpusEncoder(MediaStreamItf *source, bool needSecondary):que
 	running=false;
 	echoCanceller=NULL;
 	complexity=10;
-	frameDuration=20;
+	frameDuration=10;
 	levelMeter=NULL;
 	vadNoVoiceBitrate=static_cast<uint32_t>(ServerConfig::GetSharedInstance()->GetInt("audio_vad_no_voice_bitrate", 6000));
 	vadModeVoiceBandwidth=serverConfigValueToBandwidth(ServerConfig::GetSharedInstance()->GetInt("audio_vad_bandwidth", 3));
@@ -57,7 +57,7 @@ tgvoip::OpusEncoder::OpusEncoder(MediaStreamItf *source, bool needSecondary):que
 
 	if(needSecondary){
 		secondaryEncoder=opus_encoder_create(48000, 1, OPUS_APPLICATION_VOIP, NULL);
-		opus_encoder_ctl(secondaryEncoder, OPUS_SET_COMPLEXITY(6));
+		opus_encoder_ctl(secondaryEncoder, OPUS_SET_COMPLEXITY(3));
 		opus_encoder_ctl(secondaryEncoder, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE));
 		//opus_encoder_ctl(secondaryEncoder, OPUS_SET_VBR(0));
 		opus_encoder_ctl(secondaryEncoder, OPUS_SET_BITRATE(8000));

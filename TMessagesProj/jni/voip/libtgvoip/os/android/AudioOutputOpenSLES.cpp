@@ -14,7 +14,7 @@
 #include "AudioInputAndroid.h"
 
 #define CHECK_SL_ERROR(res, msg) if(res!=SL_RESULT_SUCCESS){ LOGE(msg); failed=true; return; }
-#define BUFFER_SIZE 960 // 20 ms
+#define BUFFER_SIZE 240 // 10 ms
 
 using namespace tgvoip;
 using namespace tgvoip::audio;
