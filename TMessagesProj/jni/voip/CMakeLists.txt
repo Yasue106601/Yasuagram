@@ -492,7 +492,6 @@ add_library(tgcalls STATIC
         voip/tgcalls/CodecSelectHelper.cpp
         voip/tgcalls/Message.cpp
         voip/tgcalls/InstanceImpl.cpp
-        voip/latency_dashboard/LatencyDashboard.cpp
         voip/tgcalls/group/GroupNetworkManager.cpp
         voip/tgcalls/group/GroupJoinPayloadInternal.cpp
         voip/tgcalls/group/GroupInstanceCustomImpl.cpp
@@ -1008,8 +1007,6 @@ add_library(tgcalls STATIC
         voip/webrtc/modules/audio_device/android/aaudio_player.cc
         voip/webrtc/modules/audio_device/android/aaudio_recorder.cc
         voip/webrtc/modules/audio_device/android/aaudio_wrapper.cc
-        voip/yasuaudio/yasu_audio_report.cc
-        voip/yasuaudio/yasu_audio_jni.cpp
         voip/webrtc/modules/audio_device/audio_device_name.cc
         voip/webrtc/modules/audio_device/dummy/audio_device_dummy.cc
         voip/webrtc/modules/audio_device/dummy/file_audio_device.cc

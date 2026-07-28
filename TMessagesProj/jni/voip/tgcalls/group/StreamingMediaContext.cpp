@@ -1,4 +1,3 @@
-#include "../latency_dashboard/LatencyDashboard.h"
 #include "StreamingMediaContext.h"
 
 #include "AudioStreamingPart.h"
@@ -418,7 +417,6 @@ public:
                         // Yasuagram: Ring Buffer Fill Monitoring
                         LatencyReport rbReport;
                         rbReport.ringBufferFill = _audioRingBuffer.availableForReading();
-                        LatencyDashboard::Instance().Update(rbReport);
                         _audioRingBuffer.write(frameOut.data(), frameOut.samples_per_channel() * frameOut.num_channels());
                     } else {
                         if (_stereoShuffleBuffer.size() < frameOut.samples_per_channel() * _audioRingBufferNumChannels) {
@@ -515,7 +513,6 @@ public:
                         // Yasuagram: Ring Buffer Fill Monitoring
                         LatencyReport rbReport;
                         rbReport.ringBufferFill = _audioRingBuffer.availableForReading();
-                        LatencyDashboard::Instance().Update(rbReport);
                         _audioRingBuffer.write(frameOut.data(), frameOut.samples_per_channel() * frameOut.num_channels());
                     } else {
                         if (_stereoShuffleBuffer.size() < frameOut.samples_per_channel() * _audioRingBufferNumChannels) {

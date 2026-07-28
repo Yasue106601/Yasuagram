@@ -1,4 +1,3 @@
-#include "../latency_dashboard/LatencyDashboard.h"
 #include <future>
 #include <chrono>
 #include <memory>
@@ -224,7 +223,7 @@ std::string InstanceImpl::getDebugInfo() {
 
 
 std::string InstanceImpl::getLatencyStats() {
-    return LatencyDashboard::Instance().GetReport();
+    return "";
 
     return getDebugInfo();
 

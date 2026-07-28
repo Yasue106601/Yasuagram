@@ -1,6 +1,5 @@
 #include "group/GroupNetworkManager.h"
 #include <cmath>
-#include "../../latency_dashboard/LatencyDashboard.h"
 
 #include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/client/basic_port_allocator.h"
@@ -625,7 +624,6 @@ void GroupNetworkManager::transportPacketReceived(rtc::PacketTransportInternal *
 
     LatencyReport udpReport;
     udpReport.lastReceiveTimestamp = _latencyLastUdpReceiveTimestamp;
-    LatencyDashboard::Instance().Update(udpReport);
 
     _lastNetworkActivityMs = rtc::TimeMillis();
 }
@@ -669,7 +667,6 @@ void GroupNetworkManager::RtpPacketReceived_n(webrtc::RtpPacketReceived const &p
     // Yasuagram: send real calculated RTP jitter to dashboard
     report.jitter = _latencyJitter;
 
-    LatencyDashboard::Instance().Update(report);
 
     if (packet.HasExtension(webrtc::kRtpExtensionAudioLevel)) {
         uint8_t audioLevel = 0;
@@ -680,7 +677,6 @@ void GroupNetworkManager::RtpPacketReceived_n(webrtc::RtpPacketReceived const &p
             LatencyReport audioLevelReport;
             audioLevelReport.audioInputLevel = audioLevel;
             audioLevelReport.audioInputIsSpeech = isSpeech;
-            LatencyDashboard::Instance().Update(audioLevelReport);
             if (_audioActivityUpdated) {
                 _audioActivityUpdated(packet.Ssrc(), audioLevel, isSpeech);
             }
