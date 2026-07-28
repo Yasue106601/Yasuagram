@@ -38,8 +38,8 @@ tgvoip::OpusEncoder::OpusEncoder(MediaStreamItf *source, bool needSecondary):que
 	source->SetCallback(tgvoip::OpusEncoder::Callback, this);
 	enc=opus_encoder_create(48000, 1, OPUS_APPLICATION_VOIP, NULL);
 	opus_encoder_ctl(enc, OPUS_SET_COMPLEXITY(3));
-	opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC(0));
-	opus_encoder_ctl(enc, OPUS_SET_INBAND_FEC(0));
+	opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC(1));
+	opus_encoder_ctl(enc, OPUS_SET_INBAND_FEC(1));
 	opus_encoder_ctl(enc, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE));
 	opus_encoder_ctl(enc, OPUS_SET_BANDWIDTH(OPUS_BANDWIDTH_FULLBAND));
 	requestedBitrate=20000;
