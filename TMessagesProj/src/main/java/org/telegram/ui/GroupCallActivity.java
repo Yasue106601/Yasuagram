@@ -4694,7 +4694,6 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
 
         otherItem.addSubItem(
                 9001,
-                "Yasuagram Latency Dashboard"
         );
 
 
@@ -10796,14 +10795,11 @@ disableComments = otherItem.addSubItem(comments_disable_item, R.drawable._menu_s
     
 
 
-private native String getYasuAudioReport();
 
 
 
 
-private void copyYasuReport() {
 
-    String report = getYasuAudioReport();
 
     android.content.ClipboardManager clipboard =
         (android.content.ClipboardManager)
@@ -10812,7 +10808,6 @@ private void copyYasuReport() {
 
     clipboard.setPrimaryClip(
         android.content.ClipData.newPlainText(
-            "Yasuagram Audio Report",
             report
         )
     );

@@ -1,4 +1,3 @@
-#include "latency_dashboard/LatencyDashboard.h"
 #include "org_telegram_messenger_voip_Instance.h"
 
 #include <jni.h>
@@ -978,7 +977,6 @@ JNIEXPORT jstring JNICALL Java_org_telegram_messenger_voip_NativeInstance_getLas
 extern "C"
 JNIEXPORT jstring JNICALL Java_org_telegram_messenger_voip_NativeInstance_getLatencyStats(JNIEnv *env, jobject obj) {
 
-    std::string report = LatencyDashboard::Instance().GetReport();
 
     return env->NewStringUTF(report.c_str());
 }
