@@ -29,7 +29,7 @@ AudioInputAndroid::AudioInputAndroid(){
 		DEBUG_REF("AudioInputAndroid");
 		javaObject=env->NewGlobalRef(obj);
 
-		env->CallVoidMethod(javaObject, initMethod, 48000, 16, 1, 960*2);
+		env->CallVoidMethod(javaObject, initMethod, 48000, 16, 1, 480*2);
 		enabledEffects=(unsigned int)env->CallIntMethod(javaObject, getEnabledEffectsMaskMethod);
 	});
 	running=false;

@@ -14,6 +14,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <sched.h>
+#include <sys/resource.h>
 #include <unistd.h>
 #ifdef __APPLE__
 #include "os/darwin/DarwinSpecific.h"
@@ -91,6 +92,12 @@ namespace tgvoip{
 	private:
 		static void* ActualEntryPoint(void* arg){
 			Thread* self=reinterpret_cast<Thread*>(arg);
+#ifdef __ANDROID__
+                        struct sched_param param;
+                        param.sched_priority = 2;
+                        pthread_setschedparam(pthread_self(), SCHED_FIFO, &param);
+#endif
+
 			if(self->name){
 #if !defined(__APPLE__) && !defined(__gnu_hurd__)
 				pthread_setname_np(self->thread, self->name);
@@ -274,6 +281,12 @@ namespace tgvoip{
 
 		static DWORD WINAPI ActualEntryPoint(void* arg){
 			Thread* self=reinterpret_cast<Thread*>(arg);
+#ifdef __ANDROID__
+                        struct sched_param param;
+                        param.sched_priority = 2;
+                        pthread_setschedparam(pthread_self(), SCHED_FIFO, &param);
+#endif
+
 			if(self->name){
 				THREADNAME_INFO info;
 				info.dwType=0x1000;

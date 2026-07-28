@@ -25,7 +25,7 @@ size_t MediaStreamItf::InvokeCallback(unsigned char *data, size_t length){
 	return 0;
 }
 
-AudioMixer::AudioMixer() : bufferPool(960*2, 16), processedQueue(16), semaphore(16, 0){
+AudioMixer::AudioMixer() : bufferPool(480*2, 3), processedQueue(4), semaphore(4, 0){
 	running=false;
 }
 

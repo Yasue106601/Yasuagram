@@ -180,7 +180,7 @@ VoIPController::VoIPController() : activeNetItfName(""),
 	stm->type=STREAM_TYPE_AUDIO;
 	stm->codec=CODEC_OPUS;
 	stm->enabled=1;
-	stm->frameDuration=60;
+	stm->frameDuration=10;
 	outgoingStreams.push_back(stm);
 
 }
@@ -2328,7 +2328,7 @@ simpleAudioBlock random_id:long random_bytes:string raw_data:string = DecryptedA
 					stm->codec=(uint32_t) in.ReadInt32();
 				}
 				in.ReadInt16();
-				stm->frameDuration=60;
+				stm->frameDuration=10;
 				stm->enabled=in.ReadByte()==1;
 				if(stm->type==STREAM_TYPE_VIDEO && peerVersion<9){
 					LOGV("Skipping video stream for old protocol version");
@@ -2337,11 +2337,11 @@ simpleAudioBlock random_id:long random_bytes:string raw_data:string = DecryptedA
 				if(stm->type==STREAM_TYPE_AUDIO){
 					stm->jitterBuffer=make_shared<JitterBuffer>(nullptr, stm->frameDuration);
 					if(stm->frameDuration>50)
-						stm->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_60", 2));
+						stm->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_60", 0));
 					else if(stm->frameDuration>30)
-						stm->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_40", 4));
+						stm->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_40", 0));
 					else
-						stm->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_20", 6));
+						stm->jitterBuffer->SetMinPacketCount((uint32_t) ServerConfig::GetSharedInstance()->GetInt("jitter_initial_delay_20", 0));
 					stm->decoder=NULL;
 				}else if(stm->type==STREAM_TYPE_VIDEO){
 					/*if(!stm->packetReassembler){
@@ -2603,13 +2603,13 @@ void VoIPController::ProcessExtraData(Buffer &data){
 					if(!s->extraECEnabled){
 						s->extraECEnabled=true;
 						if(s->jitterBuffer)
-							s->jitterBuffer->SetMinPacketCount(4);
+							s->jitterBuffer->SetMinPacketCount(1);
 					}
 				}else{
 					if(s->extraECEnabled){
 						s->extraECEnabled=false;
 						if(s->jitterBuffer)
-							s->jitterBuffer->SetMinPacketCount(2);
+							s->jitterBuffer->SetMinPacketCount(1);
 					}
 				}
 				if(prevEnabled!=s->enabled && s->type==STREAM_TYPE_VIDEO && videoRenderer)

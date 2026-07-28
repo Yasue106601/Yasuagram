@@ -76,8 +76,8 @@ EchoCanceller::EchoCanceller(bool enableAEC, bool enableNS, bool enableAGC){
     audioFrame->sample_rate_hz_ = 48000;
     audioFrame->num_channels_ = 1;
 
-    farendQueue = new BlockingQueue<int16_t *>(11);
-    farendBufferPool = new BufferPool(960 * 2, 10);
+    farendQueue = new BlockingQueue<int16_t *>(4);
+    farendBufferPool = new BufferPool(960 * 2, 4);
     running = true;
     bufferFarendThread = new Thread(std::bind(&EchoCanceller::RunBufferFarendThread, this));
     bufferFarendThread->Start();
