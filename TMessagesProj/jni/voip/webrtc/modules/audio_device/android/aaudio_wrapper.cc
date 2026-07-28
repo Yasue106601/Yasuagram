@@ -614,7 +614,7 @@ void AAudioWrapper::SetStreamConfiguration(AAudioStreamBuilder* builder) {
   // TODO(henrika): investigate effect of using AAUDIO_SHARING_MODE_EXCLUSIVE.
   // Ask for exclusive mode since this will give us the lowest possible latency.
   // If exclusive mode isn't available, shared mode will be used instead.
-  AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
+  AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE);
   // Use the direction that was given at construction.
   AAudioStreamBuilder_setDirection(builder, direction_);
   // TODO(henrika): investigate performance using different performance modes.

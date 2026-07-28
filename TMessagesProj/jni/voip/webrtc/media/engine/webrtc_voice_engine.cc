@@ -439,7 +439,7 @@ void WebRtcVoiceEngine::Init() {
     options.stereo_swapping = false;
     options.audio_jitter_buffer_max_packets = 10;
     options.audio_jitter_buffer_fast_accelerate = true;
-    options.audio_jitter_buffer_min_delay_ms = 5;
+    options.audio_jitter_buffer_min_delay_ms = 0;
     ApplyOptions(options);
   }
   initialized_ = true;
