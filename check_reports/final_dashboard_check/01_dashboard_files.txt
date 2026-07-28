@@ -1,3 +1,0 @@
-TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.h
-TMessagesProj/jni/voip/latency_dashboard/LatencyDashboard.cpp
-TMessagesProj/jni/voip/latency_dashboard/LatencyBridge.h

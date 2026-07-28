@@ -1,4 +1,3 @@
-#include "../../../../latency_dashboard/LatencyDashboard.h"
 #if __ANDROID_API__ >= 26
 /*
  *  Copyright (c) 2018 The WebRTC project authors. All Rights Reserved.
@@ -11,7 +10,6 @@
  */
 
 #include "modules/audio_device/android/aaudio_wrapper.h"
-#include "voip/yasuaudio/yasu_audio_report.h"
 
 #include "modules/audio_device/android/audio_manager.h"
 #include "rtc_base/logging.h"
@@ -222,19 +220,6 @@ aaudio_data_callback_result_t DataCallback(AAudioStream* stream,
 
 
   auto result =
-      static int yasu_report_counter = 0;
-
-  yasu_report_counter++;
-
-  if (yasu_report_counter >= 100) {
-
-    RTC_LOG(LS_INFO)
-        << "YASU LIVE REPORT\n"
-        << YasuAudioReport::Instance().GenerateReport();
-
-    yasu_report_counter = 0;
-  }
-
 
   aaudio_wrapper->observer()->OnDataCallback(audio_data, num_frames);
 
@@ -369,11 +354,6 @@ AAudioWrapper::AAudioWrapper(AudioManager* audio_manager,
 }
 
 AAudioWrapper::~AAudioWrapper() {
-
-  RTC_LOG(LS_INFO)
-      << YasuAudioReport::Instance().GenerateReport();
-
-
   RTC_LOG(LS_INFO) << "dtor";
   RTC_DCHECK(thread_checker_.IsCurrent());
   RTC_DCHECK(!stream_);
@@ -541,14 +521,6 @@ int32_t AAudioWrapper::device_id() const {
 int32_t AAudioWrapper::xrun_count() const {
   RTC_DCHECK(stream_);
   int xruns = AAudioStream_getXRunCount(stream_);
-
-LatencyReport report;
-report.xrunCount = xruns;
-report.audioBufferFrames = AAudioStream_getBufferSizeInFrames(stream_);
-report.framesPerBurst = AAudioStream_getFramesPerBurst(stream_);
-
-LatencyDashboard::Instance().Update(report);
-
 return xruns;
 }
 
