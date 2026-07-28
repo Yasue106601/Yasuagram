@@ -17,7 +17,7 @@ namespace webrtc {
 namespace {
 
 constexpr int kDelayBuckets = 100;
-constexpr int kBucketSizeMs = 8;
+constexpr int kBucketSizeMs = 5;
 
 }  // namespace
 
