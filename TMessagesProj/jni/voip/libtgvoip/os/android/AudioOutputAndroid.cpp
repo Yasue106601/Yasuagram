@@ -103,17 +103,9 @@ void AudioOutputAndroid::HandleCallback(JNIEnv* env, jbyteArray buffer){
 	size_t len=(size_t) env->GetArrayLength(buffer);
 	int64_t renderStart = rtc::TimeMicros();
 
-        LatencyReport inputReport;
-        inputReport.audioRenderInputTimestamp = renderStart;
-
         InvokeCallback(buf, len);
 
         int64_t renderEnd = rtc::TimeMicros();
-
-        LatencyReport latencyReport;
-        latencyReport.audioRenderOutputTimestamp = renderEnd;
-        latencyReport.audioRenderQueueDelay =
-            (renderEnd - renderStart) / 1000.0;
 
 	env->ReleaseByteArrayElements(buffer, (jbyte *) buf, 0);
 }

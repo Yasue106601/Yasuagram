@@ -414,9 +414,6 @@ public:
                     _audioDataMutex.Lock();
                     if (frameOut.num_channels() == _audioRingBufferNumChannels) {
 
-                        // Yasuagram: Ring Buffer Fill Monitoring
-                        LatencyReport rbReport;
-                        rbReport.ringBufferFill = _audioRingBuffer.availableForReading();
                         _audioRingBuffer.write(frameOut.data(), frameOut.samples_per_channel() * frameOut.num_channels());
                     } else {
                         if (_stereoShuffleBuffer.size() < frameOut.samples_per_channel() * _audioRingBufferNumChannels) {
@@ -510,9 +507,6 @@ public:
                     _audioDataMutex.Lock();
                     if (frameOut.num_channels() == _audioRingBufferNumChannels) {
 
-                        // Yasuagram: Ring Buffer Fill Monitoring
-                        LatencyReport rbReport;
-                        rbReport.ringBufferFill = _audioRingBuffer.availableForReading();
                         _audioRingBuffer.write(frameOut.data(), frameOut.samples_per_channel() * frameOut.num_channels());
                     } else {
                         if (_stereoShuffleBuffer.size() < frameOut.samples_per_channel() * _audioRingBufferNumChannels) {

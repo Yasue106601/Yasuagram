@@ -78,13 +78,6 @@ void JitterBuffer::HandleInput(unsigned char *data, size_t len, uint32_t timesta
 	pkt.timestamp=timestamp;
 	pkt.isEC=isEC;
 
-        // Yasuagram: JitterBuffer metrics
-        LatencyReport report;
-
-        report.jitterBufferCurrentDelay = GetCurrentDelay();
-        report.jitterBufferTargetDelay = GetAverageDelay();
-        report.jitterBufferPacketsWaiting = GetMinPacketCount();
-
 
 	PutInternal(&pkt, !isEC);
 	//LOGV("in, ts=%d, ec=%d", timestamp, isEC);
