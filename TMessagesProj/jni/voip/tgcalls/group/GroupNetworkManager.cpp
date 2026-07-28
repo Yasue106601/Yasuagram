@@ -622,9 +622,6 @@ void GroupNetworkManager::transportPacketReceived(rtc::PacketTransportInternal *
 
     _latencyLastUdpReceiveTimestamp = udpPacketReceiveTime;
 
-    LatencyReport udpReport;
-    udpReport.lastReceiveTimestamp = _latencyLastUdpReceiveTimestamp;
-
     _lastNetworkActivityMs = rtc::TimeMillis();
 }
 
@@ -654,29 +651,12 @@ void GroupNetworkManager::RtpPacketReceived_n(webrtc::RtpPacketReceived const &p
 
     _latencyPreviousReceiveTimestamp = _latencyLastReceiveTimestamp;
 
-    // Yasuagram: update latency dashboard with real receive timestamp
-    LatencyReport report;
-    report.lastReceiveTimestamp = _latencyLastReceiveTimestamp;
-    report.incomingPacketCount = _latencyReceivedPackets;
-
-    // Yasuagram: real receive processing delay
-    if (_latencyLastUdpReceiveTimestamp != 0) {
-        report.incomingPacketDelay =
-            (_latencyLastReceiveTimestamp - _latencyLastUdpReceiveTimestamp) / 1000.0;
-    }
-    // Yasuagram: send real calculated RTP jitter to dashboard
-    report.jitter = _latencyJitter;
-
 
     if (packet.HasExtension(webrtc::kRtpExtensionAudioLevel)) {
         uint8_t audioLevel = 0;
         bool isSpeech = false;
 
         if (packet.GetExtension<webrtc::AudioLevel>(&isSpeech, &audioLevel)) {
-            // Yasuagram: Audio Level metrics
-            LatencyReport audioLevelReport;
-            audioLevelReport.audioInputLevel = audioLevel;
-            audioLevelReport.audioInputIsSpeech = isSpeech;
             if (_audioActivityUpdated) {
                 _audioActivityUpdated(packet.Ssrc(), audioLevel, isSpeech);
             }

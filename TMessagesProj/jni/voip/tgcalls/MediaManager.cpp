@@ -630,16 +630,6 @@ void MediaManager::collectStats() {
     float sendBitrateKbps = ((float)stats.send_bandwidth_bps / 1000.0f);
 
 
-/* Yasuagram latency dashboard network collector */
-
-LatencyReport report;
-
-report.networkRTT = stats.rtt_ms;
-
-report.packetLoss = 0.0;
-
-
-
 
     RTC_LOG(LS_INFO) << "MediaManager sendBitrateKbps=" << (stats.send_bandwidth_bps / 1000);
 
