@@ -10,7 +10,6 @@
  */
 
 #include "modules/audio_device/android/aaudio_recorder.h"
-#include "voip/yasuaudio/yasu_audio_report.h"
 
 #include <memory>
 
@@ -201,10 +200,6 @@ aaudio_data_callback_result_t AAudioRecorder::OnDataCallback(
   // Drain the input buffer at first callback to ensure that it does not
   // contain any old data. Will also ensure that the lowest possible latency
   // is obtained.
-  int64_t yasuaudio_capture_start =
-      rtc::TimeMicros();
-
-
   if (first_data_callback_) {
     RTC_LOG(LS_INFO) << "--- First input data callback: "
                         "device id="
@@ -221,13 +216,6 @@ aaudio_data_callback_result_t AAudioRecorder::OnDataCallback(
   }
   // Estimated time between an audio frame was recorded by the input device and
   // it can read on the input stream.
-  int64_t yasuaudio_capture_time =
-      rtc::TimeMicros() - yasuaudio_capture_start;
-
-
-  YasuAudioReport::Instance()
-      .AddCaptureTime(yasuaudio_capture_time);
-
 
   latency_millis_ = aaudio_.EstimateLatencyMillis();
   // TODO(henrika): use for development only.

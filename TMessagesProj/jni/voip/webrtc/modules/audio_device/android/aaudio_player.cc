@@ -10,7 +10,6 @@
  */
 
 #include "modules/audio_device/android/aaudio_player.h"
-#include "voip/yasuaudio/yasu_audio_report.h"
 
 #include <memory>
 
@@ -18,7 +17,6 @@
 #include "api/task_queue/task_queue_base.h"
 #include "modules/audio_device/android/audio_manager.h"
 #include "modules/audio_device/fine_audio_buffer.h"
-#include "../../../../latency_dashboard/LatencyDashboard.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 
@@ -197,11 +195,6 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
           << "===============================";
   }
 
-
-  int64_t yasuaudio_playback_start =
-      rtc::TimeMicros();
-
-
   RTC_DCHECK_RUN_ON(&thread_checker_aaudio_);
   // Log device id in first data callback to ensure that a valid device is
   // utilized.
@@ -229,32 +222,6 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
   // the time that same frame is played out on the output audio device.
   latency_millis_ = aaudio_.EstimateLatencyMillis();
 
-
-  // Yasuagram: AAudio real output latency monitor
-  LatencyReport latencyReport;
-
-  latencyReport.audioRenderQueueDelay =
-      latency_millis_;
-
-  latencyReport.audioFramesPerCallback =
-      num_frames;
-
-  latencyReport.audioBurstSize =
-      aaudio_.frames_per_burst();
-
-  latencyReport.audioXrunCount =
-      aaudio_.xrun_count();
-
-  LatencyDashboard::Instance().Update(latencyReport);
-
-  // Yasuagram: AAudio device detailed metrics
-  LatencyReport aaudioMetrics;
-  if (stream_) {
-    aaudioMetrics.aaudioBufferCapacity = AAudioStream_getBufferCapacity(stream_);
-    aaudioMetrics.aaudioFramesPerDataCallback = AAudioStream_getFramesPerDataCallback(stream_);
-    aaudioMetrics.aaudioPositionFrames = AAudioStream_getFramesRead(stream_);
-    LatencyDashboard::Instance().Update(aaudioMetrics);
-  }
   // TODO(henrika): use for development only.
   if (aaudio_.frames_written() % (1000 * aaudio_.frames_per_burst()) == 0) {
     RTC_DLOG(LS_INFO) << "output latency: " << latency_millis_
@@ -279,14 +246,6 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
 
   // TODO(henrika): possibly add trace here to be included in systrace.
   // See https://developer.android.com/studio/profile/systrace-commandline.html.
-  int64_t yasuaudio_playback_time =
-      rtc::TimeMicros() - yasuaudio_playback_start;
-
-
-  YasuAudioReport::Instance()
-      .AddPlaybackTime(yasuaudio_playback_time);
-
-
   return AAUDIO_CALLBACK_RESULT_CONTINUE;
 }
 
