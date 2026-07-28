@@ -865,7 +865,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 		}
 
 		if (videoCall) {
-			if (Build.VERSION.SDK_INT < 23 || PackageManager.PERMISSION_GRANTED == PackageManager.PERMISSION_GRANTED) {
+			if (Build.VERSION.SDK_INT < 23 || checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
 				captureDevice[CAPTURE_DEVICE_CAMERA] = NativeInstance.createVideoCapturer(localSink[CAPTURE_DEVICE_CAMERA], isFrontFaceCamera ? 1 : 0);
 				if (chatID != 0) {
 					videoState[CAPTURE_DEVICE_CAMERA] = Instance.VIDEO_STATE_PAUSED;
@@ -902,7 +902,14 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 			if (!mic) {
 				micMute = true;
 			} else {
-				micMute = true;
+				if (!PermissionRequest.hasPermission(Manifest.permission.RECORD_AUDIO)) {
+					micMute = true;
+					PermissionRequest.requestPermission(Manifest.permission.RECORD_AUDIO, granted -> {
+						if (sharedInstance == null) return;
+						if (!granted) return;
+						setMicMute(false, false, true);
+					});
+				}
 			}
 			startConferenceGroupCall(false, 0, null, false);
 			if (!isBtHeadsetConnected && !isHeadsetPlugged) {
@@ -3484,7 +3491,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 				videoState[CAPTURE_DEVICE_CAMERA] = Instance.VIDEO_STATE_INACTIVE;
 			}
 			if (!isOutgoing) {
-				if (videoCall && (Build.VERSION.SDK_INT < 23 || PackageManager.PERMISSION_GRANTED == PackageManager.PERMISSION_GRANTED)) {
+				if (videoCall && (Build.VERSION.SDK_INT < 23 || checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)) {
 					captureDevice[CAPTURE_DEVICE_CAMERA] = NativeInstance.createVideoCapturer(localSink[CAPTURE_DEVICE_CAMERA], isFrontFaceCamera ? 1 : 0);
 					videoState[CAPTURE_DEVICE_CAMERA] = Instance.VIDEO_STATE_ACTIVE;
 				} else {
@@ -5618,7 +5625,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 
 	private void acceptIncomingCallFromNotification() {
 		showNotification();
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && (PackageManager.PERMISSION_GRANTED != PackageManager.PERMISSION_GRANTED || privateCall.video && PackageManager.PERMISSION_GRANTED != PackageManager.PERMISSION_GRANTED)) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED || privateCall.video && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)) {
 			try {
 				//intent.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
 				PendingIntent.getActivity(VoIPService.this, 0, new Intent(VoIPService.this, VoIPPermissionActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_ONE_SHOT).send();
