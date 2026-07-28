@@ -158,7 +158,7 @@ class DecisionLogic : public NetEqController {
 
     bool enable_stable_delay_mode = true;
     bool combine_concealment_decision = true;
-    int deceleration_target_level_offset_ms = 20;
+    int deceleration_target_level_offset_ms = 10;
     int packet_history_size_ms = 2000;
     absl::optional<int> cng_timeout_ms = 1000;
   };

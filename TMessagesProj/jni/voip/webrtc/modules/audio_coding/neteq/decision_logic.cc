@@ -30,8 +30,8 @@ namespace webrtc {
 
 namespace {
 
-constexpr int kPostponeDecodingLevel = 25;
-constexpr int kTargetLevelWindowMs = 40;
+constexpr int kPostponeDecodingLevel = 15;
+constexpr int kTargetLevelWindowMs = 25;
 constexpr int kMaxWaitForPacketMs = 100;
 // The granularity of delay adjustments (accelerate/preemptive expand) is 15ms,
 // but round up since the clock has a granularity of 10ms.
