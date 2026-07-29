@@ -3158,8 +3158,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 } else if (open_settings == 6) {
                     fragment = new EditWidgetActivity(open_widget_edit_type, open_widget_edit);
                 } else if (open_settings == 10) {
-                    // YASUAGRAM_DISABLE_FIRST_LANGUAGE_SCREEN
-                    fragment = null;
+                    fragment = new LanguageSelectActivity();
                 } else if (open_settings == 11) {
                     fragment = new AutoDeleteMessagesActivity();
                 } else if (open_settings == 12) {

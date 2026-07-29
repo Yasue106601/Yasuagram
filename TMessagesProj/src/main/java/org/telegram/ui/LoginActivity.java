@@ -2947,8 +2947,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                                             resId = R.raw.incoming_calls;
                                         }
                                         builder.setTopAnimation(resId, 46, false, Theme.getColor(Theme.key_dialogTopBackground));
-                                        // YASUAGRAM_DISABLE_LOGIN_PERMISSION_DIALOG
-// // YASUAGRAM_DISABLE_LOGIN_PERMISSION_DIALOG
+                                        permissionsDialog = showDialog(builder.create());
                                         confirmedNumber = true;
                                     } else {
                                         try {
@@ -3025,8 +3024,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                                 resId = R.raw.incoming_calls;
                             }
                             builder.setTopAnimation(resId, 46, false, Theme.getColor(Theme.key_dialogTopBackground));
-                            // YASUAGRAM_DISABLE_LOGIN_PERMISSION_DIALOG
-// // YASUAGRAM_DISABLE_LOGIN_PERMISSION_DIALOG
+                            permissionsDialog = showDialog(builder.create());
                             confirmedNumber = true;
                         } else {
                             try {
@@ -3154,7 +3152,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 changePhoneCode.settings = settings;
                 req = changePhoneCode;
             } else {
-                // // YASUAGRAM_FAST_LOGIN_PATCH disabled cleanup
+                ConnectionsManager.getInstance(currentAccount).cleanup(false);
 
                 TLRPC.TL_auth_sendCode sendCode = new TLRPC.TL_auth_sendCode();
                 sendCode.api_hash = BuildVars.APP_HASH;
@@ -3283,8 +3281,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                                         builder.setTopAnimation(R.raw.incoming_calls, 46, false, Theme.getColor(Theme.key_dialogTopBackground));
                                         builder.setPositiveButton(getString("Continue", R.string.Continue), null);
                                         builder.setMessage(getString("AllowFillNumber", R.string.AllowFillNumber));
-                                        // YASUAGRAM_DISABLE_LOGIN_PERMISSION_SHOW_DIALOG
-// // YASUAGRAM_DISABLE_LOGIN_PERMISSION_SHOW_DIALOG
+                                        permissionsShowDialog = showDialog(builder.create(), true, null);
                                         needRequestPermissions = true;
                                     } else {
                                         getParentActivity().requestPermissions(callbackPermissionItems.toArray(new String[0]), BasePermissionsActivity.REQUEST_CODE_CALLS);
