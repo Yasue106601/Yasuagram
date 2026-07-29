@@ -384,7 +384,6 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
     private ValueAnimator liveLabelBgColorAnimator;
     private float textureLightningViewAnimatingAlpha;
     private final LinearLayout titleLayout;
-
     private final ActionBarMenuItem otherItem;
     private final ActionBarMenuItem pipItem;
     private final ActionBarMenuItem screenShareItem;
@@ -1987,11 +1986,6 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
-
-            if (id == 9001) {
-                return;
-            }
-
                 if (id == -1) {
                     onBackPressed();
                 } else if (id == eveyone_can_speak_item) {
@@ -4634,8 +4628,8 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                             updateMuteButton(MUTE_BUTTON_STATE_RAISED_HAND, true);
                         }
                     } else if (muteButtonState == MUTE_BUTTON_STATE_UNMUTE) {
-                        if (Build.VERSION.SDK_INT >= 23 && getParentActivity() != null && getParentActivity().checkSelfPermission(Manifest.permission.RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED) {
-                            PermissionRequest.ensurePermission(R.raw.permission_request_microphone, R.string.VoipNeedMicPermissionWithHint, Manifest.permission.RECORD_AUDIO , success -> {
+                        if (Build.VERSION.SDK_INT >= 23 && getParentActivity() != null && getParentActivity().checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                            PermissionRequest.ensurePermission(R.raw.permission_request_microphone, R.string.VoipNeedMicPermissionWithHint, Manifest.permission.RECORD_AUDIO, success -> {
                                 if (success) {
                                     // reload mic
                                 }
@@ -4691,12 +4685,6 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
         otherItem.setContentDescription(getString(R.string.AccDescrMoreOptions));
         otherItem.setSubMenuOpenSide(2);
         otherItem.setDelegate(id -> actionBar.getActionBarMenuOnItemClick().onItemClick(id));
-
-        otherItem.addSubItem(
-                9001,
-        );
-
-
         otherItem.setBackgroundDrawable(Theme.createSelectorDrawable(Theme.getColor(Theme.key_voipgroup_actionBarItemsSelector), 6));
         otherItem.setOnClickListener(v -> {
             if (call == null || renderersContainer.inFullscreenMode) {
@@ -5858,8 +5846,8 @@ disableComments = otherItem.addSubItem(comments_disable_item, R.drawable._menu_s
         avatarsViewPager.setPinchToZoomHelper(pinchToZoomHelper);
 
         cameraButton.setOnClickListener((View) -> {
-            if (Build.VERSION.SDK_INT >= 23 && parentActivity != null && parentActivity.checkSelfPermission(Manifest.permission.CAMERA ) != PackageManager.PERMISSION_GRANTED) {
-                parentActivity.requestPermissions(new String[]{Manifest.permission.CAMERA }, 104);
+            if (Build.VERSION.SDK_INT >= 23 && parentActivity != null && parentActivity.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                parentActivity.requestPermissions(new String[]{Manifest.permission.CAMERA}, 104);
                 return;
             }
             if (VoIPService.getSharedInstance() == null) {
@@ -10791,35 +10779,4 @@ disableComments = otherItem.addSubItem(comments_disable_item, R.drawable._menu_s
             }
         }
     }
-
-    
-
-
-
-
-
-
-
-
-    android.content.ClipboardManager clipboard =
-        (android.content.ClipboardManager)
-        getContext().getSystemService(
-        android.content.Context.CLIPBOARD_SERVICE);
-
-    clipboard.setPrimaryClip(
-        android.content.ClipData.newPlainText(
-            report
-        )
-    );
-}
-
-
-
-
-
-
-
-
-
-
 }
