@@ -1825,7 +1825,7 @@ add_library(tgcalls STATIC
 #        voip/webrtc/third_party/jni_zero/jni_zero.cc
 )
 target_compile_options(tgcalls PUBLIC
-        -Wall -finline-functions -ffast-math)
+        -Wall -finline-functions -ffast-math -O2)
 set_target_properties(tgcalls PROPERTIES
         ANDROID_ARM_MODE arm)
 target_compile_definitions(tgcalls PUBLIC
@@ -2009,7 +2009,7 @@ add_library(voipandroid STATIC
         voip/org_telegram_messenger_voip_Instance.cpp
 )
 target_compile_options(voipandroid PUBLIC
-        -Wall -finline-functions -ffast-math -fexceptions)
+        -Wall -finline-functions -ffast-math -fexceptions -O2)
 set_target_properties(voipandroid PROPERTIES
         ANDROID_ARM_MODE arm)
 target_compile_definitions(voipandroid PUBLIC
