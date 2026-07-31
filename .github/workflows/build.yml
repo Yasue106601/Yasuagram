@@ -45,13 +45,12 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > TMessagesProj/config/release.keystore
 
       - name: Build APK
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew :TMessagesProj_App:assembleAfatRelease --build-cache --no-daemon
+          ./gradlew :TMessagesProj_App:assembleAfatRelease --build-cache --no-daemon \
+            -PRELEASE_STORE_PASSWORD="${{ secrets.KEYSTORE_PASSWORD }}" \
+            -PRELEASE_KEY_ALIAS="${{ secrets.KEY_ALIAS }}" \
+            -PRELEASE_KEY_PASSWORD="${{ secrets.KEY_PASSWORD }}"
 
       - name: Prepare APK
         run: |
