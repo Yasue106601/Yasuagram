@@ -125,6 +125,25 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            def keystorePropsFile = file("config/keystore.properties")
+            if (keystorePropsFile.exists()) {
+                def props = new Properties()
+                props.load(new FileInputStream(keystorePropsFile))
+                storeFile file(props['storeFile'])
+                storePassword props['storePassword']
+                keyAlias props['keyAlias']
+                keyPassword props['keyPassword']
+            } else if (System.getenv("KEYSTORE_PASSWORD") != null) {
+                storeFile file("config/release.keystore")
+                storePassword System.getenv("KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             jniDebuggable true
@@ -208,6 +227,7 @@ android {
         }
 
         release {
+            signingConfig signingConfigs.release
             jniDebuggable false
             minifyEnabled true
             shrinkResources false
