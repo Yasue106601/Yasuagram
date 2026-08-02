@@ -198,8 +198,4 @@ android {
     }
 }
 
-apply plugin: 'com.google.gms.google-services'
-
-googleServices {
-    missingDefaultReportingBehavior = 'ignore'
-}
+// google-services plugin disabled to allow custom applicationId (org.telegram.yasuagram) for release build
