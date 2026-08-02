@@ -198,4 +198,8 @@ android {
     }
 }
 
+googleServices {
+    missingDefaultReportingBehavior = 'ignore'
+}
+
 apply plugin: 'com.google.gms.google-services'
