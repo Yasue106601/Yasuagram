@@ -33,7 +33,7 @@ namespace{
 	}
 }
 
-tgvoip::OpusEncoder::OpusEncoder(MediaStreamItf *source, bool needSecondary):queue(3), bufferPool(480*2, 3){
+tgvoip::OpusEncoder::OpusEncoder(MediaStreamItf *source, bool needSecondary):queue(5), bufferPool(480*2, 5){
 	this->source=source;
 	source->SetCallback(tgvoip::OpusEncoder::Callback, this);
 	enc=opus_encoder_create(48000, 1, OPUS_APPLICATION_VOIP, NULL);

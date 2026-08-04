@@ -402,7 +402,7 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
 
     static const int kUndefined = -1;
     // Default maximum number of packets in the audio jitter buffer.
-    static const int kAudioJitterBufferMaxPackets = 20;
+    static const int kAudioJitterBufferMaxPackets = 30;
     // ICE connection receiving timeout for aggressive configuration.
     static const int kAggressiveIceConnectionReceivingTimeout = 1000;
 
