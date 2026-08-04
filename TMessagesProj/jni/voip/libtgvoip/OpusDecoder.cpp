@@ -41,7 +41,7 @@ void tgvoip::OpusDecoder::Initialize(bool isAsync, bool needEC){
 	async=isAsync;
 	if(async){
 		decodedQueue=new BlockingQueue<unsigned char*>(33);
-		bufferPool=new BufferPool(PACKET_SIZE, 4);
+		bufferPool=new BufferPool(PACKET_SIZE, 6);
 		semaphore=new Semaphore(32, 0);
 	}else{
 		decodedQueue=NULL;

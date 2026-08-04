@@ -30,7 +30,7 @@ namespace webrtc {
 namespace {
 
 constexpr int kMinBaseMinimumDelayMs = 0;
-constexpr int kMaxBaseMinimumDelayMs = 10;
+constexpr int kMaxBaseMinimumDelayMs = 30;
 constexpr int kStartDelayMs = 0;
 
 std::unique_ptr<ReorderOptimizer> MaybeCreateReorderOptimizer(
