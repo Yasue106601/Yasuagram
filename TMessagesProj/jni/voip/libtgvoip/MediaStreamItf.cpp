@@ -142,6 +142,8 @@ void AudioMixer::RunThread(){
 			}
 		}
 		if(usedInputs>0){
+                        receiveAudioEnhancer.Process(out, 960);
+
 			for(size_t i=0; i<960; i++){
 				if(out[i]>32767.0f)
 					buf[i]=INT16_MAX;
