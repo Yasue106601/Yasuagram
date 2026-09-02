@@ -1,3 +1,4 @@
+#include "ReceiveAudioEnhancer.h"
 //
 // libtgvoip is free and unencumbered public domain software.
 // For more information, see http://unlicense.org or the UNLICENSE file
@@ -59,6 +60,7 @@ private:
 		BlockingQueue<unsigned char*> processedQueue;
 		Semaphore semaphore;
 		EchoCanceller* echoCanceller;
+        ReceiveAudioEnhancer receiveAudioEnhancer;
 		bool running;
 	};
 
