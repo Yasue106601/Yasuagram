@@ -438,7 +438,6 @@ public class WebRtcAudioTrack {
   // Creates and AudioTrack instance using AudioAttributes and AudioFormat as input.
   // It allows certain platforms or routing policies to use this information for more
   // refined volume or routing decisions.
-  @TargetApi(21)
   @TargetApi(26)
   private static AudioTrack createAudioTrackOnLollipopOrHigher(
       int sampleRateInHz, int channelConfig, int bufferSizeInBytes) {
