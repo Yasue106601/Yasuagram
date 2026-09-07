@@ -439,34 +439,60 @@ public class WebRtcAudioTrack {
   // It allows certain platforms or routing policies to use this information for more
   // refined volume or routing decisions.
   @TargetApi(21)
+  @TargetApi(26)
   private static AudioTrack createAudioTrackOnLollipopOrHigher(
       int sampleRateInHz, int channelConfig, int bufferSizeInBytes) {
     Logging.d(TAG, "createAudioTrackOnLollipopOrHigher");
-    // TODO(henrika): use setPerformanceMode(int) with PERFORMANCE_MODE_LOW_LATENCY to control
-    // performance when Android O is supported. Add some logging in the mean time.
+
     final int nativeOutputSampleRate =
         AudioTrack.getNativeOutputSampleRate(streamType);
+
     Logging.d(TAG, "nativeOutputSampleRate: " + nativeOutputSampleRate);
+
     if (sampleRateInHz != nativeOutputSampleRate) {
       Logging.w(TAG, "Unable to use fast mode since requested sample rate is not native");
     }
+
     if (usageAttribute != DEFAULT_USAGE) {
       Logging.w(TAG, "A non default usage attribute is used: " + usageAttribute);
     }
-    // Create an audio track where the audio usage is for VoIP and the content type is speech.
+
+    if (Build.VERSION.SDK_INT >= 26) {
+      Logging.d(TAG, "Creating LOW_LATENCY AudioTrack");
+
+      AudioTrack track = new AudioTrack.Builder()
+          .setAudioAttributes(
+              new AudioAttributes.Builder()
+                  .setUsage(usageAttribute)
+                  .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                  .build())
+          .setAudioFormat(
+              new AudioFormat.Builder()
+                  .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                  .setSampleRate(sampleRateInHz)
+                  .setChannelMask(channelConfig)
+                  .build())
+          .setBufferSizeInBytes(bufferSizeInBytes)
+          .setTransferMode(AudioTrack.MODE_STREAM)
+          .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
+          .build();
+
+      Logging.d(TAG,
+          "LOW_LATENCY AudioTrack created: bufferSizeInFrames="
+              + track.getBufferSizeInFrames()
+              + ", bufferCapacityInFrames="
+              + track.getBufferCapacityInFrames());
+
+      return track;
+    }
+
     return new AudioTrack(
-        new AudioAttributes.Builder()
-            .setUsage(usageAttribute)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-        .build(),
-        new AudioFormat.Builder()
-          .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-          .setSampleRate(sampleRateInHz)
-          .setChannelMask(channelConfig)
-          .build(),
+        streamType,
+        sampleRateInHz,
+        channelConfig,
+        AudioFormat.ENCODING_PCM_16BIT,
         bufferSizeInBytes,
-        AudioTrack.MODE_STREAM,
-        AudioManager.AUDIO_SESSION_ID_GENERATE);
+        AudioTrack.MODE_STREAM);
   }
 
   @SuppressWarnings("deprecation") // Deprecated in API level 25.
