@@ -370,6 +370,21 @@ bool AAudioWrapper::Init() {
   if (!OpenStream(builder.get())) {
     return false;
   }
+
+  RTC_LOG(LS_INFO)
+      << "=== YASUAGRAM AAudio RUNTIME CONFIG ==="
+      << " sample_rate=" << AAudioStream_getSampleRate(stream_)
+      << " channels=" << AAudioStream_getChannelCount(stream_)
+      << " format=" << AAudioStream_getFormat(stream_)
+      << " sharing_mode=" << SharingModeToString(
+             AAudioStream_getSharingMode(stream_))
+      << " performance_mode=" << PerformanceModeToString(
+             AAudioStream_getPerformanceMode(stream_))
+      << " frames_per_burst=" << AAudioStream_getFramesPerBurst(stream_)
+      << " frames_per_callback=" << AAudioStream_getFramesPerDataCallback(stream_)
+      << " buffer_size=" << AAudioStream_getBufferSizeInFrames(stream_)
+      << " buffer_capacity=" << AAudioStream_getBufferCapacityInFrames(stream_);
+
   // Ensures that the opened stream could activate the requested settings.
   if (!VerifyStreamConfiguration()) {
     return false;

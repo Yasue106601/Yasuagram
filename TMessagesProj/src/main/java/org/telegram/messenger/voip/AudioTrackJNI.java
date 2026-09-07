@@ -12,7 +12,7 @@ import java.nio.ByteBuffer;
 
 public class AudioTrackJNI {
 	private AudioTrack audioTrack;
-	private byte[] buffer = new byte[480 * 2];
+	private byte[] buffer = new byte[960 * 2];
 	private boolean running;
 	private Thread thread;
 	private boolean needResampling;
@@ -107,7 +107,7 @@ android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_A
 						audioTrack.write(buffer, 0, 441 * 2);
 					} else {
 						nativeCallback(buffer);
-						audioTrack.write(buffer, 0, 480 * 2);
+						audioTrack.write(buffer, 0, 960 * 2);
 					}
 					if (!running) {
 						audioTrack.stop();
