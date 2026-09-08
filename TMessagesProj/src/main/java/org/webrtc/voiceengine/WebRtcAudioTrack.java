@@ -438,6 +438,79 @@ public class WebRtcAudioTrack {
   // Creates and AudioTrack instance using AudioAttributes and AudioFormat as input.
   // It allows certain platforms or routing policies to use this information for more
   // refined volume or routing decisions.
+  private static void writeAudioTrackDiagnostics(AudioTrack track) {
+    try {
+      String report =
+          "=== Yasuagram Audio Diagnostics ===\n"
+          + "SampleRate=" + track.getSampleRate() + " Hz\n"
+          + "Buffer=" + track.getBufferSizeInFrames() + " frames\n"
+          + "Capacity=" + track.getBufferCapacityInFrames() + " frames\n"
+          + "Performance="
+          + (track.getPerformanceMode() == AudioTrack.PERFORMANCE_MODE_LOW_LATENCY
+              ? "LOW_LATENCY" : String.valueOf(track.getPerformanceMode())) + "\n"
+          + "FastTrack=UNKNOWN (not exposed by public AudioTrack API)\n";
+
+      android.content.Context context = ContextUtils.getApplicationContext();
+      android.content.ContentResolver resolver = context.getContentResolver();
+
+      android.net.Uri collection =
+          android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI;
+
+      String name = "Yasuagram_AudioDiagnostics.txt";
+
+      android.database.Cursor cursor = resolver.query(
+          collection,
+          new String[] {
+              android.provider.MediaStore.Downloads._ID
+          },
+          android.provider.MediaStore.Downloads.DISPLAY_NAME + "=?",
+          new String[] {name},
+          null);
+
+      if (cursor != null) {
+        while (cursor.moveToNext()) {
+          long id = cursor.getLong(0);
+          resolver.delete(
+              android.content.ContentUris.withAppendedId(collection, id),
+              null,
+              null);
+        }
+        cursor.close();
+      }
+
+      android.content.ContentValues values = new android.content.ContentValues();
+      values.put(android.provider.MediaStore.Downloads.DISPLAY_NAME, name);
+      values.put(android.provider.MediaStore.Downloads.MIME_TYPE, "text/plain");
+      values.put(
+          android.provider.MediaStore.Downloads.RELATIVE_PATH,
+          android.os.Environment.DIRECTORY_DOWNLOADS);
+      values.put(android.provider.MediaStore.Downloads.IS_PENDING, 1);
+
+      android.net.Uri uri = resolver.insert(collection, values);
+
+      if (uri == null) {
+        throw new java.io.IOException("MediaStore insert failed");
+      }
+
+      java.io.OutputStream out = resolver.openOutputStream(uri);
+      if (out == null) {
+        throw new java.io.IOException("Unable to open diagnostics file");
+      }
+
+      out.write(report.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+      out.close();
+
+      values.clear();
+      values.put(android.provider.MediaStore.Downloads.IS_PENDING, 0);
+      resolver.update(uri, values, null, null);
+
+      Logging.d(TAG, "Audio diagnostics saved to Downloads/" + name);
+    } catch (Exception e) {
+      Logging.e(TAG, "Failed to save AudioTrack diagnostics", e);
+    }
+  }
+
+
   @TargetApi(26)
   private static AudioTrack createAudioTrackOnLollipopOrHigher(
       int sampleRateInHz, int channelConfig, int bufferSizeInBytes) {
@@ -486,6 +559,8 @@ public class WebRtcAudioTrack {
               + track.getPerformanceMode()
               + ", sampleRate="
               + track.getSampleRate());
+
+      writeAudioTrackDiagnostics(track);
 
       return track;
     }
