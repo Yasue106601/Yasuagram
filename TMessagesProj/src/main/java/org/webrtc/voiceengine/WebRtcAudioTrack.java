@@ -464,6 +464,7 @@ public class WebRtcAudioTrack {
               new AudioAttributes.Builder()
                   .setUsage(usageAttribute)
                   .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                  .setFlags(AudioAttributes.FLAG_LOW_LATENCY)
                   .build())
           .setAudioFormat(
               new AudioFormat.Builder()
