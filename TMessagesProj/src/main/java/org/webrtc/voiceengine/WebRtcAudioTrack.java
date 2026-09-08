@@ -481,7 +481,11 @@ public class WebRtcAudioTrack {
           "LOW_LATENCY AudioTrack created: bufferSizeInFrames="
               + track.getBufferSizeInFrames()
               + ", bufferCapacityInFrames="
-              + track.getBufferCapacityInFrames());
+              + track.getBufferCapacityInFrames()
+              + ", performanceMode="
+              + track.getPerformanceMode()
+              + ", sampleRate="
+              + track.getSampleRate());
 
       return track;
     }
