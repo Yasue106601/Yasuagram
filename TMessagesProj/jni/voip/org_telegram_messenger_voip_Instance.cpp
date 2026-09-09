@@ -1036,14 +1036,18 @@ JNIEXPORT void JNICALL Java_org_telegram_messenger_voip_NativeInstance_stopNativ
 }
 
 extern "C"
-JNIEXPORT void JNICALL Java_org_telegram_messenger_voip_NativeInstance_stopGroupNative(JNIEnv *env, jobject obj) {
+JNIEXPORT jstring JNICALL Java_org_telegram_messenger_voip_NativeInstance_stopGroupNative(JNIEnv *env, jobject obj) {
     InstanceHolder *instance = getInstanceHolder(env, obj);
-    if (instance->groupNativeInstance == nullptr) {
-        return;
+    if (instance == nullptr || instance->groupNativeInstance == nullptr) {
+        return env->NewStringUTF("");
     }
-    instance->groupNativeInstance->stop(nullptr);
+
+    std::string debugLog = instance->groupNativeInstance->stopAndGetDebugLog();
+
     instance->groupNativeInstance.reset();
     delete instance;
+
+    return env->NewStringUTF(debugLog.c_str());
 }
 
 extern "C"

@@ -194,8 +194,8 @@ public class NativeInstance {
         return finalState;
     }
 
-    public void stopGroup() {
-        stopGroupNative();
+    public String stopGroup() {
+        return stopGroupNative();
     }
 
     private static native long makeGroupNativeInstance(NativeInstance instance, String persistentStateFilePath, boolean highQuality, long videoCapturer, boolean screencast, boolean noiseSupression, boolean conference);
@@ -227,7 +227,7 @@ public class NativeInstance {
     public native Instance.TrafficStats getTrafficStats();
     public native byte[] getPersistentState();
     private native void stopNative();
-    private native void stopGroupNative();
+    private native String stopGroupNative();
     public native void setupOutgoingVideo(VideoSink localSink, int type);
     public native void setupOutgoingVideoCreated(long videoCapturer);
     public native void switchCamera(boolean front);

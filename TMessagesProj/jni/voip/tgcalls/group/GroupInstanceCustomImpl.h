@@ -6,8 +6,10 @@
 #include <string>
 #include <memory>
 #include <map>
+#include <future>
 
 #include "../Instance.h"
+#include "../LogSinkImpl.h"
 #include "GroupInstanceImpl.h"
 
 namespace tgcalls {
@@ -22,6 +24,18 @@ public:
     ~GroupInstanceCustomImpl();
 
     void stop(std::function<void()> completion);
+
+    std::string stopAndGetDebugLog() {
+        auto promise = std::make_shared<std::promise<std::string>>();
+        auto future = promise->get_future();
+
+        _internal->perform([this, promise](GroupInstanceCustomInternal *internal) {
+            internal->stop();
+            promise->set_value(_logSink ? _logSink->result() : "");
+        });
+
+        return future.get();
+    }
     
     void setConnectionMode(GroupConnectionMode connectionMode, bool keepBroadcastIfWasEnabled, bool isUnifiedBroadcast);
 
