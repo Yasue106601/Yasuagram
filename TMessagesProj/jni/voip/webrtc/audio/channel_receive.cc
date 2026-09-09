@@ -499,8 +499,19 @@ AudioMixer::Source::AudioFrameInfo ChannelReceive::GetAudioFrameWithInfo(
       RTC_HISTOGRAM_COUNTS_1000("WebRTC.Audio.TargetJitterBufferDelayMs",
                                 acm_receiver_.TargetDelayMs());
       const int jitter_buffer_delay = acm_receiver_.FilteredCurrentDelayMs();
+      const int target_delay = acm_receiver_.TargetDelayMs();
+      const int total_receiver_delay =
+          jitter_buffer_delay + playout_delay_ms_;
+
+      RTC_LOG(LS_INFO)
+          << "YASU NETEQ LIVE "
+          << "Target=" << target_delay << "ms "
+          << "Current=" << jitter_buffer_delay << "ms "
+          << "Playout=" << playout_delay_ms_ << "ms "
+          << "Total=" << total_receiver_delay << "ms";
+
       RTC_HISTOGRAM_COUNTS_1000("WebRTC.Audio.ReceiverDelayEstimateMs",
-                                jitter_buffer_delay + playout_delay_ms_);
+                                total_receiver_delay);
       RTC_HISTOGRAM_COUNTS_1000("WebRTC.Audio.ReceiverJitterBufferDelayMs",
                                 jitter_buffer_delay);
       RTC_HISTOGRAM_COUNTS_1000("WebRTC.Audio.ReceiverDeviceDelayMs",
