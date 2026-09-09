@@ -87,6 +87,21 @@ class AudioReceiveStreamInterface : public MediaReceiveStreamInterface {
     uint64_t jitter_buffer_flushes = 0;
     double relative_packet_arrival_delay_seconds = 0.0;
     int32_t interruption_count = 0;
+
+    // Yasuagram NetEq forensic diagnostics.
+    int neteq_waiting_time_mean_ms = -1;
+    int neteq_waiting_time_median_ms = -1;
+    int neteq_waiting_time_min_ms = -1;
+    int neteq_waiting_time_max_ms = -1;
+    uint64_t neteq_last_waiting_time_ms = 0;
+    uint64_t neteq_preemptive_samples = 0;
+    uint64_t neteq_accelerate_samples = 0;
+    uint64_t neteq_current_buffer_size_ms = 0;
+    uint64_t neteq_current_frame_size_ms = 0;
+    bool neteq_next_packet_available = false;
+    uint64_t neteq_delayed_packet_outage_events = 0;
+    uint64_t neteq_jitter_buffer_packets_received = 0;
+    uint64_t neteq_generated_noise_samples = 0;
     int32_t total_interruption_duration_ms = 0;
     // https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-estimatedplayouttimestamp
     absl::optional<int64_t> estimated_playout_ntp_timestamp_ms;

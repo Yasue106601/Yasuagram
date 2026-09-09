@@ -156,6 +156,11 @@ class AcmReceiver {
   void GetNetworkStatistics(NetworkStatistics* statistics,
                             bool get_and_clear_legacy_stats = true) const;
 
+  // Forensic diagnostics: expose NetEq state without changing its behavior.
+  NetEqLifetimeStatistics GetNetEqLifetimeStatistics() const;
+  NetEqOperationsAndState GetNetEqOperationsAndState() const;
+  NetEqNetworkStatistics GetCurrentNetEqNetworkStatistics() const;
+
   //
   // Flushes the NetEq packet and speech buffers.
   //
