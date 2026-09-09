@@ -1411,8 +1411,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 		NativeInstance instance = tgVoip[CAPTURE_DEVICE_SCREEN];
 		if (instance != null) {
 			Utilities.globalQueue.postRunnable(instance::stopGroup);
-		}
-		mySource[CAPTURE_DEVICE_SCREEN] = 0;
+                mySource[CAPTURE_DEVICE_SCREEN] = 0;
 		tgVoip[CAPTURE_DEVICE_SCREEN] = null;
 		destroyCaptureDevice[CAPTURE_DEVICE_SCREEN] = true;
 		captureDevice[CAPTURE_DEVICE_SCREEN] = 0;
@@ -3104,35 +3103,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 //			if (tgVoip[CAPTURE_DEVICE_CAMERA].isGroup()) {
 //				NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
 //				Utilities.globalQueue.postRunnable(() -> {
-                                String netEqLog = instance.stopGroup();
-                                if (netEqLog != null && !netEqLog.isEmpty()) {
-                                        try {
-                                                android.content.ContentValues values = new android.content.ContentValues();
-                                                values.put(android.provider.MediaStore.Downloads.DISPLAY_NAME,
-                                                        "Yasuagram_NetEq_" + System.currentTimeMillis() + ".txt");
-                                                values.put(android.provider.MediaStore.Downloads.MIME_TYPE, "text/plain");
-                                                values.put(android.provider.MediaStore.Downloads.RELATIVE_PATH,
-                                                        android.os.Environment.DIRECTORY_DOWNLOADS);
-
-                                                android.net.Uri uri = getContentResolver().insert(
-                                                        android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                                                        values
-                                                );
-
-                                                if (uri != null) {
-                                                        try (java.io.OutputStream outputStream = getContentResolver().openOutputStream(uri)) {
-                                                                if (outputStream != null) {
-                                                                        outputStream.write(netEqLog.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                                                                        outputStream.flush();
-                                                                }
-                                                        }
-                                                        FileLog.e("YASU NETEQ: log exported to Downloads");
-                                                }
-                                        } catch (Exception e) {
-                                                FileLog.e("YASU NETEQ: export failed", e);
-                                        }
-                                }
-                        });
+//                         Utilities.globalQueue.postRunnable(instance::stopGroup);
 //				for (HashMap.Entry<String, Integer> entry : currentStreamRequestTimestamp.entrySet()) {
 //					AccountInstance.getInstance(currentAccount).getConnectionsManager().cancelRequest(entry.getValue(), true);
 //				}
@@ -4233,7 +4204,36 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 			onTgVoipPreStop();
 			if (tgVoip[CAPTURE_DEVICE_CAMERA].isGroup()) {
 				NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
-				Utilities.globalQueue.postRunnable(instance::stopGroup);
+				Utilities.globalQueue.postRunnable(() -> {
+                                   String netEqLog = instance.stopGroup();
+                                   if (netEqLog != null && !netEqLog.isEmpty()) {
+                                           try {
+                                                   android.content.ContentValues values = new android.content.ContentValues();
+                                                   values.put(android.provider.MediaStore.Downloads.DISPLAY_NAME,
+                                                           "Yasuagram_NetEq_" + System.currentTimeMillis() + ".txt");
+                                                   values.put(android.provider.MediaStore.Downloads.MIME_TYPE, "text/plain");
+                                                   values.put(android.provider.MediaStore.Downloads.RELATIVE_PATH,
+                                                           android.os.Environment.DIRECTORY_DOWNLOADS);
+
+                                                   android.net.Uri uri = getContentResolver().insert(
+                                                           android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                                                           values
+                                                   );
+
+                                                   if (uri != null) {
+                                                           try (java.io.OutputStream outputStream = getContentResolver().openOutputStream(uri)) {
+                                                                   if (outputStream != null) {
+                                                                           outputStream.write(netEqLog.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                                                                           outputStream.flush();
+                                                                   }
+                                                           }
+                                                           FileLog.e("YASU NETEQ: log exported to Downloads");
+                                                   }
+                                           } catch (Exception e) {
+                                                   FileLog.e("YASU NETEQ: export failed", e);
+                                           }
+                                   }
+                           });
 				for (HashMap.Entry<String, Integer> entry : currentStreamRequestTimestamp.entrySet()) {
 					AccountInstance.getInstance(currentAccount).getConnectionsManager().cancelRequest(entry.getValue(), true);
 				}
