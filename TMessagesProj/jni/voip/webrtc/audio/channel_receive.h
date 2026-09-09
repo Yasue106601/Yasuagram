@@ -115,6 +115,11 @@ class ChannelReceiveInterface : public RtpPacketSinkInterface {
       bool get_and_clear_legacy_stats) const = 0;
   virtual AudioDecodingCallStats GetDecodingCallStatistics() const = 0;
 
+  // Yasuagram NetEq forensic diagnostics.
+  virtual NetEqNetworkStatistics GetCurrentNetEqNetworkStatistics() const = 0;
+  virtual NetEqLifetimeStatistics GetNetEqLifetimeStatistics() const = 0;
+  virtual NetEqOperationsAndState GetNetEqOperationsAndState() const = 0;
+
   // Audio+Video Sync.
   virtual uint32_t GetDelayEstimate() const = 0;
   virtual bool SetMinimumPlayoutDelay(int delay_ms) = 0;

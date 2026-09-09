@@ -965,6 +965,21 @@ uint32_t ChannelReceive::GetLocalSsrc() const {
   return rtp_rtcp_->local_media_ssrc();
 }
 
+NetEqNetworkStatistics
+ChannelReceive::GetCurrentNetEqNetworkStatistics() const {
+  return acm_receiver_.GetCurrentNetEqNetworkStatistics();
+}
+
+NetEqLifetimeStatistics
+ChannelReceive::GetNetEqLifetimeStatistics() const {
+  return acm_receiver_.GetNetEqLifetimeStatistics();
+}
+
+NetEqOperationsAndState
+ChannelReceive::GetNetEqOperationsAndState() const {
+  return acm_receiver_.GetNetEqOperationsAndState();
+}
+
 NetworkStatistics ChannelReceive::GetNetworkStatistics(
     bool get_and_clear_legacy_stats) const {
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);

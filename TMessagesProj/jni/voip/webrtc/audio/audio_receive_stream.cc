@@ -320,6 +320,36 @@ webrtc::AudioReceiveStreamInterface::Stats AudioReceiveStreamImpl::GetStats(
   stats.interruption_count = ns.interruptionCount;
   stats.total_interruption_duration_ms = ns.totalInterruptionDurationMs;
 
+  auto neteq_current =
+      channel_receive_->GetCurrentNetEqNetworkStatistics();
+  auto neteq_lifetime =
+      channel_receive_->GetNetEqLifetimeStatistics();
+  auto neteq_operations =
+      channel_receive_->GetNetEqOperationsAndState();
+
+  stats.neteq_waiting_time_mean_ms = neteq_current.mean_waiting_time_ms;
+  stats.neteq_waiting_time_median_ms = neteq_current.median_waiting_time_ms;
+  stats.neteq_waiting_time_min_ms = neteq_current.min_waiting_time_ms;
+  stats.neteq_waiting_time_max_ms = neteq_current.max_waiting_time_ms;
+  stats.neteq_last_waiting_time_ms =
+      neteq_operations.last_waiting_time_ms;
+  stats.neteq_preemptive_samples =
+      neteq_operations.preemptive_samples;
+  stats.neteq_accelerate_samples =
+      neteq_operations.accelerate_samples;
+  stats.neteq_current_buffer_size_ms =
+      neteq_operations.current_buffer_size_ms;
+  stats.neteq_current_frame_size_ms =
+      neteq_operations.current_frame_size_ms;
+  stats.neteq_next_packet_available =
+      neteq_operations.next_packet_available;
+  stats.neteq_delayed_packet_outage_events =
+      neteq_lifetime.delayed_packet_outage_events;
+  stats.neteq_jitter_buffer_packets_received =
+      neteq_lifetime.jitter_buffer_packets_received;
+  stats.neteq_generated_noise_samples =
+      neteq_lifetime.generated_noise_samples;
+
   auto ds = channel_receive_->GetDecodingCallStatistics();
   stats.decoding_calls_to_silence_generator = ds.calls_to_silence_generator;
   stats.decoding_calls_to_neteq = ds.calls_to_neteq;

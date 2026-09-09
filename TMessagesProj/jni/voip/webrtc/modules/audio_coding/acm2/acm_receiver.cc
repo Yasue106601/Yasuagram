@@ -252,6 +252,18 @@ absl::optional<std::pair<int, SdpAudioFormat>> AcmReceiver::LastDecoder()
   return std::make_pair(last_decoder_->payload_type, last_decoder_->sdp_format);
 }
 
+NetEqLifetimeStatistics AcmReceiver::GetNetEqLifetimeStatistics() const {
+  return neteq_->GetLifetimeStatistics();
+}
+
+NetEqOperationsAndState AcmReceiver::GetNetEqOperationsAndState() const {
+  return neteq_->GetOperationsAndState();
+}
+
+NetEqNetworkStatistics AcmReceiver::GetCurrentNetEqNetworkStatistics() const {
+  return neteq_->CurrentNetworkStatistics();
+}
+
 void AcmReceiver::GetNetworkStatistics(
     NetworkStatistics* acm_stat,
     bool get_and_clear_legacy_stats /* = true */) const {
