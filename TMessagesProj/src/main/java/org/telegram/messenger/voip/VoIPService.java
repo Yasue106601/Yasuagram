@@ -1411,7 +1411,8 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 		NativeInstance instance = tgVoip[CAPTURE_DEVICE_SCREEN];
 		if (instance != null) {
 			Utilities.globalQueue.postRunnable(instance::stopGroup);
-                mySource[CAPTURE_DEVICE_SCREEN] = 0;
+		}
+		mySource[CAPTURE_DEVICE_SCREEN] = 0;
 		tgVoip[CAPTURE_DEVICE_SCREEN] = null;
 		destroyCaptureDevice[CAPTURE_DEVICE_SCREEN] = true;
 		captureDevice[CAPTURE_DEVICE_SCREEN] = 0;
