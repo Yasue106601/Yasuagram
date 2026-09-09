@@ -4365,6 +4365,19 @@ GroupInstanceCustomImpl::GroupInstanceCustomImpl(GroupInstanceDescriptor &&descr
     });
 }
 
+
+std::string GroupInstanceCustomImpl::stopAndGetDebugLog() {
+    auto promise = std::make_shared<std::promise<std::string>>();
+    auto future = promise->get_future();
+
+    _internal->perform([this, promise](GroupInstanceCustomInternal *internal) {
+        internal->stop();
+        promise->set_value(_logSink ? _logSink->result() : "");
+    });
+
+    return future.get();
+}
+
 GroupInstanceCustomImpl::~GroupInstanceCustomImpl() {
     if (_logSink) {
         rtc::LogMessage::RemoveLogToStream(_logSink.get());
