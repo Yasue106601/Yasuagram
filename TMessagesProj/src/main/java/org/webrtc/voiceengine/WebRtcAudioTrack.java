@@ -537,9 +537,7 @@ public class WebRtcAudioTrack {
               new AudioAttributes.Builder()
                   .setUsage(usageAttribute)
                   .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                  .setFlags(
-                      AudioAttributes.FLAG_LOW_LATENCY
-                          | AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
+                  .setFlags(AudioAttributes.FLAG_LOW_LATENCY)
                   .build())
           .setAudioFormat(
               new AudioFormat.Builder()
@@ -547,7 +545,7 @@ public class WebRtcAudioTrack {
                   .setSampleRate(sampleRateInHz)
                   .setChannelMask(channelConfig)
                   .build())
-          .setBufferSizeInBytes(Math.max(960, Math.min(bufferSizeInBytes, sampleRateInHz / 100 * 2)))
+          .setBufferSizeInBytes(bufferSizeInBytes)
           .setTransferMode(AudioTrack.MODE_STREAM)
           .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
           .build();
