@@ -339,9 +339,27 @@ int32_t AudioDeviceBuffer::RequestPlayoutData(size_t samples_per_channel) {
   int64_t elapsed_time_ms = -1;
   int64_t ntp_time_ms = -1;
   const size_t bytes_per_frame = play_channels_ * sizeof(int16_t);
+  const int64_t yasu_t6_start_us = rtc::TimeMicros();
+
   uint32_t res = audio_transport_cb_->NeedMorePlayData(
       samples_per_channel, bytes_per_frame, play_channels_, play_sample_rate_,
       play_buffer_.data(), num_samples_out, &elapsed_time_ms, &ntp_time_ms);
+
+  const int64_t yasu_t6_end_us = rtc::TimeMicros();
+
+  // YASU FORENSIC T6
+  static int yasu_t6_count = 0;
+  if ((++yasu_t6_count % 100) == 0) {
+    RTC_LOG(LS_INFO)
+        << "YASU FORENSIC T6 PLAYOUT_REQUEST "
+        << "duration_us="
+        << (yasu_t6_end_us - yasu_t6_start_us)
+        << "requested_frames=" << samples_per_channel
+        << "channels=" << play_channels_
+        << "rate=" << play_sample_rate_
+        << "produced_frames=" << num_samples_out;
+  }
+
   if (res != 0) {
     RTC_LOG(LS_ERROR) << "NeedMorePlayData() failed";
   }

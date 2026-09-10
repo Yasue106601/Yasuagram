@@ -16,6 +16,9 @@
 
 #include <functional>
 #include <memory>
+#include <cstdint>
+#include <unordered_map>
+#include <vector>
 
 #include "Message.h"
 #include "ThreadLocalObject.h"
@@ -130,14 +133,38 @@ private:
 
     // Yasuagram latency measurement
     int64_t _latencyLastReceiveTimestamp = 0;
-    // Yasuagram real UDP arrival timestamp
     int64_t _latencyLastUdpReceiveTimestamp = 0;
     uint64_t _latencyReceivedPackets = 0;
 
-    // Yasuagram real RTP jitter measurement
-    int64_t _latencyPreviousReceiveTimestamp = 0;
-    int64_t _latencyPreviousDelta = 0;
-    double _latencyJitter = 0;
+    // Yasuagram RTP forensic diagnostics.
+    // Per-SSRC state is kept lightweight and does not perform I/O.
+    struct RtpForensicStream {
+        uint32_t ssrc = 0;
+
+        uint64_t packets_received = 0;
+        uint64_t packets_lost = 0;
+        uint64_t packets_duplicate = 0;
+        uint64_t packets_reordered = 0;
+
+        uint16_t last_sequence = 0;
+        bool have_sequence = false;
+
+        uint32_t last_rtp_timestamp = 0;
+        bool have_rtp_timestamp = false;
+
+        int64_t last_arrival_us = 0;
+        bool have_arrival = false;
+
+        double interarrival_jitter_ms = 0.0;
+        double min_interarrival_ms = 0.0;
+        double max_interarrival_ms = 0.0;
+        double sum_interarrival_ms = 0.0;
+        uint64_t interarrival_samples = 0;
+
+        std::vector<double> interarrival_samples_ms;
+    };
+
+    std::unordered_map<uint32_t, RtpForensicStream> _rtpForensicStreams;
 };
 
 } // namespace tgcalls

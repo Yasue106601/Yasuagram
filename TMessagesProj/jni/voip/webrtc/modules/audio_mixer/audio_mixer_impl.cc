@@ -85,6 +85,9 @@ rtc::scoped_refptr<AudioMixerImpl> AudioMixerImpl::Create(
 void AudioMixerImpl::Mix(size_t number_of_channels,
                          AudioFrame* audio_frame_for_mixing) {
   TRACE_EVENT0("webrtc", "AudioMixerImpl::Mix");
+
+  const int64_t yasu_t5_start_us = rtc::TimeMicros();
+
   RTC_DCHECK(number_of_channels >= 1);
   MutexLock lock(&mutex_);
 
@@ -103,6 +106,19 @@ void AudioMixerImpl::Mix(size_t number_of_channels,
   frame_combiner_.Combine(GetAudioFromSources(output_frequency),
                           number_of_channels, output_frequency,
                           number_of_streams, audio_frame_for_mixing);
+
+  const int64_t yasu_t5_end_us = rtc::TimeMicros();
+
+  static int yasu_t5_count = 0;
+  if ((++yasu_t5_count % 100) == 0) {
+    RTC_LOG(LS_INFO)
+        << "YASU FORENSIC T5 MIX "
+        << "duration_us="
+        << (yasu_t5_end_us - yasu_t5_start_us)
+        << "streams=" << number_of_streams
+        << "channels=" << number_of_channels
+        << "rate=" << output_frequency;
+  }
 }
 
 bool AudioMixerImpl::AddSource(Source* audio_source) {

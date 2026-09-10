@@ -65,8 +65,24 @@ int AudioDecoderOpusImpl::DecodeInternal(const uint8_t* encoded,
                                          SpeechType* speech_type) {
   RTC_DCHECK_EQ(sample_rate_hz, sample_rate_hz_);
   int16_t temp_type = 1;  // Default is speech.
+  const int64_t yasu_t4_start_us = rtc::TimeMicros();
+
   int ret =
       WebRtcOpus_Decode(dec_state_, encoded, encoded_len, decoded, &temp_type);
+
+  const int64_t yasu_t4_end_us = rtc::TimeMicros();
+
+  // YASU FORENSIC T4
+  static int yasu_t4_count = 0;
+  if ((++yasu_t4_count % 100) == 0) {
+    RTC_LOG(LS_INFO)
+        << "YASU FORENSIC T4 OPUS_DECODE "
+        << "duration_us="
+        << (yasu_t4_end_us - yasu_t4_start_us)
+        << "encoded_bytes=" << encoded_len
+        << "samples=" << ret;
+  }
+
   if (ret > 0)
     ret *= static_cast<int>(channels_);  // Return total number of samples.
   *speech_type = ConvertSpeechType(temp_type);
