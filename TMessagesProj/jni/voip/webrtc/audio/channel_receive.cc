@@ -81,6 +81,7 @@ acm2::AcmReceiver::Config AcmConfig(
   acm_config.neteq_config.enable_fast_accelerate = jitter_buffer_fast_playout;
   acm_config.neteq_config.enable_muted_state = true;
   acm_config.neteq_config.min_delay_ms = jitter_buffer_min_delay_ms;
+  acm_config.neteq_config.max_delay_ms = 30;
 
   return acm_config;
 }
