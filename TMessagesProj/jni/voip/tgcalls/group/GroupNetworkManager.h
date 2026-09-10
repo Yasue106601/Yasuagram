@@ -134,6 +134,9 @@ private:
     // Yasuagram latency measurement
     int64_t _latencyLastReceiveTimestamp = 0;
     int64_t _latencyLastUdpReceiveTimestamp = 0;
+    int64_t _latencyPreviousReceiveTimestamp = 0;
+    int64_t _latencyPreviousDelta = 0;
+    double _latencyJitter = 0.0;
     uint64_t _latencyReceivedPackets = 0;
 
     // Yasuagram RTP forensic diagnostics.
