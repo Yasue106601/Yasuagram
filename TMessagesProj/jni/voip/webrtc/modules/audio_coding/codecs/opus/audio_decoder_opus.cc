@@ -17,6 +17,8 @@
 #include "api/array_view.h"
 #include "modules/audio_coding/codecs/opus/audio_coder_opus_common.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/time_utils.h"
+#include "rtc_base/logging.h"
 #include "system_wrappers/include/field_trial.h"
 
 namespace webrtc {
