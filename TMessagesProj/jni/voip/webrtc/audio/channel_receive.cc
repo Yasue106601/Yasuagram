@@ -140,6 +140,11 @@ class ChannelReceive : public ChannelReceiveInterface,
       bool get_and_clear_legacy_stats) const override;
   AudioDecodingCallStats GetDecodingCallStatistics() const override;
 
+  // Yasuagram NetEq forensic diagnostics.
+  NetEqNetworkStatistics GetCurrentNetEqNetworkStatistics() const override;
+  NetEqLifetimeStatistics GetNetEqLifetimeStatistics() const override;
+  NetEqOperationsAndState GetNetEqOperationsAndState() const override;
+
   // Audio+Video Sync.
   uint32_t GetDelayEstimate() const override;
   bool SetMinimumPlayoutDelay(int delayMs) override;
