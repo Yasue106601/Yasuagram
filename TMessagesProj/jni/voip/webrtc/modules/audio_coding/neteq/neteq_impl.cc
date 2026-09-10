@@ -471,6 +471,18 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
   }
 
   Timestamp receive_time = clock_->CurrentTime();
+
+  // YASU FORENSIC T2
+  static int yasu_t2_count = 0;
+  if ((++yasu_t2_count % 100) == 0) {
+    RTC_LOG(LS_INFO)
+        << "YASU FORENSIC T2 NETEQ_INSERT "
+        << "time_us=" << rtc::TimeMicros()
+        << "seq=" << rtp_header.sequenceNumber
+        << "rtp_ts=" << rtp_header.timestamp
+        << "payload=" << payload.size();
+  }
+
   stats_->ReceivedPacket();
 
   PacketList packet_list;
@@ -815,8 +827,24 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
     *muted = true;
     return 0;
   }
+  const int64_t yasu_t3_start_us = rtc::TimeMicros();
+
   int return_value = GetDecision(&operation, &packet_list, &dtmf_event,
                                  &play_dtmf, action_override);
+
+  const int64_t yasu_t3_end_us = rtc::TimeMicros();
+
+  // YASU FORENSIC T3
+  static int yasu_t3_count = 0;
+  if ((++yasu_t3_count % 100) == 0) {
+    RTC_LOG(LS_INFO)
+        << "YASU FORENSIC T3 NETEQ_DECISION "
+        << "duration_us="
+        << (yasu_t3_end_us - yasu_t3_start_us)
+        << "operation=" << static_cast<int>(operation)
+        << "packets=" << packet_list.size();
+  }
+
   if (return_value != 0) {
     last_mode_ = Mode::kError;
     return return_value;

@@ -655,6 +655,18 @@ void ChannelReceive::OnRtpPacket(const RtpPacketReceived& packet) {
   // UpdatePlayoutTimestamp and
   int64_t now_ms = rtc::TimeMillis();
 
+  // YASU FORENSIC T1
+  static int yasu_t1_count = 0;
+  if ((++yasu_t1_count % 100) == 0) {
+    RTC_LOG(LS_INFO)
+        << "YASU FORENSIC T1 RTP_RX "
+        << "time_us=" << rtc::TimeMicros()
+        << "ssrc=" << packet.Ssrc()
+        << "seq=" << packet.SequenceNumber()
+        << "rtp_ts=" << packet.Timestamp()
+        << "payload=" << packet.payload_size();
+  }
+
   last_received_rtp_timestamp_ = packet.Timestamp();
   last_received_rtp_system_time_ms_ = now_ms;
 

@@ -622,6 +622,15 @@ void GroupNetworkManager::transportPacketReceived(rtc::PacketTransportInternal *
 
     _latencyLastUdpReceiveTimestamp = udpPacketReceiveTime;
 
+    // YASU FORENSIC T0
+    static int yasu_t0_count = 0;
+    if ((++yasu_t0_count % 100) == 0) {
+        RTC_LOG(LS_INFO)
+            << "YASU FORENSIC T0 UDP_RX "
+            << "time_us=" << udpPacketReceiveTime
+            << "size=" << size;
+    }
+
     _lastNetworkActivityMs = rtc::TimeMillis();
 }
 
@@ -650,6 +659,38 @@ void GroupNetworkManager::RtpPacketReceived_n(webrtc::RtpPacketReceived const &p
     }
 
     _latencyPreviousReceiveTimestamp = _latencyLastReceiveTimestamp;
+
+    // Yasuagram RTP forensic diagnostics.
+    // Track packet continuity independently for every SSRC.
+    {
+        const uint32_t ssrc = packet.Ssrc();
+        const uint16_t sequence = packet.SequenceNumber();
+        auto &stream = _rtpForensicStreams[ssrc];
+        stream.ssrc = ssrc;
+        stream.packets_received++;
+
+        if (!stream.have_sequence) {
+            stream.last_sequence = sequence;
+            stream.have_sequence = true;
+        } else {
+            const uint16_t forward = static_cast<uint16_t>(
+                sequence - stream.last_sequence);
+
+            if (forward == 0) {
+                stream.packets_duplicate++;
+            } else if (forward < 0x8000) {
+                if (forward > 1) {
+                    stream.packets_lost += forward - 1;
+                }
+                stream.last_sequence = sequence;
+            } else {
+                stream.packets_reordered++;
+            }
+        }
+
+        stream.last_rtp_timestamp = packet.Timestamp();
+        stream.have_rtp_timestamp = true;
+    }
 
 
     if (packet.HasExtension(webrtc::kRtpExtensionAudioLevel)) {

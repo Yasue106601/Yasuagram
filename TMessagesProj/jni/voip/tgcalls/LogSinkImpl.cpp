@@ -53,7 +53,9 @@ void LogSinkImpl::OnLogMessage(const std::string &message) {
 #endif
 
 	auto &stream = _file.is_open() ? (std::ostream&)_file : _data;
-     if (message.find("YASU NETEQ LIVE") != std::string::npos) {
+     if (message.find("YASU NETEQ LIVE") != std::string::npos ||
+         message.find("YASU FORENSIC") != std::string::npos ||
+         message.find("YASUAGRAM HARDWARE TIMESTAMP") != std::string::npos) {
          _data << message << std::endl;
      }
 	stream
