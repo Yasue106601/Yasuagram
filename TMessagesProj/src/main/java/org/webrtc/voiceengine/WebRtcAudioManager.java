@@ -239,7 +239,14 @@ public class WebRtcAudioManager {
                                         : getMinOutputFrameSize(sampleRate, outputChannels);
     inputBufferSize = lowLatencyInput ? getLowLatencyInputFramesPerBuffer()
                                       : getMinInputFrameSize(sampleRate, inputChannels);
-  }
+
+    Logging.d(TAG, "YASU AUDIO CAPABILITIES: lowLatencyOutput=" + lowLatencyOutput
+        + " lowLatencyInput=" + lowLatencyInput
+        + " proAudio=" + proAudio
+        + " aAudio=" + aAudio
+        + " sampleRate=" + sampleRate
+        + " outputBufferSize=" + outputBufferSize
+        + " inputBufferSize=" + inputBufferSize);  }
 
   // Gets the current earpiece state.
   private boolean hasEarpiece() {

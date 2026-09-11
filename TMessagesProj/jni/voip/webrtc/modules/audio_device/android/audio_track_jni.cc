@@ -46,7 +46,7 @@ bool AudioTrackJni::JavaAudioTrack::InitPlayout(int sample_rate, int channels) {
                  .c_str(),
              nullptr);
   if (buffer_size_factor == 0)
-    buffer_size_factor = 1.0;
+    buffer_size_factor = 0.25;
   int requested_buffer_size_bytes = audio_track_->CallIntMethod(
       init_playout_, sample_rate, channels, buffer_size_factor);
   // Update UMA histograms for both the requested and actual buffer size.
