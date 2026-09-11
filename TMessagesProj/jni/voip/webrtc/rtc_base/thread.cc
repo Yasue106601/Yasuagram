@@ -699,14 +699,14 @@ void* Thread::PreRun(void* pv) {
   rtc::SetCurrentThreadName(thread->name_.c_str());
 
   if (thread->priority_ != ThreadPriority::kNormal) {
-    const bool priority_set =
+    const bool priority_applied =
         PlatformThread::SetCurrentThreadPriority(thread->priority_);
 
-    RTC_LOG(priority_set ? LS_INFO : LS_ERROR)
+    RTC_LOG(priority_applied ? LS_INFO : LS_ERROR)
         << "YASU THREAD PRIORITY: name=" << thread->name_
         << " requested="
         << static_cast<int>(thread->priority_)
-        << " result=" << (priority_set ? "SUCCESS" : "FAILED");
+        << " result=" << (priority_applied ? "SUCCESS" : "FAILED");
   }
 
 #if defined(WEBRTC_MAC)
