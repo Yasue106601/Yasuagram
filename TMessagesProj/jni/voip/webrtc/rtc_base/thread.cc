@@ -702,11 +702,19 @@ void* Thread::PreRun(void* pv) {
     const bool priority_applied =
         PlatformThread::SetCurrentThreadPriority(thread->priority_);
 
-    RTC_LOG(priority_applied ? LS_INFO : LS_ERROR)
-        << "YASU THREAD PRIORITY: name=" << thread->name_
-        << " requested="
-        << static_cast<int>(thread->priority_)
-        << " result=" << (priority_applied ? "SUCCESS" : "FAILED");
+    if (priority_applied) {
+      RTC_LOG(LS_INFO)
+          << "YASU THREAD PRIORITY: name=" << thread->name_
+          << " requested="
+          << static_cast<int>(thread->priority_)
+          << " result=SUCCESS";
+    } else {
+      RTC_LOG(LS_ERROR)
+          << "YASU THREAD PRIORITY: name=" << thread->name_
+          << " requested="
+          << static_cast<int>(thread->priority_)
+          << " result=FAILED";
+    }
   }
 
 #if defined(WEBRTC_MAC)
