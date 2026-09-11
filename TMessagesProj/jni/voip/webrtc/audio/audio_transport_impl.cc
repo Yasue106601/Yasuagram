@@ -8,7 +8,6 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "base/threading/platform_thread.h"
 #include "audio/audio_transport_impl.h"
 
 #include <algorithm>
@@ -260,19 +259,6 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
                                              size_t& nSamplesOut,
                                              int64_t* elapsed_time_ms,
                                              int64_t* ntp_time_ms) {
-  static thread_local bool yasu_audio_realtime_set = false;
-  if (!yasu_audio_realtime_set) {
-    base::PlatformThread::SetCurrentThreadPriority(
-        base::ThreadPriority::REALTIME_AUDIO);
-
-    yasu_audio_realtime_set =
-        base::PlatformThread::GetCurrentThreadPriority() ==
-        base::ThreadPriority::REALTIME_AUDIO;
-
-    RTC_LOG(LS_INFO)
-        << "YASU AUDIO PLAYOUT PRIORITY: realtime="
-        << (yasu_audio_realtime_set ? "SUCCESS" : "FAILED");
-  }
   static int64_t playback_callback_count = 0;
   static int64_t playback_total_time = 0;
   static int64_t playback_max_time = 0;

@@ -40,6 +40,11 @@ rtc::Thread* MaybeStartNetworkThread(
   socket_factory_holder = std::move(socket_server);
 
   thread_holder->SetName("pc_network_thread", nullptr);
+
+  // Yasuagram: raise the network thread priority so incoming RTP
+  // reaches ChannelReceive/NetEq with less scheduling delay.
+  thread_holder->SetPriority(rtc::ThreadPriority::kHigh);
+
   thread_holder->Start();
   return thread_holder.get();
 }

@@ -32,6 +32,14 @@
 // clang-format on
 
 namespace rtc {
+
+enum class ThreadPriority {
+  kLow = 1,
+  kNormal,
+  kHigh,
+  kRealtime,
+};
+
 #if defined(WEBRTC_WIN)
 typedef DWORD PlatformThreadId;
 typedef DWORD PlatformThreadRef;

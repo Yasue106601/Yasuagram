@@ -288,6 +288,9 @@ class RTC_LOCKABLE RTC_EXPORT Thread : public webrtc::TaskQueueBase {
   // Default is 50 ms.
   void SetDispatchWarningMs(int deadline);
 
+  // Sets the priority used by this thread when it starts.
+  void SetPriority(ThreadPriority priority) { priority_ = priority; }
+
   // Starts the execution of the thread.
   bool Start();
 
@@ -506,6 +509,8 @@ class RTC_LOCKABLE RTC_EXPORT Thread : public webrtc::TaskQueueBase {
   std::unique_ptr<SocketServer> own_ss_;
 
   std::string name_;
+
+  ThreadPriority priority_ = ThreadPriority::kNormal;
 
   // TODO(tommi): Add thread checks for proper use of control methods.
   // Ideally we should be able to just use PlatformThread.

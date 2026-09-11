@@ -23,13 +23,6 @@
 
 namespace rtc {
 
-enum class ThreadPriority {
-  kLow = 1,
-  kNormal,
-  kHigh,
-  kRealtime,
-};
-
 struct ThreadAttributes {
   ThreadPriority priority = ThreadPriority::kNormal;
   ThreadAttributes& SetPriority(ThreadPriority priority_param) {
@@ -98,6 +91,9 @@ class PlatformThread final {
 
   // Returns the base platform thread handle of this thread.
   absl::optional<Handle> GetHandle() const;
+
+  // Changes the priority of the calling thread.
+  static bool SetCurrentThreadPriority(ThreadPriority priority);
 
 #if defined(WEBRTC_WIN)
   // Queue a Windows APC function that runs when the thread is alertable.

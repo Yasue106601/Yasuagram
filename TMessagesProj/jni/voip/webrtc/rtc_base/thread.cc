@@ -41,6 +41,7 @@
 #include "rtc_base/internal/default_socket_server.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/null_socket_server.h"
+#include "rtc_base/platform_thread.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/time_utils.h"
 #include "rtc_base/trace_event.h"
@@ -696,6 +697,18 @@ void* Thread::PreRun(void* pv) {
   Thread* thread = static_cast<Thread*>(pv);
   ThreadManager::Instance()->SetCurrentThread(thread);
   rtc::SetCurrentThreadName(thread->name_.c_str());
+
+  if (thread->priority_ != ThreadPriority::kNormal) {
+    const bool priority_set =
+        PlatformThread::SetCurrentThreadPriority(thread->priority_);
+
+    RTC_LOG(priority_set ? LS_INFO : LS_ERROR)
+        << "YASU THREAD PRIORITY: name=" << thread->name_
+        << " requested="
+        << static_cast<int>(thread->priority_)
+        << " result=" << (priority_set ? "SUCCESS" : "FAILED");
+  }
+
 #if defined(WEBRTC_MAC)
   ScopedAutoReleasePool pool;
 #endif
