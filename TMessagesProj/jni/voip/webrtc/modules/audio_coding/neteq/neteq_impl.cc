@@ -1994,6 +1994,18 @@ int NetEqImpl::ExtractPackets(size_t required_samples,
       return -1;
     }
     const uint64_t waiting_time_ms = packet->waiting_time->ElapsedMs();
+
+    // YASU FORENSIC T8 - actual NetEq packet waiting time.
+    static int yasu_t8_count = 0;
+    if ((++yasu_t8_count % 100) == 0) {
+      RTC_LOG(LS_INFO)
+          << "YASU FORENSIC T8 NETEQ_WAIT "
+          << "time_us=" << rtc::TimeMicros()
+          << "seq=" << packet->sequence_number
+          << "rtp_ts=" << packet->timestamp
+          << "waiting_ms=" << waiting_time_ms;
+    }
+
     stats_->StoreWaitingTime(waiting_time_ms);
     RTC_DCHECK(!packet->empty());
 
