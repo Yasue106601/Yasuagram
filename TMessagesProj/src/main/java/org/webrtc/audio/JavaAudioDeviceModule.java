@@ -57,7 +57,7 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
       this.audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
       this.inputSampleRate = WebRtcAudioManager.getSampleRate(audioManager);
       this.outputSampleRate = WebRtcAudioManager.getSampleRate(audioManager);
-      this.useLowLatency = false;
+      this.useLowLatency = true;  // YASU: Enable low-latency mode
       this.enableVolumeLogger = true;
     }
 

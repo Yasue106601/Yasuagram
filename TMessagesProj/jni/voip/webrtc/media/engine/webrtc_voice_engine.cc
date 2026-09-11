@@ -1222,6 +1222,11 @@ WebRtcVoiceSendChannel::WebRtcVoiceSendChannel(
 
 WebRtcVoiceSendChannel::~WebRtcVoiceSendChannel() {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_DLOG(LS_VERBOSE) << "WebRtcVoiceSendChannel::~WebRtcVoiceSendChannel";
   // TODO(solenberg): Should be able to delete the streams directly, without
   //                  going through RemoveNnStream(), once stream objects handle
@@ -1233,6 +1238,11 @@ WebRtcVoiceSendChannel::~WebRtcVoiceSendChannel() {
 
 bool WebRtcVoiceSendChannel::SetOptions(const AudioOptions& options) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_LOG(LS_INFO) << "Setting voice channel options: " << options.ToString();
 
   // We retain all of the existing options, and apply the given ones
@@ -1256,6 +1266,11 @@ bool WebRtcVoiceSendChannel::SetSenderParameters(
     const AudioSenderParameter& params) {
   TRACE_EVENT0("webrtc", "WebRtcVoiceMediaChannel::SetSenderParameters");
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_LOG(LS_INFO) << "WebRtcVoiceMediaChannel::SetSenderParameters: "
                    << params.ToString();
   // TODO(pthatcher): Refactor this to be more clean now that we have
@@ -1339,6 +1354,11 @@ bool WebRtcVoiceSendChannel::SetSendCodecs(
     const std::vector<Codec>& codecs,
     absl::optional<Codec> preferred_codec) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   dtmf_payload_type_ = absl::nullopt;
   dtmf_payload_freq_ = -1;
 
@@ -1509,6 +1529,11 @@ bool WebRtcVoiceSendChannel::SetAudioSend(uint32_t ssrc,
                                           const AudioOptions* options,
                                           AudioSource* source) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   // TODO(solenberg): The state change should be fully rolled back if any one of
   //                  these calls fail.
   if (!SetLocalSource(ssrc, source)) {
@@ -1526,6 +1551,11 @@ bool WebRtcVoiceSendChannel::SetAudioSend(uint32_t ssrc,
 bool WebRtcVoiceSendChannel::AddSendStream(const StreamParams& sp) {
   TRACE_EVENT0("webrtc", "WebRtcVoiceMediaChannel::AddSendStream");
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_LOG(LS_INFO) << "AddSendStream: " << sp.ToString();
 
   uint32_t ssrc = sp.first_ssrc();
@@ -1560,6 +1590,11 @@ bool WebRtcVoiceSendChannel::AddSendStream(const StreamParams& sp) {
 bool WebRtcVoiceSendChannel::RemoveSendStream(uint32_t ssrc) {
   TRACE_EVENT0("webrtc", "WebRtcVoiceMediaChannel::RemoveSendStream");
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_LOG(LS_INFO) << "RemoveSendStream: " << ssrc;
 
   auto it = send_streams_.find(ssrc);
@@ -1619,6 +1654,11 @@ void WebRtcVoiceSendChannel::SetFrameEncryptor(
     uint32_t ssrc,
     rtc::scoped_refptr<webrtc::FrameEncryptorInterface> frame_encryptor) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   auto matching_stream = send_streams_.find(ssrc);
   if (matching_stream != send_streams_.end()) {
     matching_stream->second->SetFrameEncryptor(frame_encryptor);
@@ -1629,6 +1669,11 @@ bool WebRtcVoiceSendChannel::InsertDtmf(uint32_t ssrc,
                                         int event,
                                         int duration) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_LOG(LS_INFO) << "WebRtcVoiceMediaChannel::InsertDtmf";
   if (!CanInsertDtmf()) {
     return false;
@@ -1671,12 +1716,22 @@ void WebRtcVoiceSendChannel::OnNetworkRouteChanged(
       task_safety_.flag(),
       [this, name = std::string(transport_name), route = network_route] {
         RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
         call_->GetTransportControllerSend()->OnNetworkRouteChanged(name, route);
       }));
 }
 
 bool WebRtcVoiceSendChannel::MuteStream(uint32_t ssrc, bool muted) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   const auto it = send_streams_.find(ssrc);
   if (it == send_streams_.end()) {
     RTC_LOG(LS_WARNING) << "The specified ssrc " << ssrc << " is not in use.";
@@ -1724,6 +1779,11 @@ void WebRtcVoiceSendChannel::OnReadyToSend(bool ready) {
 bool WebRtcVoiceSendChannel::GetStats(VoiceMediaSendInfo* info) {
   TRACE_EVENT0("webrtc", "WebRtcVoiceMediaChannel::GetSendStats");
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_DCHECK(info);
 
   // Get SSRC and stats for each sender.
@@ -1786,6 +1846,11 @@ void WebRtcVoiceSendChannel::SetEncoderToPacketizerFrameTransformer(
     uint32_t ssrc,
     rtc::scoped_refptr<webrtc::FrameTransformerInterface> frame_transformer) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   auto matching_stream = send_streams_.find(ssrc);
   if (matching_stream == send_streams_.end()) {
     RTC_LOG(LS_INFO) << "Attempting to set frame transformer for SSRC:" << ssrc
@@ -1799,6 +1864,11 @@ void WebRtcVoiceSendChannel::SetEncoderToPacketizerFrameTransformer(
 webrtc::RtpParameters WebRtcVoiceSendChannel::GetRtpSendParameters(
     uint32_t ssrc) const {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   auto it = send_streams_.find(ssrc);
   if (it == send_streams_.end()) {
     RTC_LOG(LS_WARNING) << "Attempting to get RTP send parameters for stream "
@@ -1821,6 +1891,11 @@ webrtc::RTCError WebRtcVoiceSendChannel::SetRtpSendParameters(
     const webrtc::RtpParameters& parameters,
     webrtc::SetParametersCallback callback) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   auto it = send_streams_.find(ssrc);
   if (it == send_streams_.end()) {
     RTC_LOG(LS_WARNING) << "Attempting to set RTP send parameters for stream "
@@ -2031,6 +2106,11 @@ WebRtcVoiceReceiveChannel::WebRtcVoiceReceiveChannel(
 
 WebRtcVoiceReceiveChannel::~WebRtcVoiceReceiveChannel() {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_DLOG(LS_VERBOSE)
       << "WebRtcVoiceReceiveChannel::~WebRtcVoiceReceiveChannel";
   // TODO(solenberg): Should be able to delete the streams directly, without
@@ -2045,6 +2125,11 @@ bool WebRtcVoiceReceiveChannel::SetReceiverParameters(
     const AudioReceiverParameters& params) {
   TRACE_EVENT0("webrtc", "WebRtcVoiceMediaChannel::SetReceiverParameters");
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_LOG(LS_INFO) << "WebRtcVoiceMediaChannel::SetReceiverParameters: "
                    << params.ToString();
   // TODO(pthatcher): Refactor this to be more clean now that we have
@@ -2071,6 +2156,11 @@ bool WebRtcVoiceReceiveChannel::SetReceiverParameters(
 webrtc::RtpParameters WebRtcVoiceReceiveChannel::GetRtpReceiverParameters(
     uint32_t ssrc) const {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   webrtc::RtpParameters rtp_params;
   auto it = recv_streams_.find(ssrc);
   if (it == recv_streams_.end()) {
@@ -2093,6 +2183,11 @@ webrtc::RtpParameters WebRtcVoiceReceiveChannel::GetRtpReceiverParameters(
 webrtc::RtpParameters
 WebRtcVoiceReceiveChannel::GetDefaultRtpReceiveParameters() const {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   webrtc::RtpParameters rtp_params;
   if (!default_sink_) {
     // Getting parameters on a default, unsignaled audio receive stream but
@@ -2110,6 +2205,11 @@ WebRtcVoiceReceiveChannel::GetDefaultRtpReceiveParameters() const {
 
 bool WebRtcVoiceReceiveChannel::SetOptions(const AudioOptions& options) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_LOG(LS_INFO) << "Setting voice channel options: " << options.ToString();
 
   // We retain all of the existing options, and apply the given ones
@@ -2126,6 +2226,11 @@ bool WebRtcVoiceReceiveChannel::SetOptions(const AudioOptions& options) {
 bool WebRtcVoiceReceiveChannel::SetRecvCodecs(
     const std::vector<AudioCodec>& codecs) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
 
   // Set the payload types to be used for incoming media.
   RTC_LOG(LS_INFO) << "Setting receive voice codecs.";
@@ -2227,6 +2332,11 @@ void WebRtcVoiceReceiveChannel::SetReceiveNonSenderRttEnabled(bool enabled) {
 void WebRtcVoiceReceiveChannel::SetPlayout(bool playout) {
   TRACE_EVENT0("webrtc", "WebRtcVoiceMediaChannel::SetPlayout");
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   if (playout_ == playout) {
     return;
   }
@@ -2240,6 +2350,11 @@ void WebRtcVoiceReceiveChannel::SetPlayout(bool playout) {
 bool WebRtcVoiceReceiveChannel::AddRecvStream(const StreamParams& sp) {
   TRACE_EVENT0("webrtc", "WebRtcVoiceMediaChannel::AddRecvStream");
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_LOG(LS_INFO) << "AddRecvStream: " << sp.ToString();
 
   if (!sp.has_ssrcs()) {
@@ -2290,6 +2405,11 @@ bool WebRtcVoiceReceiveChannel::AddRecvStream(const StreamParams& sp) {
 bool WebRtcVoiceReceiveChannel::RemoveRecvStream(uint32_t ssrc) {
   TRACE_EVENT0("webrtc", "WebRtcVoiceMediaChannel::RemoveRecvStream");
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_LOG(LS_INFO) << "RemoveRecvStream: " << ssrc;
 
   const auto it = recv_streams_.find(ssrc);
@@ -2309,6 +2429,11 @@ bool WebRtcVoiceReceiveChannel::RemoveRecvStream(uint32_t ssrc) {
 
 void WebRtcVoiceReceiveChannel::ResetUnsignaledRecvStream() {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_LOG(LS_INFO) << "ResetUnsignaledRecvStream.";
   unsignaled_stream_params_ = StreamParams();
   // Create a copy since RemoveRecvStream will modify `unsignaled_recv_ssrcs_`.
@@ -2353,6 +2478,11 @@ void WebRtcVoiceReceiveChannel::OnDemuxerCriteriaUpdateComplete() {}
 
 bool WebRtcVoiceReceiveChannel::SetOutputVolume(uint32_t ssrc, double volume) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_LOG(LS_INFO) << rtc::StringFormat("WRVMC::%s({ssrc=%u}, {volume=%.2f})",
                                         __func__, ssrc, volume);
   const auto it = recv_streams_.find(ssrc);
@@ -2371,6 +2501,11 @@ bool WebRtcVoiceReceiveChannel::SetOutputVolume(uint32_t ssrc, double volume) {
 
 bool WebRtcVoiceReceiveChannel::SetDefaultOutputVolume(double volume) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   default_recv_volume_ = volume;
   for (uint32_t ssrc : unsignaled_recv_ssrcs_) {
     const auto it = recv_streams_.find(ssrc);
@@ -2388,6 +2523,11 @@ bool WebRtcVoiceReceiveChannel::SetDefaultOutputVolume(double volume) {
 bool WebRtcVoiceReceiveChannel::SetBaseMinimumPlayoutDelayMs(uint32_t ssrc,
                                                              int delay_ms) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   std::vector<uint32_t> ssrcs(1, ssrc);
   // SSRC of 0 represents the default receive stream.
   if (ssrc == 0) {
@@ -2427,6 +2567,11 @@ void WebRtcVoiceReceiveChannel::SetFrameDecryptor(
     uint32_t ssrc,
     rtc::scoped_refptr<webrtc::FrameDecryptorInterface> frame_decryptor) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   auto matching_stream = recv_streams_.find(ssrc);
   if (matching_stream != recv_streams_.end()) {
     matching_stream->second->SetFrameDecryptor(frame_decryptor);
@@ -2440,16 +2585,23 @@ void WebRtcVoiceReceiveChannel::SetFrameDecryptor(
 void WebRtcVoiceReceiveChannel::OnPacketReceived(
     const webrtc::RtpPacketReceived& packet) {
   RTC_DCHECK_RUN_ON(&network_thread_checker_);
+  static bool yasu_network_priority_set = false;
+  if (!yasu_network_priority_set) {
+    yasu_network_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+    RTC_LOG(LS_INFO) << "YASU RTP RECEIVE PRIORITY: set=" << (yasu_network_priority_set ? "SUCCESS" : "FAILED");
+  }
 
   // TODO(bugs.webrtc.org/11993): This code is very similar to what
   // WebRtcVideoChannel::OnPacketReceived does. For maintainability and
   // consistency it would be good to move the interaction with
-  // call_->Receiver() to a common implementation and provide a callback on
-  // the worker thread for the exception case (DELIVERY_UNKNOWN_SSRC) and
-  // how retry is attempted.
   worker_thread_->PostTask(
       SafeTask(task_safety_.flag(), [this, packet = packet]() mutable {
         RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
 
         // TODO(bugs.webrtc.org/7135): extensions in `packet` is currently set
         // in RtpTransport and does not neccessarily include extensions specific
@@ -2521,6 +2673,11 @@ bool WebRtcVoiceReceiveChannel::GetStats(VoiceMediaReceiveInfo* info,
                                          bool get_and_clear_legacy_stats) {
   TRACE_EVENT0("webrtc", "WebRtcVoiceMediaChannel::GetReceiveStats");
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_DCHECK(info);
 
   // Get SSRC and stats for each receiver.
@@ -2647,6 +2804,11 @@ void WebRtcVoiceReceiveChannel::SetRawAudioSink(
     uint32_t ssrc,
     std::unique_ptr<webrtc::AudioSinkInterface> sink) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_LOG(LS_VERBOSE) << "WebRtcVoiceMediaChannel::SetRawAudioSink: ssrc:"
                       << ssrc << " " << (sink ? "(ptr)" : "NULL");
   const auto it = recv_streams_.find(ssrc);
@@ -2660,6 +2822,11 @@ void WebRtcVoiceReceiveChannel::SetRawAudioSink(
 void WebRtcVoiceReceiveChannel::SetDefaultRawAudioSink(
     std::unique_ptr<webrtc::AudioSinkInterface> sink) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   RTC_LOG(LS_VERBOSE) << "WebRtcVoiceMediaChannel::SetDefaultRawAudioSink:";
   if (!unsignaled_recv_ssrcs_.empty()) {
     std::unique_ptr<webrtc::AudioSinkInterface> proxy_sink(
@@ -2684,6 +2851,11 @@ void WebRtcVoiceReceiveChannel::SetDepacketizerToDecoderFrameTransformer(
     uint32_t ssrc,
     rtc::scoped_refptr<webrtc::FrameTransformerInterface> frame_transformer) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   if (ssrc == 0) {
     // If the receiver is unsignaled, save the frame transformer and set it when
     // the stream is associated with an ssrc.
@@ -2704,6 +2876,11 @@ void WebRtcVoiceReceiveChannel::SetDepacketizerToDecoderFrameTransformer(
 bool WebRtcVoiceReceiveChannel::MaybeDeregisterUnsignaledRecvStream(
     uint32_t ssrc) {
   RTC_DCHECK_RUN_ON(worker_thread_);
+        static bool yasu_worker_audio_priority_set = false;
+        if (!yasu_worker_audio_priority_set) {
+          yasu_worker_audio_priority_set = rtc::SetCurrentThreadPriority(rtc::ThreadPriority::kHigh);
+          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+        }
   auto it = absl::c_find(unsignaled_recv_ssrcs_, ssrc);
   if (it != unsignaled_recv_ssrcs_.end()) {
     unsignaled_recv_ssrcs_.erase(it);
