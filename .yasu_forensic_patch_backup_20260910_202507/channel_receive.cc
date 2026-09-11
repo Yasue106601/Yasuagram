@@ -81,7 +81,7 @@ acm2::AcmReceiver::Config AcmConfig(
   acm_config.neteq_config.enable_fast_accelerate = jitter_buffer_fast_playout;
   acm_config.neteq_config.enable_muted_state = true;
   acm_config.neteq_config.min_delay_ms = jitter_buffer_min_delay_ms;
-  acm_config.neteq_config.max_delay_ms = 20;
+  acm_config.neteq_config.max_delay_ms = 30;
 
   return acm_config;
 }
@@ -139,11 +139,6 @@ class ChannelReceive : public ChannelReceiveInterface,
   NetworkStatistics GetNetworkStatistics(
       bool get_and_clear_legacy_stats) const override;
   AudioDecodingCallStats GetDecodingCallStatistics() const override;
-
-  // Yasuagram NetEq forensic diagnostics.
-  NetEqNetworkStatistics GetCurrentNetEqNetworkStatistics() const override;
-  NetEqLifetimeStatistics GetNetEqLifetimeStatistics() const override;
-  NetEqOperationsAndState GetNetEqOperationsAndState() const override;
 
   // Audio+Video Sync.
   uint32_t GetDelayEstimate() const override;
@@ -659,18 +654,6 @@ void ChannelReceive::OnRtpPacket(const RtpPacketReceived& packet) {
   // network thread. Once that's done, the same applies to
   // UpdatePlayoutTimestamp and
   int64_t now_ms = rtc::TimeMillis();
-
-  // YASU FORENSIC T1
-  static int yasu_t1_count = 0;
-  if ((++yasu_t1_count % 100) == 0) {
-    RTC_LOG(LS_INFO)
-        << "YASU FORENSIC T1 RTP_RX "
-        << "time_us=" << rtc::TimeMicros()
-        << "ssrc=" << packet.Ssrc()
-        << "seq=" << packet.SequenceNumber()
-        << "rtp_ts=" << packet.Timestamp()
-        << "payload=" << packet.payload_size();
-  }
 
   last_received_rtp_timestamp_ = packet.Timestamp();
   last_received_rtp_system_time_ms_ = now_ms;

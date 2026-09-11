@@ -259,6 +259,14 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
                                              size_t& nSamplesOut,
                                              int64_t* elapsed_time_ms,
                                              int64_t* ntp_time_ms) {
+  static bool yasu_audio_realtime_set = false;
+  if (!yasu_audio_realtime_set) {
+    yasu_audio_realtime_set = rtc::SetCurrentThreadPriority(
+        rtc::ThreadPriority::kRealtime);
+    RTC_LOG(LS_INFO)
+        << "YASU AUDIO PLAYOUT PRIORITY: realtime="
+        << (yasu_audio_realtime_set ? "SUCCESS" : "FAILED");
+  }
   static int64_t playback_callback_count = 0;
   static int64_t playback_total_time = 0;
   static int64_t playback_max_time = 0;
