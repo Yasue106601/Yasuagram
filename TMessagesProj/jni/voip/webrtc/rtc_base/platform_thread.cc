@@ -11,6 +11,7 @@
 #include "rtc_base/platform_thread.h"
 
 #include <algorithm>
+#include <errno.h>
 #include <memory>
 
 #if !defined(WEBRTC_WIN)
@@ -79,7 +80,17 @@ bool SetPriority(ThreadPriority priority) {
       param.sched_priority = top_prio;
       break;
   }
-  return pthread_setschedparam(pthread_self(), policy, &param) == 0;
+  const int result =
+      pthread_setschedparam(pthread_self(), policy, &param);
+
+  if (result != 0) {
+    RTC_LOG(LS_ERROR)
+        << "YASU THREAD PRIORITY: pthread_setschedparam failed"
+        << " priority=" << param.sched_priority
+        << " error_code=" << result;
+  }
+
+  return result == 0;
 #endif  // defined(WEBRTC_WIN)
 }
 
@@ -144,6 +155,10 @@ PlatformThread PlatformThread::SpawnDetached(
 
 absl::optional<PlatformThread::Handle> PlatformThread::GetHandle() const {
   return handle_;
+}
+
+bool PlatformThread::SetCurrentThreadPriority(ThreadPriority priority) {
+  return SetPriority(priority);
 }
 
 #if defined(WEBRTC_WIN)

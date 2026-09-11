@@ -898,10 +898,18 @@ bool AAudioWrapper::VerifyStreamConfiguration() {
     RTC_LOG(LS_ERROR) << "Stream unable to use requested format";
     return false;
   }
-  if (AAudioStream_getSharingMode(stream_) != AAUDIO_SHARING_MODE_SHARED) {
-    RTC_LOG(LS_ERROR) << "Stream unable to use requested sharing mode";
+  const aaudio_sharing_mode_t sharing_mode =
+      AAudioStream_getSharingMode(stream_);
+
+  if (sharing_mode != AAUDIO_SHARING_MODE_EXCLUSIVE &&
+      sharing_mode != AAUDIO_SHARING_MODE_SHARED) {
+    RTC_LOG(LS_ERROR) << "Invalid AAudio sharing mode";
     return false;
   }
+
+  RTC_LOG(LS_INFO)
+      << "YASUAGRAM AAudio sharing mode accepted: "
+      << SharingModeToString(sharing_mode);
   if (AAudioStream_getPerformanceMode(stream_) !=
       AAUDIO_PERFORMANCE_MODE_LOW_LATENCY) {
     RTC_LOG(LS_ERROR) << "Stream unable to use requested performance mode";
