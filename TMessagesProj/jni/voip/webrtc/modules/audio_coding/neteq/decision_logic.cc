@@ -368,12 +368,28 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
         std::max(0, TargetLevelMs() - kTargetLevelWindowMs / 2);
     const bool above_target_delay = buffer_delay_ms > high_limit;
     const bool below_target_delay = buffer_delay_ms < low_limit;
+    uint32_t timestamp_leap =
+        status.next_packet->timestamp - status.target_timestamp;
+
+    RTC_LOG(LS_WARNING)
+        << "YASU FUTURE_PACKET"
+        << " leap_ms=" << (timestamp_leap / sample_rate_khz_)
+        << " generated_ms="
+        << (status.generated_noise_samples / sample_rate_khz_)
+        << " target_ms=" << TargetLevelMs()
+        << " buffer_delay_ms=" << buffer_delay_ms
+        << " high_limit_ms=" << high_limit
+        << " packet_too_early=" << PacketTooEarly(status)
+        << " above_target=" << above_target_delay
+        << " span_wait_ms="
+        << (status.packet_buffer_info.span_samples_wait_time /
+            sample_rate_khz_)
+        << " last_mode=" << static_cast<int>(status.last_mode);
+
     if ((PacketTooEarly(status) && !above_target_delay) ||
         (below_target_delay && !config_.combine_concealment_decision)) {
       return NoPacket(status);
     }
-    uint32_t timestamp_leap =
-        status.next_packet->timestamp - status.target_timestamp;
     if (config_.combine_concealment_decision) {
       if (timestamp_leap != status.generated_noise_samples) {
         // The delay was adjusted, reinitialize the buffer level filter.

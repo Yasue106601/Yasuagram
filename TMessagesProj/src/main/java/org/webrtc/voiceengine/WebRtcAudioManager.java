@@ -327,6 +327,7 @@ public class WebRtcAudioManager {
     }
     String framesPerBuffer =
         audioManager.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER);
+    Logging.w(TAG, "YASU REAL OUTPUT_FRAMES_PER_BUFFER=" + framesPerBuffer);
     return framesPerBuffer == null ? DEFAULT_FRAME_PER_BUFFER : Integer.parseInt(framesPerBuffer);
   }
 
