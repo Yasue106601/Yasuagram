@@ -81,7 +81,7 @@ acm2::AcmReceiver::Config AcmConfig(
   acm_config.neteq_config.enable_fast_accelerate = jitter_buffer_fast_playout;
   acm_config.neteq_config.enable_muted_state = true;
   acm_config.neteq_config.min_delay_ms = jitter_buffer_min_delay_ms;
-  acm_config.neteq_config.max_delay_ms = 20;
+  acm_config.neteq_config.max_delay_ms = 10;
 
   return acm_config;
 }
@@ -1076,6 +1076,57 @@ NetworkStatistics ChannelReceive::GetNetworkStatistics(
       << stats.currentExpandRate
       << " ExpandRate="
       << stats.currentExpandRate;
+
+  // YASU NETEQ FORENSIC SNAPSHOT
+  const NetEqLifetimeStatistics yasu_lifetime =
+      acm_receiver_.GetNetEqLifetimeStatistics();
+  const NetEqOperationsAndState yasu_ops =
+      acm_receiver_.GetNetEqOperationsAndState();
+
+  RTC_LOG(LS_INFO)
+      << "YASU NETEQ FORENSIC SNAPSHOT\n"
+      << "BufferMs=" << stats.currentBufferSize
+      << " TargetMs=" << stats.preferredBufferSize
+      << " JitterDelayMs=" << stats.jitterBufferDelayMs
+      << " JitterTargetMs=" << stats.jitterBufferTargetDelayMs
+      << " JitterMinDelayMs=" << stats.jitterBufferMinimumDelayMs
+      << " MeanWaitMs=" << stats.meanWaitingTimeMs
+      << " MedianWaitMs=" << stats.medianWaitingTimeMs
+      << " MinWaitMs=" << stats.minWaitingTimeMs
+      << " MaxWaitMs=" << stats.maxWaitingTimeMs
+      << " ExpandRate=" << stats.currentExpandRate
+      << " SpeechExpandRate=" << stats.currentSpeechExpandRate
+      << " PreemptiveRate=" << stats.currentPreemptiveRate
+      << " AccelerateRate=" << stats.currentAccelerateRate
+      << " FecReceived=" << stats.fecPacketsReceived
+      << " FecDiscarded=" << stats.fecPacketsDiscarded
+      << " PacketsDiscarded=" << stats.packetsDiscarded
+      << " TotalSamplesReceived=" << stats.totalSamplesReceived
+      << " ConcealedSamples=" << stats.concealedSamples
+      << " ConcealmentEvents=" << stats.concealmentEvents
+      << " DelayedOutageSamples=" << stats.delayedPacketOutageSamples
+      << " DelayedOutageEvents=" << stats.delayedPacketOutageEvents
+      << " InsertedForDeceleration=" << stats.insertedSamplesForDeceleration
+      << " RemovedForAcceleration=" << stats.removedSamplesForAcceleration
+      << " RelativeArrivalDelayMs=" << stats.relativePacketArrivalDelayMs
+      << " PacketBufferFlushes=" << yasu_ops.packet_buffer_flushes
+      << " CurrentFrameSizeMs=" << yasu_ops.current_frame_size_ms
+      << " LastWaitingMs=" << yasu_ops.last_waiting_time_ms
+      << " CurrentBufferStateMs=" << yasu_ops.current_buffer_size_ms
+      << " NextPacketAvailable=" << yasu_ops.next_packet_available
+      << " LifetimeJitterEmitted=" << yasu_lifetime.jitter_buffer_emitted_count
+      << " LifetimeJitterDelayMs=" << yasu_lifetime.jitter_buffer_delay_ms
+      << " LifetimeJitterTargetDelayMs=" << yasu_lifetime.jitter_buffer_target_delay_ms
+      << " LifetimeFecReceived=" << yasu_lifetime.fec_packets_received
+      << " LifetimeFecDiscarded=" << yasu_lifetime.fec_packets_discarded
+      << " LifetimePacketsDiscarded=" << yasu_lifetime.packets_discarded
+      << " LifetimeConcealedSamples=" << yasu_lifetime.concealed_samples
+      << " LifetimeConcealmentEvents=" << yasu_lifetime.concealment_events
+      << " LifetimeDelayedOutageSamples=" << yasu_lifetime.delayed_packet_outage_samples
+      << " LifetimeDelayedOutageEvents=" << yasu_lifetime.delayed_packet_outage_events
+      << " LifetimeInsertedDeceleration=" << yasu_lifetime.inserted_samples_for_deceleration
+      << " LifetimeRemovedAcceleration=" << yasu_lifetime.removed_samples_for_acceleration
+      << "\n";
 
   return stats;
 }

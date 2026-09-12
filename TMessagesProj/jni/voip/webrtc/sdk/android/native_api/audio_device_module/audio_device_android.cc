@@ -185,6 +185,13 @@ rtc::scoped_refptr<AudioDeviceModule> CreateAndroidAudioDeviceModule(
   auto j_context = webrtc::GetAppContext(env);
   // Select best possible combination of audio layers.
   if (audio_layer == AudioDeviceModule::kPlatformDefaultAudio) {
+    const bool yasuLowLatencyInput =
+        jni::IsLowLatencyInputSupported(env, j_context);
+    const bool yasuLowLatencyOutput =
+        jni::IsLowLatencyOutputSupported(env, j_context);
+    RTC_LOG(LS_INFO) << "YASU ADM CAPABILITIES: input="
+                     << yasuLowLatencyInput
+                     << " output=" << yasuLowLatencyOutput;
 #if defined(WEBRTC_AUDIO_DEVICE_INCLUDE_ANDROID_AAUDIO)
     // AAudio based audio for both input and output.
     audio_layer = AudioDeviceModule::kAndroidAAudioAudio;
@@ -204,15 +211,20 @@ rtc::scoped_refptr<AudioDeviceModule> CreateAndroidAudioDeviceModule(
       audio_layer = AudioDeviceModule::kAndroidJavaAudio;
     }
 #endif
+    RTC_LOG(LS_INFO) << "YASU ADM SELECTED LAYER: "
+                     << static_cast<int>(audio_layer);
   }
   switch (audio_layer) {
     case AudioDeviceModule::kAndroidJavaAudio:
+      RTC_LOG(LS_WARNING) << "YASU REAL AUDIO BACKEND = JAVA_AUDIO";
       // Java audio for both input and output audio.
       return CreateJavaAudioDeviceModule(env, j_context.obj());
     case AudioDeviceModule::kAndroidOpenSLESAudio:
+      RTC_LOG(LS_WARNING) << "YASU REAL AUDIO BACKEND = OPENSL_ES";
       // OpenSL ES based audio for both input and output audio.
       return CreateOpenSLESAudioDeviceModule(env, j_context.obj());
     case AudioDeviceModule::kAndroidJavaInputAndOpenSLESOutputAudio:
+      RTC_LOG(LS_WARNING) << "YASU REAL AUDIO BACKEND = JAVA_INPUT + OPENSL_ES_OUTPUT";
       // Java audio for input and OpenSL ES for output audio (i.e. mixed APIs).
       // This combination provides low-latency output audio and at the same
       // time support for HW AEC using the AudioRecord Java API.

@@ -32,7 +32,7 @@ namespace {
 
 constexpr int kPostponeDecodingLevel = 25;
 constexpr int kTargetLevelWindowMs = 40;
-constexpr int kMaxWaitForPacketMs = 100;
+constexpr int kMaxWaitForPacketMs = 30;
 // The granularity of delay adjustments (accelerate/preemptive expand) is 15ms,
 // but round up since the clock has a granularity of 10ms.
 constexpr int kDelayAdjustmentGranularityMs = 20;
@@ -310,7 +310,7 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
     if (config_.enable_stable_delay_mode) {
       const int playout_delay_ms = GetPlayoutDelayMs(status);
       const int64_t low_limit = TargetLevelMs();
-      constexpr int kYasuMaxNetworkDelayContributionMs = 10;
+      constexpr int kYasuMaxNetworkDelayContributionMs = 5;
       const int network_delay_ms =
           std::min(packet_arrival_history_->GetMaxDelayMs(),
                    kYasuMaxNetworkDelayContributionMs);

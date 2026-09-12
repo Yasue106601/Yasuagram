@@ -75,6 +75,7 @@ int32_t AudioTrackJni::Terminate() {
 }
 
 int32_t AudioTrackJni::InitPlayout() {
+  RTC_LOG(LS_WARNING) << "YASU NEW AUDIO TRACK = ACTIVE";
   RTC_LOG(LS_INFO) << "InitPlayout";
   RTC_DCHECK(thread_checker_.IsCurrent());
   if (initialized_) {
