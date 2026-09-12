@@ -1091,8 +1091,6 @@ NetworkStatistics ChannelReceive::GetNetworkStatistics(
       << " JitterTargetMs=" << stats.jitterBufferTargetDelayMs
       << " JitterMinDelayMs=" << stats.jitterBufferMinimumDelayMs
       << " MeanWaitMs=" << stats.meanWaitingTimeMs
-      << " MedianWaitMs=" << stats.medianWaitingTimeMs
-      << " MinWaitMs=" << stats.minWaitingTimeMs
       << " MaxWaitMs=" << stats.maxWaitingTimeMs
       << " ExpandRate=" << stats.currentExpandRate
       << " SpeechExpandRate=" << stats.currentSpeechExpandRate
@@ -1105,7 +1103,6 @@ NetworkStatistics ChannelReceive::GetNetworkStatistics(
       << " ConcealedSamples=" << stats.concealedSamples
       << " ConcealmentEvents=" << stats.concealmentEvents
       << " DelayedOutageSamples=" << stats.delayedPacketOutageSamples
-      << " DelayedOutageEvents=" << stats.delayedPacketOutageEvents
       << " InsertedForDeceleration=" << stats.insertedSamplesForDeceleration
       << " RemovedForAcceleration=" << stats.removedSamplesForAcceleration
       << " RelativeArrivalDelayMs=" << stats.relativePacketArrivalDelayMs
