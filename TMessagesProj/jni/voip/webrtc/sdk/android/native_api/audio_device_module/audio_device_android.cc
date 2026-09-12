@@ -183,37 +183,10 @@ rtc::scoped_refptr<AudioDeviceModule> CreateAndroidAudioDeviceModule(
     AudioDeviceModule::AudioLayer audio_layer) {
   auto env = AttachCurrentThreadIfNeeded();
   auto j_context = webrtc::GetAppContext(env);
-  // Select best possible combination of audio layers.
-  if (audio_layer == AudioDeviceModule::kPlatformDefaultAudio) {
-    const bool yasuLowLatencyInput =
-        jni::IsLowLatencyInputSupported(env, j_context);
-    const bool yasuLowLatencyOutput =
-        jni::IsLowLatencyOutputSupported(env, j_context);
-    RTC_LOG(LS_INFO) << "YASU ADM CAPABILITIES: input="
-                     << yasuLowLatencyInput
-                     << " output=" << yasuLowLatencyOutput;
-#if defined(WEBRTC_AUDIO_DEVICE_INCLUDE_ANDROID_AAUDIO)
-    // AAudio based audio for both input and output.
-    audio_layer = AudioDeviceModule::kAndroidAAudioAudio;
-#else
-    if (jni::IsLowLatencyInputSupported(env, j_context) &&
-        jni::IsLowLatencyOutputSupported(env, j_context)) {
-      // Use OpenSL ES for both playout and recording.
-      audio_layer = AudioDeviceModule::kAndroidOpenSLESAudio;
-    } else if (jni::IsLowLatencyOutputSupported(env, j_context) &&
-               !jni::IsLowLatencyInputSupported(env, j_context)) {
-      // Use OpenSL ES for output on devices that only supports the
-      // low-latency output audio path.
-      audio_layer = AudioDeviceModule::kAndroidJavaInputAndOpenSLESOutputAudio;
-    } else {
-      // Use Java-based audio in both directions when low-latency output is
-      // not supported.
-      audio_layer = AudioDeviceModule::kAndroidJavaAudio;
-    }
-#endif
-    RTC_LOG(LS_INFO) << "YASU ADM SELECTED LAYER: "
-                     << static_cast<int>(audio_layer);
-  }
+  // YASU: Force Java AudioTrack backend permanently.
+  // All latency/playout tuning is intentionally kept on this path.
+  audio_layer = AudioDeviceModule::kAndroidJavaAudio;
+
   switch (audio_layer) {
     case AudioDeviceModule::kAndroidJavaAudio:
       RTC_LOG(LS_WARNING) << "YASU REAL AUDIO BACKEND = JAVA_AUDIO";

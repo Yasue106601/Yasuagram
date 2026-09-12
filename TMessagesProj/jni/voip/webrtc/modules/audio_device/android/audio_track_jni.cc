@@ -275,6 +275,7 @@ void JNICALL AudioTrackJni::GetPlayoutData(JNIEnv* env,
 // the thread is 'AudioRecordTrack'.
 void AudioTrackJni::OnGetPlayoutData(size_t length) {
   RTC_DCHECK(thread_checker_java_.IsCurrent());
+  const int64_t yasu_t11_start_us = rtc::TimeMicros();
   const size_t bytes_per_frame = audio_parameters_.channels() * sizeof(int16_t);
   RTC_DCHECK_EQ(frames_per_buffer_, length / bytes_per_frame);
   if (!audio_device_buffer_) {
@@ -292,6 +293,18 @@ void AudioTrackJni::OnGetPlayoutData(size_t length) {
   // written to the Java based audio track.
   samples = audio_device_buffer_->GetPlayoutData(direct_buffer_address_);
   RTC_DCHECK_EQ(length, bytes_per_frame * samples);
+
+  const int64_t yasu_t11_end_us = rtc::TimeMicros();
+  static int yasu_t11_count = 0;
+  if ((++yasu_t11_count % 100) == 0) {
+    RTC_LOG(LS_INFO)
+        << "YASU FORENSIC T11 JNI_PLAYOUT_TOTAL "
+        << "duration_us=" << (yasu_t11_end_us - yasu_t11_start_us)
+        << "length_bytes=" << length
+        << "frames=" << samples
+        << "channels=" << audio_parameters_.channels()
+        << "rate=" << audio_parameters_.sample_rate();
+  }
 }
 
 }  // namespace webrtc
