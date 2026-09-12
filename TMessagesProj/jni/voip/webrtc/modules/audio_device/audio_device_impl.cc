@@ -197,7 +197,7 @@ int32_t AudioDeviceModuleImpl::CreatePlatformSpecificObjects() {
 
 // Real (non-dummy) ADM implementations.
 #else
-  AudioLayer audio_layer(PlatformAudioLayer());
+  AudioLayer audio_layer = kAndroidOpenSLESAudio;
 // Windows ADM implementation.
 #if defined(WEBRTC_WINDOWS_CORE_AUDIO_BUILD)
   if ((audio_layer == kWindowsCoreAudio) ||
