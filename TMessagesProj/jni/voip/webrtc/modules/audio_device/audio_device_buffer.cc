@@ -318,6 +318,8 @@ int32_t AudioDeviceBuffer::RequestPlayoutData(size_t samples_per_channel) {
   TRACE_EVENT1("webrtc", "AudioDeviceBuffer::RequestPlayoutData",
                "samples_per_channel", samples_per_channel);
 
+  const int64_t yasu_t9_start_us = rtc::TimeMicros();
+
   // The consumer can change the requested size on the fly and we therefore
   // resize the buffer accordingly. Also takes place at the first call to this
   // method.
@@ -376,11 +378,25 @@ int32_t AudioDeviceBuffer::RequestPlayoutData(size_t samples_per_channel) {
   // Update playout stats which is used as base for periodic logging of the
   // audio output state.
   UpdatePlayStats(max_abs, num_samples_out / play_channels_);
+
+  const int64_t yasu_t9_end_us = rtc::TimeMicros();
+  static int yasu_t9_count = 0;
+  if ((++yasu_t9_count % 100) == 0) {
+    RTC_LOG(LS_INFO)
+        << "YASU FORENSIC T9 REQUEST_TOTAL "
+        << "duration_us=" << (yasu_t9_end_us - yasu_t9_start_us)
+        << "requested_frames=" << samples_per_channel
+        << "channels=" << play_channels_
+        << "rate=" << play_sample_rate_
+        << "produced_frames=" << num_samples_out;
+  }
+
   return static_cast<int32_t>(num_samples_out / play_channels_);
 }
 
 int32_t AudioDeviceBuffer::GetPlayoutData(void* audio_buffer) {
   RTC_DCHECK_GT(play_buffer_.size(), 0);
+  const int64_t yasu_t10_start_us = rtc::TimeMicros();
 #ifdef AUDIO_DEVICE_PLAYS_SINUS_TONE
   const double phase_increment =
       k2Pi * 440.0 / static_cast<double>(play_sample_rate_);
@@ -401,8 +417,22 @@ int32_t AudioDeviceBuffer::GetPlayoutData(void* audio_buffer) {
   memcpy(audio_buffer, play_buffer_.data(),
          play_buffer_.size() * sizeof(int16_t));
 #endif
+  const int32_t yasu_t10_frames =
+      static_cast<int32_t>(play_buffer_.size() / play_channels_);
+  const int64_t yasu_t10_end_us = rtc::TimeMicros();
+
+  static int yasu_t10_count = 0;
+  if ((++yasu_t10_count % 100) == 0) {
+    RTC_LOG(LS_INFO)
+        << "YASU FORENSIC T10 PCM_COPY "
+        << "duration_us=" << (yasu_t10_end_us - yasu_t10_start_us)
+        << "frames=" << yasu_t10_frames
+        << "channels=" << play_channels_
+        << "samples=" << play_buffer_.size();
+  }
+
   // Return samples per channel or number of frames.
-  return static_cast<int32_t>(play_buffer_.size() / play_channels_);
+  return yasu_t10_frames;
 }
 
 void AudioDeviceBuffer::StartPeriodicLogging() {

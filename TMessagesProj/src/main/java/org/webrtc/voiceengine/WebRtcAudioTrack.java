@@ -157,18 +157,26 @@ public class WebRtcAudioTrack {
       final int sampleRate = audioTrack.getSampleRate();
 
       targetTimeNs = System.nanoTime();
-      boolean blocking = false;
+
+      // YASU LOW-LATENCY: Never block the realtime playout thread in
+      // AudioTrack.write(). Blocking can add scheduling/queueing latency.
+      final boolean blocking = false;
 
       while (keepAlive && audioTrack != null) {
         // Get 10ms of PCM data from the native WebRTC client. Audio data is
         // written into the common ByteBuffer using the address that was
         // cached at construction.
+        final long loopStartNs = System.nanoTime();
+        final long nativeStartNs = loopStartNs;
         try {
           nativeGetPlayoutData(sizeInBytes, nativeAudioTrack);
         } catch (Throwable e) {
+          Logging.e(TAG, "YASU MEASURE nativeGetPlayoutData FAILED: " + e);
           keepAlive = false;
           continue;
         }
+        final long nativeEndNs = System.nanoTime();
+
         // Write data until all data has been written to the audio sink.
         // Upon return, the buffer position will have been advanced to reflect
         // the amount of data that was successfully written to the AudioTrack.
@@ -178,7 +186,74 @@ public class WebRtcAudioTrack {
           byteBuffer.put(emptyBytes);
           byteBuffer.position(0);
         }
-        int bytesWritten = writeBytes(audioTrack, byteBuffer, sizeInBytes, blocking);
+        final long writeStartNs = System.nanoTime();
+
+        // YASU LOW-LATENCY: NON_BLOCKING writes may accept only part of the
+        // buffer. Complete the same 10ms block immediately instead of
+        // dropping the unwritten PCM and waiting for the next callback.
+        int bytesWritten = 0;
+        int remainingBytes = sizeInBytes;
+        int zeroWriteCount = 0;
+        final int maxZeroWrites = 3;
+
+        while (remainingBytes > 0 && keepAlive && audioTrack != null) {
+          int n = writeBytes(audioTrack, byteBuffer, remainingBytes, false);
+
+          if (n < 0) {
+            bytesWritten = n;
+            break;
+          }
+
+          if (n == 0) {
+            zeroWriteCount++;
+            if (zeroWriteCount >= maxZeroWrites) {
+              Logging.w(TAG,
+                  "YASU AUDIO zero-write limit reached, remaining_bytes="
+                  + remainingBytes);
+              break;
+            }
+            Thread.yield();
+            continue;
+          }
+
+          zeroWriteCount = 0;
+          bytesWritten += n;
+          remainingBytes -= n;
+        }
+
+        final long writeEndNs = System.nanoTime();
+
+        writtenFrames += Math.max(0, bytesWritten) / bytesPerFrame;
+
+        if ((writtenFrames % (bytesPerFrame == 0 ? 1 : bytesPerFrame)) == 0) {
+          // Intentionally empty: keep the hot path free of logging.
+        }
+
+        if ((writtenFrames / Math.max(1, sizeInBytes / Math.max(1, bytesPerFrame))) % 100 == 0) {
+          long playbackHead = Integer.toUnsignedLong(audioTrack.getPlaybackHeadPosition());
+          long queuedFrames = writtenFrames - playbackHead;
+          long underruns = -1;
+          if (Build.VERSION.SDK_INT >= 24) {
+            underruns = audioTrack.getUnderrunCount();
+          }
+
+          Logging.w(TAG,
+              "YASU AUDIO MEASURE"
+              + " native_us=" + ((nativeEndNs - nativeStartNs) / 1000L)
+              + " write_us=" + ((writeEndNs - writeStartNs) / 1000L)
+              + " loop_us=" + ((writeEndNs - loopStartNs) / 1000L)
+              + " blocking=" + blocking
+              + " requested_bytes=" + sizeInBytes
+              + " written_bytes=" + bytesWritten
+              + " bytes_per_frame=" + bytesPerFrame
+              + " written_frames=" + writtenFrames
+              + " playback_head=" + playbackHead
+              + " queued_frames=" + queuedFrames
+              + " queued_ms=" + ((queuedFrames * 1000L) / Math.max(1, sampleRate))
+              + " buffer_frames=" + audioTrack.getBufferSizeInFrames()
+              + " underruns=" + underruns);
+        }
+
         if (bytesWritten != sizeInBytes) {
           Logging.e(TAG, "AudioTrack.write played invalid number of bytes: " + bytesWritten);
           // If a write() returns a negative value, an error has occurred.
@@ -192,7 +267,6 @@ public class WebRtcAudioTrack {
         // increased at each call to AudioTrack.write(). If we don't do this,
         // next call to AudioTrack.write() will fail.
         byteBuffer.rewind();
-        blocking = !blocking;
 
         // The byte buffer must be rewinded since byteBuffer.position() is
         // increased at each call to AudioTrack.write(). If we don't do this,
@@ -532,6 +606,22 @@ public class WebRtcAudioTrack {
     if (Build.VERSION.SDK_INT >= 26) {
       Logging.d(TAG, "Creating LOW_LATENCY AudioTrack");
 
+      // YASU LOW-LATENCY: Keep the AudioTrack application buffer close to
+      // the realtime callback cadence instead of inheriting a potentially
+      // large platform min-buffer recommendation.
+      final int channelCount =
+          AudioFormat.channelCountFromOutChannelMask(channelConfig);
+      final int bytesPerFrame = channelCount * (Short.SIZE / Byte.SIZE);
+      final int framesPer10ms = Math.max(1, sampleRateInHz / 100);
+      final int yasuTargetBufferBytes =
+          Math.max(bytesPerFrame * framesPer10ms * 2, bytesPerFrame * 2);
+
+      Logging.w(TAG,
+          "YASU LOW-LATENCY BUFFER targetBytes=" + yasuTargetBufferBytes
+              + " originalBytes=" + bufferSizeInBytes
+              + " framesPer10ms=" + framesPer10ms
+              + " channels=" + channelCount);
+
       AudioTrack track = new AudioTrack.Builder()
           .setAudioAttributes(
               new AudioAttributes.Builder()
@@ -545,7 +635,7 @@ public class WebRtcAudioTrack {
                   .setSampleRate(sampleRateInHz)
                   .setChannelMask(channelConfig)
                   .build())
-          .setBufferSizeInBytes(bufferSizeInBytes)
+          .setBufferSizeInBytes(yasuTargetBufferBytes)
           .setTransferMode(AudioTrack.MODE_STREAM)
           .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
           .build();
