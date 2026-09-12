@@ -610,7 +610,8 @@ public class WebRtcAudioTrack {
       // the realtime callback cadence instead of inheriting a potentially
       // large platform min-buffer recommendation.
       final int channelCount =
-          AudioFormat.channelCountFromOutChannelMask(channelConfig);
+          (channelConfig == AudioFormat.CHANNEL_OUT_MONO) ? 1 :
+          (channelConfig == AudioFormat.CHANNEL_OUT_STEREO) ? 2 : 2;
       final int bytesPerFrame = channelCount * (Short.SIZE / Byte.SIZE);
       final int framesPer10ms = Math.max(1, sampleRateInHz / 100);
       final int yasuTargetBufferBytes =
