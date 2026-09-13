@@ -4167,11 +4167,6 @@ private:
         bool enableSystemMute = _enableSystemMute;
 #endif
         const auto create = [&](webrtc::AudioDeviceModule::AudioLayer layer) {
-#ifdef WEBRTC_ANDROID
-            // YASU HARD FORCE: Group Call Android ADM is ALWAYS Java AudioTrack.
-            // Ignore every requested backend and prevent automatic backend selection.
-            layer = webrtc::AudioDeviceModule::kAndroidJavaAudio;
-#endif
 #ifdef WEBRTC_IOS
             auto result = rtc::make_ref_counted<webrtc::tgcalls_ios_adm::AudioDeviceModuleIOS>(false, disableRecording, enableSystemMute, disableRecording ? 2 : 1);
             if (result) {
@@ -4214,11 +4209,6 @@ private:
                 }
             }
         }
-#ifdef WEBRTC_ANDROID
-        // YASU FORCE JAVA AUDIO ONLY:
-        // Never allow Group Call to select or inject another ADM backend.
-        return check(create(webrtc::AudioDeviceModule::kAndroidJavaAudio));
-#else
         if (_createAudioDeviceModule) {
             if (const auto result = check(_createAudioDeviceModule(&_webrtcEnvironment.task_queue_factory()))) {
                 return result;
@@ -4228,7 +4218,7 @@ private:
             options.num_channels = 1;
             return check(FakeAudioDeviceModule::Creator(nullptr, _externalAudioRecorder, options)(&_webrtcEnvironment.task_queue_factory()));
         }
-#endif
+        return check(create(webrtc::AudioDeviceModule::kAndroidJavaAudio));
     }
 
 private:

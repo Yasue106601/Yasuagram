@@ -39,7 +39,7 @@ public class WebRtcAudioTrack {
   private static final int BITS_PER_SAMPLE = 16;
 
   // Requested size of each recorded buffer provided to the client.
-  private static final int CALLBACK_BUFFER_SIZE_MS = 5;
+  private static final int CALLBACK_BUFFER_SIZE_MS = 10;
 
   // Average number of callbacks per second.
   private static final int BUFFERS_PER_SECOND = 1000 / CALLBACK_BUFFER_SIZE_MS;
@@ -255,13 +255,7 @@ public class WebRtcAudioTrack {
         }
 
         if (bytesWritten != sizeInBytes) {
-          Logging.w(TAG,
-              "YASU AUDIO PARTIAL_WRITE"
-              + " requested_bytes=" + sizeInBytes
-              + " written_bytes=" + bytesWritten
-              + " remaining_bytes=" + Math.max(0, sizeInBytes - bytesWritten)
-              + " write_us=" + ((writeEndNs - writeStartNs) / 1000L));
-
+          Logging.e(TAG, "AudioTrack.write played invalid number of bytes: " + bytesWritten);
           // If a write() returns a negative value, an error has occurred.
           // Stop playing and report an error in this case.
           if (bytesWritten < 0) {
@@ -274,9 +268,13 @@ public class WebRtcAudioTrack {
         // next call to AudioTrack.write() will fail.
         byteBuffer.rewind();
 
+        // The byte buffer must be rewinded since byteBuffer.position() is
+        // increased at each call to AudioTrack.write(). If we don't do this,
+        // next call to AudioTrack.write() will fail.
+        byteBuffer.rewind();
 
         // Calculate the time to sleep to maintain a steady playback rate
-        targetTimeNs += CALLBACK_BUFFER_SIZE_MS * 1_000_000L; /* 5ms cadence */
+        targetTimeNs += CALLBACK_BUFFER_SIZE_MS * 1_000_000L; // 10ms in nanoseconds
         long currentTimeNs = System.nanoTime();
         long sleepTimeNs = targetTimeNs - currentTimeNs;
         if (sleepTimeNs > 0) {
@@ -608,23 +606,6 @@ public class WebRtcAudioTrack {
     if (Build.VERSION.SDK_INT >= 26) {
       Logging.d(TAG, "Creating LOW_LATENCY AudioTrack");
 
-      // YASU LOW-LATENCY: Keep the AudioTrack application buffer close to
-      // the realtime callback cadence instead of inheriting a potentially
-      // large platform min-buffer recommendation.
-      final int channelCount =
-          (channelConfig == AudioFormat.CHANNEL_OUT_MONO) ? 1 :
-          (channelConfig == AudioFormat.CHANNEL_OUT_STEREO) ? 2 : 2;
-      final int bytesPerFrame = channelCount * (Short.SIZE / Byte.SIZE);
-      final int framesPer5ms = Math.max(1, sampleRateInHz / 200);
-      final int yasuTargetBufferBytes =
-          Math.max(bytesPerFrame * framesPer5ms, bytesPerFrame * 2);
-
-      Logging.w(TAG,
-          "YASU LOW-LATENCY BUFFER targetBytes=" + yasuTargetBufferBytes
-              + " originalBytes=" + bufferSizeInBytes
-              + " framesPer5ms=" + framesPer5ms
-              + " channels=" + channelCount);
-
       AudioTrack track = new AudioTrack.Builder()
           .setAudioAttributes(
               new AudioAttributes.Builder()
@@ -638,7 +619,7 @@ public class WebRtcAudioTrack {
                   .setSampleRate(sampleRateInHz)
                   .setChannelMask(channelConfig)
                   .build())
-          .setBufferSizeInBytes(Math.max(yasuTargetBufferBytes, bytesPerFrame * framesPer5ms))
+          .setBufferSizeInBytes(bufferSizeInBytes)
           .setTransferMode(AudioTrack.MODE_STREAM)
           .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
           .build();
@@ -653,7 +634,6 @@ public class WebRtcAudioTrack {
               + ", sampleRate="
               + track.getSampleRate());
 
-      Logging.w(TAG, "YASU FINAL AUDIO BUFFER requestedBytes=" + yasuTargetBufferBytes + " requestedFrames=" + (yasuTargetBufferBytes / Math.max(1, bytesPerFrame)) + " actualFrames=" + track.getBufferSizeInFrames() + " actualMs=" + ((track.getBufferSizeInFrames() * 1000L) / Math.max(1, track.getSampleRate())));
       writeAudioTrackDiagnostics(track);
 
       return track;
