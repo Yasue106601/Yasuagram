@@ -30,12 +30,12 @@ namespace webrtc {
 
 namespace {
 
-constexpr int kPostponeDecodingLevel = 0;
-constexpr int kTargetLevelWindowMs = 10;
-constexpr int kMaxWaitForPacketMs = 10;
+constexpr int kPostponeDecodingLevel = 25;
+constexpr int kTargetLevelWindowMs = 40;
+constexpr int kMaxWaitForPacketMs = 30;
 // The granularity of delay adjustments (accelerate/preemptive expand) is 15ms,
 // but round up since the clock has a granularity of 10ms.
-constexpr int kDelayAdjustmentGranularityMs = 5;
+constexpr int kDelayAdjustmentGranularityMs = 20;
 constexpr int kReinitAfterExpandsMs = 1000;
 
 std::unique_ptr<DelayManager> CreateDelayManager(
@@ -463,17 +463,7 @@ bool DecisionLogic::ReinitAfterExpands(
 bool DecisionLogic::PacketTooEarly(NetEqController::NetEqStatus status) const {
   const uint32_t timestamp_leap =
       status.next_packet->timestamp - status.target_timestamp;
-  const bool too_early = timestamp_leap > status.generated_noise_samples;
-  static int yasu_early_count = 0;
-  if ((++yasu_early_count % 50) == 0) {
-    RTC_LOG(LS_WARNING)
-        << "YASU PACKET_TOO_EARLY"
-        << " leap_ms=" << (timestamp_leap / sample_rate_khz_)
-        << " generated_ms="
-        << (status.generated_noise_samples / sample_rate_khz_)
-        << " too_early=" << too_early;
-  }
-  return too_early;
+  return timestamp_leap > status.generated_noise_samples;
 }
 
 bool DecisionLogic::MaxWaitForPacket(
