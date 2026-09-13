@@ -427,7 +427,8 @@ class AndroidAudioDeviceModule : public AudioDeviceModule {
 
   int32_t MicrophoneMuteIsAvailable(bool* available) override {
     RTC_DLOG(LS_INFO) << __FUNCTION__;
-    RTC_CHECK_NOTREACHED();
+    *available = false;
+    return 0;
   }
 
   int32_t SetMicrophoneMute(bool enable) override {
