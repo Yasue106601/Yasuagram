@@ -29,13 +29,18 @@ void SetAudioInputDeviceById(webrtc::AudioDeviceModule *adm, const std::string &
 	auto specific = false;
 	const auto finish = [&] {
 		if (!specific) {
-			if (const auto result = adm->SetRecordingDevice(webrtc::AudioDeviceModule::kDefaultCommunicationDevice)) {
-				RTC_LOG(LS_ERROR) << "setAudioInputDevice(" << id << "): SetRecordingDevice(kDefaultCommunicationDevice) failed: " << result << ".";
-			} else {
-				RTC_LOG(LS_INFO) << "setAudioInputDevice(" << id << "): SetRecordingDevice(kDefaultCommunicationDevice) success.";
-			}
-		}
-		if (recording && adm->InitRecording() == 0) {
+#if defined(WEBRTC_ANDROID)
+                        const auto result = adm->SetRecordingDevice(static_cast<uint16_t>(0));
+#else
+                        const auto result = adm->SetRecordingDevice(webrtc::AudioDeviceModule::kDefaultCommunicationDevice);
+#endif
+                        if (result) {
+                                RTC_LOG(LS_ERROR) << "setAudioInputDevice(" << id << "): SetRecordingDevice failed: " << result << ".";
+                        } else {
+                                RTC_LOG(LS_INFO) << "setAudioInputDevice(" << id << "): SetRecordingDevice success.";
+                        }
+                }
+                if (recording && adm->InitRecording() == 0) {
 			adm->StartRecording();
 		}
 	};
@@ -88,7 +93,12 @@ void SetAudioOutputDeviceById(webrtc::AudioDeviceModule *adm, const std::string 
 	auto specific = false;
 	const auto finish = [&] {
 		if (!specific) {
-			if (const auto result = adm->SetPlayoutDevice(webrtc::AudioDeviceModule::kDefaultCommunicationDevice)) {
+			#if defined(WEBRTC_ANDROID)
+                        const auto result = adm->SetPlayoutDevice(static_cast<uint16_t>(0));
+#else
+                        const auto result = adm->SetPlayoutDevice(webrtc::AudioDeviceModule::kDefaultCommunicationDevice);
+#endif
+                        if (result) {
 				RTC_LOG(LS_ERROR) << "setAudioOutputDevice(" << id << "): SetPlayoutDevice(kDefaultCommunicationDevice) failed: " << result << ".";
 			} else {
 				RTC_LOG(LS_INFO) << "setAudioOutputDevice(" << id << "): SetPlayoutDevice(kDefaultCommunicationDevice) success.";
