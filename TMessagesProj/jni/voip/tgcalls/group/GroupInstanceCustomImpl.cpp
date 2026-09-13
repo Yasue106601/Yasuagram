@@ -36,6 +36,7 @@
 #include "modules/audio_coding/include/audio_coding_module.h"
 #include "common_audio/include/audio_util.h"
 #include "modules/audio_device/include/audio_device_data_observer.h"
+#include "sdk/android/native_api/audio_device_module/audio_device_android.h"
 #include "common_audio/resampler/include/resampler.h"
 #include "modules/rtp_rtcp/source/rtp_util.h"
 #include "api/environment/environment_factory.h"
@@ -4183,9 +4184,17 @@ private:
             }
             return result;
 #else
+#ifdef WEBRTC_ANDROID
+            // YASU: Android ADM must use the dedicated Android factory.
+            // AudioDeviceModule::Create(kAndroidJavaAudio) intentionally
+            // returns nullptr on Android.
+            return webrtc::CreateAndroidAudioDeviceModule(
+                webrtc::AudioDeviceModule::kAndroidJavaAudio);
+#else
             return webrtc::AudioDeviceModule::Create(
                 layer,
                 &_webrtcEnvironment.task_queue_factory());
+#endif
 #endif
         };
         const auto check = [&](const webrtc::scoped_refptr<webrtc::AudioDeviceModule> &result) -> webrtc::scoped_refptr<WrappedAudioDeviceModule> {
