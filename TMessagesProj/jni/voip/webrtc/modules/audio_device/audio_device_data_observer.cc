@@ -129,7 +129,18 @@ class ADMWrapper : public AudioDeviceModule, public AudioTransport {
                       void* audio_data,
                       int64_t* elapsed_time_ms,
                       int64_t* ntp_time_ms) override {
-    RTC_DCHECK_NOTREACHED();
+    if (audio_transport_) {
+      audio_transport_->PullRenderData(
+          bits_per_sample, sample_rate, number_of_channels, number_of_frames,
+          audio_data, elapsed_time_ms, ntp_time_ms);
+    } else {
+      if (elapsed_time_ms) {
+        *elapsed_time_ms = -1;
+      }
+      if (ntp_time_ms) {
+        *ntp_time_ms = -1;
+      }
+    }
   }
 
   // Override AudioDeviceModule's RegisterAudioCallback method to remember the
