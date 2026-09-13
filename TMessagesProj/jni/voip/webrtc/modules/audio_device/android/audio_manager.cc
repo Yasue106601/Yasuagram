@@ -100,9 +100,7 @@ void AudioManager::SetActiveAudioLayer(
   // that the user explicitly selects the high-latency audio path, hence we use
   // the selected `audio_layer` here to set the delay estimate.
   delay_estimate_in_milliseconds_ =
-      (audio_layer == AudioDeviceModule::kAndroidJavaAudio)
-          ? kHighLatencyModeDelayEstimateInMilliseconds
-          : kLowLatencyModeDelayEstimateInMilliseconds;
+      kLowLatencyModeDelayEstimateInMilliseconds;
   RTC_LOG(LS_INFO) << "delay_estimate_in_milliseconds: "
                    << delay_estimate_in_milliseconds_;
 }
