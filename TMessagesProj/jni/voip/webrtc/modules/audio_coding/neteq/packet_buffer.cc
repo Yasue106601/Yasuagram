@@ -31,6 +31,7 @@
 #include "system_wrappers/include/field_trial.h"
 
 namespace webrtc {
+
 namespace {
 // Predicate used when inserting packets in the buffer list.
 // Operator() returns true when `packet` goes before `new_packet`.
@@ -176,7 +177,7 @@ void PacketBuffer::DiscardPacketsOlderThan(int max_wait_ms) {
 }
 
 absl::optional<Packet> PacketBuffer::GetNextPacket() {
-  constexpr int kYasuMaxPacketWaitMs = 30;
+  constexpr int kYasuMaxPacketWaitMs = 50;
 
   while (!Empty()) {
     Packet& front = buffer_.front();
@@ -192,6 +193,17 @@ absl::optional<Packet> PacketBuffer::GetNextPacket() {
       LogPacketDiscarded(front.priority.codec_level);
       buffer_.pop_front();
       continue;
+    }
+
+    if (front.waiting_time) {
+      const int waiting_ms = front.waiting_time->ElapsedMs();
+      if (waiting_ms >= 10) {
+        RTC_LOG(LS_INFO)
+            << "YASU PACKET WAIT"
+            << " waiting_ms=" << waiting_ms
+            << " timestamp=" << front.timestamp
+            << " seq=" << front.sequence_number;
+      }
     }
 
     absl::optional<Packet> packet(std::move(front));

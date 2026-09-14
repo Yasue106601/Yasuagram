@@ -967,7 +967,7 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
   //
   // YASU: Hard-limit queued decoded audio. Prefer dropping excess audio
   // over allowing playback latency to accumulate.
-  constexpr size_t kYasuMaxSyncBufferMs = 30;
+  constexpr size_t kYasuMaxSyncBufferMs = 50;
   const size_t max_future_samples =
       kYasuMaxSyncBufferMs * static_cast<size_t>(fs_hz_) / 1000;
 
