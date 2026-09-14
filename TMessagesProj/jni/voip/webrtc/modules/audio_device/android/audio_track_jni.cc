@@ -283,15 +283,22 @@ void AudioTrackJni::OnGetPlayoutData(size_t length) {
     return;
   }
   // Pull decoded data (in 16-bit PCM format) from jitter buffer.
+  const int64_t yasu_t11a_start_us = rtc::TimeMicros();
   int samples = audio_device_buffer_->RequestPlayoutData(frames_per_buffer_);
+  const int64_t yasu_t11a_end_us = rtc::TimeMicros();
+
   if (samples <= 0) {
     RTC_LOG(LS_ERROR) << "AudioDeviceBuffer::RequestPlayoutData failed";
     return;
   }
   RTC_DCHECK_EQ(samples, frames_per_buffer_);
+
   // Copy decoded data into common byte buffer to ensure that it can be
   // written to the Java based audio track.
+  const int64_t yasu_t11b_start_us = rtc::TimeMicros();
   samples = audio_device_buffer_->GetPlayoutData(direct_buffer_address_);
+  const int64_t yasu_t11b_end_us = rtc::TimeMicros();
+
   RTC_DCHECK_EQ(length, bytes_per_frame * samples);
 
   const int64_t yasu_t11_end_us = rtc::TimeMicros();
@@ -300,6 +307,8 @@ void AudioTrackJni::OnGetPlayoutData(size_t length) {
     RTC_LOG(LS_INFO)
         << "YASU FORENSIC T11 JNI_PLAYOUT_TOTAL "
         << "duration_us=" << (yasu_t11_end_us - yasu_t11_start_us)
+        << "request_us=" << (yasu_t11a_end_us - yasu_t11a_start_us)
+        << "get_us=" << (yasu_t11b_end_us - yasu_t11b_start_us)
         << "length_bytes=" << length
         << "frames=" << samples
         << "channels=" << audio_parameters_.channels()

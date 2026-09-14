@@ -1070,6 +1070,10 @@ int NetEqImpl::GetDecision(Operation* operation,
     const uint32_t five_seconds_samples = 5 * fs_hz_;
     packet_buffer_->DiscardOldPackets(end_timestamp, five_seconds_samples);
   }
+  // YASU: Never allow stale packets to participate in NetEq decisions.
+  // Prefer packet loss/PLC over accumulating playback latency.
+  packet_buffer_->DiscardPacketsOlderThan(50);
+
   const Packet* packet = packet_buffer_->PeekNextPacket();
 
   RTC_DCHECK(!generated_noise_stopwatch_ ||
@@ -1978,21 +1982,27 @@ int NetEqImpl::ExtractPackets(size_t required_samples,
     RTC_LOG(LS_ERROR) << "Packet buffer unexpectedly empty.";
     return -1;
   }
+
   uint32_t first_timestamp = next_packet->timestamp;
   size_t extracted_samples = 0;
 
   // Packet extraction loop.
   do {
-    timestamp_ = next_packet->timestamp;
     absl::optional<Packet> packet = packet_buffer_->GetNextPacket();
-    // `next_packet` may be invalid after the `packet_buffer_` operation.
+    // `GetNextPacket()` may discard stale packets before returning one.
+    // Refresh the pointer after the operation.
     next_packet = nullptr;
     if (!packet) {
-      RTC_LOG(LS_ERROR) << "Should always be able to extract a packet here";
-      RTC_DCHECK_NOTREACHED();  // Should always be able to extract a packet
-                                // here.
+      RTC_LOG(LS_ERROR) << "Packet buffer contained no packet eligible for extraction.";
       return -1;
     }
+
+    // Use the timestamp of the packet actually extracted. This prevents
+    // stale PeekNextPacket() state from affecting the extraction span.
+    if (first_packet) {
+      first_timestamp = packet->timestamp;
+    }
+
     const uint64_t waiting_time_ms = packet->waiting_time->ElapsedMs();
 
     // YASU FORENSIC T8 - actual NetEq packet waiting time.
