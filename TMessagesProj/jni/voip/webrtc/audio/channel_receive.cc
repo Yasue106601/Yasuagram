@@ -506,6 +506,14 @@ AudioMixer::Source::AudioFrameInfo ChannelReceive::GetAudioFrameWithInfo(
                                 acm_receiver_.TargetDelayMs());
       const int jitter_buffer_delay = acm_receiver_.FilteredCurrentDelayMs();
       const int target_delay = acm_receiver_.TargetDelayMs();
+      const auto neteq_stats =
+          acm_receiver_.GetCurrentNetEqNetworkStatistics();
+      const int filtered_buffer_ms =
+          acm_receiver_.GetFilteredPacketBufferDelayMs();
+      const int sync_future_ms =
+          acm_receiver_.GetSyncBufferFutureMs();
+
+      const int raw_buffer_ms = neteq_stats.current_buffer_size_ms;
       const int total_receiver_delay =
           jitter_buffer_delay + playout_delay_ms_;
 
@@ -513,6 +521,9 @@ AudioMixer::Source::AudioFrameInfo ChannelReceive::GetAudioFrameWithInfo(
           << "YASU NETEQ LIVE "
           << "Target=" << target_delay << "ms "
           << "Current=" << jitter_buffer_delay << "ms "
+          << "FilteredBuffer=" << filtered_buffer_ms << "ms "
+          << "SyncFuture=" << sync_future_ms << "ms "
+          << "RawBuffer=" << raw_buffer_ms << "ms "
           << "Playout=" << playout_delay_ms_ << "ms "
           << "Total=" << total_receiver_delay << "ms";
 

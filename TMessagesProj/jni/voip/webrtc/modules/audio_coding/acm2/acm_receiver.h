@@ -181,6 +181,8 @@ class AcmReceiver {
   // periods.
   //
   int FilteredCurrentDelayMs() const;
+  int GetFilteredPacketBufferDelayMs() const;
+  int GetSyncBufferFutureMs() const;
 
   // Returns the current target delay for NetEq in ms.
   //

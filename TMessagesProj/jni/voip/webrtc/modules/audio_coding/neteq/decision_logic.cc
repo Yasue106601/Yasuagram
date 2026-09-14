@@ -32,10 +32,10 @@ namespace {
 
 constexpr int kPostponeDecodingLevel = 0;
 constexpr int kTargetLevelWindowMs = 10;
-constexpr int kMaxWaitForPacketMs = 10;
+constexpr int kMaxWaitForPacketMs = 5;
 // The granularity of delay adjustments (accelerate/preemptive expand) is 15ms,
 // but round up since the clock has a granularity of 10ms.
-constexpr int kDelayAdjustmentGranularityMs = 5;
+constexpr int kDelayAdjustmentGranularityMs = 2;
 constexpr int kReinitAfterExpandsMs = 1000;
 
 std::unique_ptr<DelayManager> CreateDelayManager(
@@ -250,7 +250,7 @@ void DecisionLogic::FilterBufferLevel(size_t buffer_size_samples) {
 
     // YASU: Hard-limit the filtered NetEq buffer contribution.
     // Prefer latency growth to be cut rather than carried forward.
-    constexpr int kYasuMaxFilteredBufferMs = 20;
+    constexpr int kYasuMaxFilteredBufferMs = 10;
     const int max_filtered_samples =
         kYasuMaxFilteredBufferMs * sample_rate_khz_;
     if (buffer_level_filter_->filtered_current_level() >

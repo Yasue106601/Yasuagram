@@ -238,6 +238,14 @@ int AcmReceiver::FilteredCurrentDelayMs() const {
   return neteq_->FilteredCurrentDelayMs();
 }
 
+int AcmReceiver::GetFilteredPacketBufferDelayMs() const {
+  return neteq_->FilteredPacketBufferDelayMs();
+}
+
+int AcmReceiver::GetSyncBufferFutureMs() const {
+  return neteq_->SyncBufferFutureMs();
+}
+
 int AcmReceiver::TargetDelayMs() const {
   return neteq_->TargetDelayMs();
 }

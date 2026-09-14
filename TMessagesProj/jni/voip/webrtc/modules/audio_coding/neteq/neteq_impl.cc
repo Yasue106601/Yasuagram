@@ -314,6 +314,22 @@ int NetEqImpl::TargetDelayMs() const {
   return controller_->TargetLevelMs();
 }
 
+int NetEqImpl::FilteredPacketBufferDelayMs() const {
+  MutexLock lock(&mutex_);
+  const int filtered_buffer_samples =
+      controller_->GetFilteredBufferLevel();
+  return filtered_buffer_samples /
+         rtc::CheckedDivExact(fs_hz_, 1000);
+}
+
+int NetEqImpl::SyncBufferFutureMs() const {
+  MutexLock lock(&mutex_);
+  const int sync_future_samples =
+      static_cast<int>(sync_buffer_->FutureLength());
+  return sync_future_samples /
+         rtc::CheckedDivExact(fs_hz_, 1000);
+}
+
 int NetEqImpl::FilteredCurrentDelayMs() const {
   MutexLock lock(&mutex_);
   // Sum up the filtered packet buffer level with the future length of the sync
@@ -324,7 +340,7 @@ int NetEqImpl::FilteredCurrentDelayMs() const {
       static_cast<int>(sync_buffer_->FutureLength());
 
   static int yasu_delay_measure_count = 0;
-  if ((++yasu_delay_measure_count % 100) == 0) {
+  if (++yasu_delay_measure_count <= 300) {
     RTC_LOG(LS_INFO)
         << "YASU DELAY COMPONENTS"
         << " filtered_buffer_ms="
