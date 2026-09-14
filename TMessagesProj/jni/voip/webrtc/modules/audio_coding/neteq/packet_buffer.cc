@@ -197,6 +197,27 @@ absl::optional<Packet> PacketBuffer::GetNextPacket() {
 
     if (front.waiting_time) {
       const int waiting_ms = front.waiting_time->ElapsedMs();
+
+      // YASU: periodic PacketBuffer residence measurement.
+      static uint64_t yasu_packet_count = 0;
+      static int yasu_packet_max_ms = 0;
+      static int yasu_packet_sum_ms = 0;
+
+      ++yasu_packet_count;
+      yasu_packet_max_ms = std::max(yasu_packet_max_ms, waiting_ms);
+      yasu_packet_sum_ms += waiting_ms;
+
+      if ((yasu_packet_count % 100) == 0) {
+        RTC_LOG(LS_INFO)
+            << "YASU PACKET BUFFER"
+            << " n=" << yasu_packet_count
+            << " last_ms=" << waiting_ms
+            << " max_ms=" << yasu_packet_max_ms
+            << " avg_ms="
+            << (yasu_packet_sum_ms /
+                static_cast<int>(yasu_packet_count));
+      }
+
       if (waiting_ms >= 10) {
         RTC_LOG(LS_INFO)
             << "YASU PACKET WAIT"
