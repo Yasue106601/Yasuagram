@@ -20,6 +20,7 @@ namespace {
 
 constexpr int kDelayBuckets = 100;
 constexpr int kBucketSizeMs = 10;
+constexpr int kYasuMaxOptimizerDelayMs = 50;
 
 }  // namespace
 
@@ -38,7 +39,9 @@ void ReorderOptimizer::Update(int relative_delay_ms,
     histogram_.Add(index);
   }
   int bucket_index = MinimizeCostFunction(base_delay_ms);
-  optimal_delay_ms_ = (1 + bucket_index) * kBucketSizeMs;
+  optimal_delay_ms_ = std::min(
+      (1 + bucket_index) * kBucketSizeMs,
+      kYasuMaxOptimizerDelayMs);
 }
 
 void ReorderOptimizer::Reset() {

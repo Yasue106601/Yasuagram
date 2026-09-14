@@ -45,16 +45,13 @@ class LowLatencyAudioBufferManager {
         // Don't increase buffer more than 5 times. Continuing to increase the buffer size
         // could be harmful on low-power devices that regularly experience underruns under
         // normal conditions.
-        if (bufferIncreaseCounter < 5) {
-          // Underrun detected, increase buffer size by 10ms.
-          final int currentBufferSize = audioTrack.getBufferSizeInFrames();
-          final int newBufferSize = currentBufferSize + audioTrack.getPlaybackRate() / 100;
-          Logging.d(TAG,
-              "Underrun detected! Increasing AudioTrack buffer size from " + currentBufferSize
-                  + " to " + newBufferSize);
-          audioTrack.setBufferSizeInFrames(newBufferSize);
-          bufferIncreaseCounter++;
-        }
+        // YASU: Do not increase AudioTrack buffer after underruns.
+        // Prefer an underrun/stutter over accumulating playback latency.
+        final int currentBufferSize = audioTrack.getBufferSizeInFrames();
+        Logging.d(TAG,
+            "YASU UNDERRUN: keeping AudioTrack buffer at " + currentBufferSize
+                + " frames; no latency increase");
+        bufferIncreaseCounter++;
         // Stop trying to lower the buffer size.
         keepLoweringBufferSize = false;
         prevUnderrunCount = underrunCount;

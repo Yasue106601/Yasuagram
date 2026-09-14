@@ -101,11 +101,20 @@ void DelayManager::Update(int arrival_delay_ms, bool reordered) {
     target_level_ms_ = std::max(
         target_level_ms_, reorder_optimizer_->GetOptimalDelayMs().value_or(0));
   }
-  unlimited_target_level_ms_ = target_level_ms_;
+  constexpr int kYasuMaxTargetDelayMs = 50;
+
+  // YASU: Never allow adaptive NetEq delay to grow into hundreds of ms.
+  // Prefer packet loss/PLC/stutter over accumulating playback latency.
+  unlimited_target_level_ms_ =
+      std::min(target_level_ms_, kYasuMaxTargetDelayMs);
+
   target_level_ms_ = std::max(target_level_ms_, effective_minimum_delay_ms_);
   if (maximum_delay_ms_ > 0) {
     target_level_ms_ = std::min(target_level_ms_, maximum_delay_ms_);
   }
+
+  target_level_ms_ =
+      std::min(target_level_ms_, kYasuMaxTargetDelayMs);
   if (packet_len_ms_ > 0) {
     // Limit to 75% of maximum buffer size.
     target_level_ms_ = std::min(

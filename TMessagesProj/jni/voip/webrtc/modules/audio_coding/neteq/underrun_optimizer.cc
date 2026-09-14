@@ -18,6 +18,7 @@ namespace {
 
 constexpr int kDelayBuckets = 100;
 constexpr int kBucketSizeMs = 10;
+constexpr int kYasuMaxOptimizerDelayMs = 50;
 
 }  // namespace
 
@@ -58,7 +59,9 @@ void UnderrunOptimizer::Update(int relative_delay_ms) {
     histogram_.Add(index);
   }
   int bucket_index = histogram_.Quantile(histogram_quantile_);
-  optimal_delay_ms_ = (1 + bucket_index) * kBucketSizeMs;
+  optimal_delay_ms_ = std::min(
+      (1 + bucket_index) * kBucketSizeMs,
+      kYasuMaxOptimizerDelayMs);
 }
 
 void UnderrunOptimizer::Reset() {

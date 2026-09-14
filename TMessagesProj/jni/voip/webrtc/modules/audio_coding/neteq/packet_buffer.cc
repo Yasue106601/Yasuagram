@@ -152,18 +152,57 @@ const Packet* PacketBuffer::PeekNextPacket() const {
   return buffer_.empty() ? nullptr : &buffer_.front();
 }
 
-absl::optional<Packet> PacketBuffer::GetNextPacket() {
-  if (Empty()) {
-    // Buffer is empty.
-    return absl::nullopt;
+void PacketBuffer::DiscardPacketsOlderThan(int max_wait_ms) {
+  if (max_wait_ms < 0) {
+    return;
   }
 
-  absl::optional<Packet> packet(std::move(buffer_.front()));
-  // Assert that the packet sanity checks in InsertPacket method works.
-  RTC_DCHECK(!packet->empty());
-  buffer_.pop_front();
+  buffer_.remove_if([this, max_wait_ms](const Packet& packet) {
+    if (!packet.waiting_time ||
+        packet.waiting_time->ElapsedMs() <=
+            static_cast<uint64_t>(max_wait_ms)) {
+      return false;
+    }
 
-  return packet;
+    RTC_LOG(LS_WARNING)
+        << "YASU DROP_OLD_PACKET"
+        << " waiting_ms=" << packet.waiting_time->ElapsedMs()
+        << " timestamp=" << packet.timestamp
+        << " seq=" << packet.sequence_number;
+
+    LogPacketDiscarded(packet.priority.codec_level);
+    return true;
+  });
+}
+
+absl::optional<Packet> PacketBuffer::GetNextPacket() {
+  constexpr int kYasuMaxPacketWaitMs = 50;
+
+  while (!Empty()) {
+    Packet& front = buffer_.front();
+
+    if (front.waiting_time &&
+        front.waiting_time->ElapsedMs() > kYasuMaxPacketWaitMs) {
+      RTC_LOG(LS_WARNING)
+          << "YASU DROP_OLD_PACKET"
+          << " waiting_ms=" << front.waiting_time->ElapsedMs()
+          << " timestamp=" << front.timestamp
+          << " seq=" << front.sequence_number;
+
+      LogPacketDiscarded(front.priority.codec_level);
+      buffer_.pop_front();
+      continue;
+    }
+
+    absl::optional<Packet> packet(std::move(front));
+    // Assert that the packet sanity checks in InsertPacket method works.
+    RTC_DCHECK(!packet->empty());
+    buffer_.pop_front();
+
+    return packet;
+  }
+
+  return absl::nullopt;
 }
 
 int PacketBuffer::DiscardNextPacket() {
