@@ -176,7 +176,7 @@ void PacketBuffer::DiscardPacketsOlderThan(int max_wait_ms) {
 }
 
 absl::optional<Packet> PacketBuffer::GetNextPacket() {
-  constexpr int kYasuMaxPacketWaitMs = 50;
+  constexpr int kYasuMaxPacketWaitMs = 30;
 
   while (!Empty()) {
     Packet& front = buffer_.front();

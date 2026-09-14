@@ -187,11 +187,27 @@ class WebRtcAudioTrack {
     }
 
     private int writeBytes(AudioTrack audioTrack, ByteBuffer byteBuffer, int sizeInBytes) {
+      final long yasuWriteStartNs = System.nanoTime();
+      final int result;
+
       if (Build.VERSION.SDK_INT >= 21) {
-        return audioTrack.write(byteBuffer, sizeInBytes, AudioTrack.WRITE_BLOCKING);
+        result = audioTrack.write(byteBuffer, sizeInBytes, AudioTrack.WRITE_BLOCKING);
       } else {
-        return audioTrack.write(byteBuffer.array(), byteBuffer.arrayOffset(), sizeInBytes);
+        result = audioTrack.write(
+            byteBuffer.array(), byteBuffer.arrayOffset(), sizeInBytes);
       }
+
+      final long writeDurationUs = (System.nanoTime() - yasuWriteStartNs) / 1000;
+      if (writeDurationUs >= 5000) {
+        Logging.w(TAG,
+            "YASU AUDIOTRACK WRITE"
+                + " duration_us=" + writeDurationUs
+                + " result_bytes=" + result
+                + " buffer_frames=" + audioTrack.getBufferSizeInFrames()
+                + " playback_head=" + audioTrack.getPlaybackHeadPosition());
+      }
+
+      return result;
     }
 
     // Stops the inner thread loop which results in calling AudioTrack.stop().
