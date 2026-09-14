@@ -318,8 +318,25 @@ int NetEqImpl::FilteredCurrentDelayMs() const {
   MutexLock lock(&mutex_);
   // Sum up the filtered packet buffer level with the future length of the sync
   // buffer.
+  const int filtered_buffer_samples =
+      controller_->GetFilteredBufferLevel();
+  const int sync_future_samples =
+      static_cast<int>(sync_buffer_->FutureLength());
+
+  static int yasu_delay_measure_count = 0;
+  if ((++yasu_delay_measure_count % 100) == 0) {
+    RTC_LOG(LS_INFO)
+        << "YASU DELAY COMPONENTS"
+        << " filtered_buffer_ms="
+        << (filtered_buffer_samples * 1000 / fs_hz_)
+        << " sync_future_ms="
+        << (sync_future_samples * 1000 / fs_hz_)
+        << " combined_ms="
+        << ((filtered_buffer_samples + sync_future_samples) * 1000 / fs_hz_);
+  }
+
   const int delay_samples =
-      controller_->GetFilteredBufferLevel() + sync_buffer_->FutureLength();
+      filtered_buffer_samples + sync_future_samples;
   // The division below will truncate. The return value is in ms.
   return delay_samples / rtc::CheckedDivExact(fs_hz_, 1000);
 }
@@ -948,6 +965,32 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
 
   // Copy samples from `algorithm_buffer_` to `sync_buffer_`.
   //
+  // YASU: Hard-limit queued decoded audio. Prefer dropping excess audio
+  // over allowing playback latency to accumulate.
+  constexpr size_t kYasuMaxSyncBufferMs = 30;
+  const size_t max_future_samples =
+      kYasuMaxSyncBufferMs * static_cast<size_t>(fs_hz_) / 1000;
+
+  const size_t current_future_samples = sync_buffer_->FutureLength();
+  const size_t allowed_samples =
+      current_future_samples < max_future_samples
+          ? max_future_samples - current_future_samples
+          : 0;
+
+  if (algorithm_buffer_->Size() > allowed_samples) {
+    const size_t excess_samples =
+        algorithm_buffer_->Size() - allowed_samples;
+
+    RTC_LOG(LS_WARNING)
+        << "YASU DROP_DECODED_AUDIO"
+        << " excess_samples=" << excess_samples
+        << " future_ms="
+        << (current_future_samples * 1000 / fs_hz_)
+        << " algorithm_samples=" << algorithm_buffer_->Size();
+
+    algorithm_buffer_->PopBack(excess_samples);
+  }
+
   // TODO(bugs.webrtc.org/10757):
   //   We would in the future also like to pass `packet_infos` so that we can do
   //   sample-perfect tracking of that information across `sync_buffer_`.
