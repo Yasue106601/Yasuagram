@@ -23,7 +23,7 @@ const int kDefaultSampleRate = 44100;
 // cases, the lowest delay estimate will not be utilized since devices that
 // support low-latency output audio often supports HW AEC as well.
 const int kLowLatencyModeDelayEstimateInMilliseconds = 50;
-const int kHighLatencyModeDelayEstimateInMilliseconds = 150;
+const int kHighLatencyModeDelayEstimateInMilliseconds = 60;
 
 }  // namespace jni
 

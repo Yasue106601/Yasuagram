@@ -323,6 +323,15 @@ class WebRtcAudioTrack {
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
       initialBufferSizeInFrames = audioTrack.getBufferSizeInFrames();
+
+      // YASU: actual AudioTrack low-latency configuration.
+      Logging.d(TAG,
+          "YASU AUDIOTRACK CONFIG"
+              + " sampleRate=" + sampleRate
+              + " channels=" + channels
+              + " bufferFrames=" + audioTrack.getBufferSizeInFrames()
+              + " initialBufferFrames=" + initialBufferSizeInFrames
+              + " callbackFrames=" + CALLBACK_BUFFER_SIZE_MS * sampleRate / 1000);
     } else {
       initialBufferSizeInFrames = -1;
     }
