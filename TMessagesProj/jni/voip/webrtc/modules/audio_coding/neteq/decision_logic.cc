@@ -310,7 +310,7 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
     if (config_.enable_stable_delay_mode) {
       const int playout_delay_ms = GetPlayoutDelayMs(status);
       const int64_t low_limit = TargetLevelMs();
-      constexpr int kYasuMaxNetworkDelayContributionMs = 5;
+      constexpr int kYasuMaxNetworkDelayContributionMs = 0;
       const int network_delay_ms =
           std::min(packet_arrival_history_->GetMaxDelayMs(),
                    kYasuMaxNetworkDelayContributionMs);
@@ -388,6 +388,22 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
 
     if ((PacketTooEarly(status) && !above_target_delay) ||
         (below_target_delay && !config_.combine_concealment_decision)) {
+      static int yasu_no_packet_count = 0;
+      if ((++yasu_no_packet_count % 20) == 0) {
+        RTC_LOG(LS_WARNING)
+            << "YASU NO_PACKET_DECISION"
+            << " leap_ms=" << (timestamp_leap / sample_rate_khz_)
+            << " generated_ms="
+            << (status.generated_noise_samples / sample_rate_khz_)
+            << " target_ms=" << TargetLevelMs()
+            << " buffer_delay_ms=" << buffer_delay_ms
+            << " high_limit_ms=" << high_limit
+            << " packet_too_early=" << PacketTooEarly(status)
+            << " above_target=" << above_target_delay
+            << " span_wait_ms="
+            << (status.packet_buffer_info.span_samples_wait_time /
+                sample_rate_khz_);
+      }
       return NoPacket(status);
     }
     if (config_.combine_concealment_decision) {
