@@ -159,6 +159,8 @@ class NetEqImpl : public webrtc::NetEq {
   int TargetDelayMs() const override;
 
   int FilteredCurrentDelayMs() const override;
+  int FilteredPacketBufferDelayMs() const;
+  int SyncBufferFutureMs() const;
 
   // Writes the current network statistics to `stats`. The statistics are reset
   // after the call.
