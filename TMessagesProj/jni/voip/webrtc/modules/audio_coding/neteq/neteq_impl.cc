@@ -965,36 +965,15 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
 
   // Copy samples from `algorithm_buffer_` to `sync_buffer_`.
   //
-  // YASU: Hard-limit queued decoded audio. Prefer dropping excess audio
-  // over allowing playback latency to accumulate.
-  constexpr size_t kYasuMaxSyncBufferMs = 50;
-  const size_t max_future_samples =
-      kYasuMaxSyncBufferMs * static_cast<size_t>(fs_hz_) / 1000;
-
-  const size_t current_future_samples = sync_buffer_->FutureLength();
-  const size_t allowed_samples =
-      current_future_samples < max_future_samples
-          ? max_future_samples - current_future_samples
-          : 0;
-
-  if (algorithm_buffer_->Size() > allowed_samples) {
-    const size_t excess_samples =
-        algorithm_buffer_->Size() - allowed_samples;
-
-    RTC_LOG(LS_WARNING)
-        << "YASU DROP_DECODED_AUDIO"
-        << " excess_samples=" << excess_samples
-        << " future_ms="
-        << (current_future_samples * 1000 / fs_hz_)
-        << " algorithm_samples=" << algorithm_buffer_->Size();
-
-    algorithm_buffer_->PopBack(excess_samples);
-  }
-
   // TODO(bugs.webrtc.org/10757):
   //   We would in the future also like to pass `packet_infos` so that we can do
   //   sample-perfect tracking of that information across `sync_buffer_`.
+  const size_t yasu_sync_future_before = sync_buffer_->FutureLength();
+  const size_t yasu_sync_pushed = algorithm_buffer_->Size();
+
   sync_buffer_->PushBack(*algorithm_buffer_);
+
+  const size_t yasu_sync_future_after_push = sync_buffer_->FutureLength();
 
   // Extract data from `sync_buffer_` to `output`.
   size_t num_output_samples_per_channel = output_size_samples_;
@@ -1010,6 +989,40 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
   }
   sync_buffer_->GetNextAudioInterleaved(num_output_samples_per_channel,
                                         audio_frame);
+
+  const size_t yasu_sync_future_after_output = sync_buffer_->FutureLength();
+
+  // YASU: Measure decoded audio entering and leaving SyncBuffer.
+  static uint64_t yasu_sync_measure_count = 0;
+  static size_t yasu_sync_max_future = 0;
+  static size_t yasu_sync_max_push = 0;
+
+  ++yasu_sync_measure_count;
+  yasu_sync_max_future =
+      std::max(yasu_sync_max_future, yasu_sync_future_after_push);
+  yasu_sync_max_push =
+      std::max(yasu_sync_max_push, yasu_sync_pushed);
+
+  if ((yasu_sync_measure_count % 100) == 0) {
+    RTC_LOG(LS_INFO)
+        << "YASU SYNC BUFFER"
+        << " n=" << yasu_sync_measure_count
+        << " future_before_ms="
+        << (yasu_sync_future_before * 1000 / fs_hz_)
+        << " pushed_ms="
+        << (yasu_sync_pushed * 1000 / fs_hz_)
+        << " future_after_push_ms="
+        << (yasu_sync_future_after_push * 1000 / fs_hz_)
+        << " output_ms="
+        << (num_output_samples_per_channel * 1000 / fs_hz_)
+        << " future_after_output_ms="
+        << (yasu_sync_future_after_output * 1000 / fs_hz_)
+        << " max_future_ms="
+        << (yasu_sync_max_future * 1000 / fs_hz_)
+        << " max_push_ms="
+        << (yasu_sync_max_push * 1000 / fs_hz_);
+  }
+
   audio_frame->sample_rate_hz_ = fs_hz_;
   // TODO(bugs.webrtc.org/10757):
   //   We don't have the ability to properly track individual packets once their
@@ -1533,6 +1546,10 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
                           AudioDecoder::SpeechType* speech_type) {
   RTC_DCHECK(last_decoded_packet_infos_.empty());
 
+  // YASU: Measure how much audio NetEq decodes in one batch.
+  const size_t yasu_decode_packets = packet_list->size();
+  const int yasu_decode_start_samples = *decoded_length;
+
   // Do decoding.
   while (!packet_list->empty() && !decoder_database_->IsComfortNoise(
                                       packet_list->front().payload_type)) {
@@ -1579,6 +1596,36 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
       return kDecodedTooMuch;
     }
   }  // End of decode loop.
+
+  // YASU: Periodic decode-batch measurement.
+  if (*decoded_length >= yasu_decode_start_samples) {
+    const int yasu_decode_samples =
+        *decoded_length - yasu_decode_start_samples;
+    const int yasu_decode_ms =
+        yasu_decode_samples /
+        rtc::CheckedDivExact(fs_hz_, 1000);
+
+    static uint64_t yasu_decode_batches = 0;
+    static int yasu_decode_max_ms = 0;
+    static size_t yasu_decode_max_packets = 0;
+
+    ++yasu_decode_batches;
+    yasu_decode_max_ms =
+        std::max(yasu_decode_max_ms, yasu_decode_ms);
+    yasu_decode_max_packets =
+        std::max(yasu_decode_max_packets, yasu_decode_packets);
+
+    if ((yasu_decode_batches % 100) == 0) {
+      RTC_LOG(LS_INFO)
+          << "YASU DECODE BATCH"
+          << " batches=" << yasu_decode_batches
+          << " packets=" << yasu_decode_packets
+          << " decoded_ms=" << yasu_decode_ms
+          << " decoded_samples=" << yasu_decode_samples
+          << " max_ms=" << yasu_decode_max_ms
+          << " max_packets=" << yasu_decode_max_packets;
+    }
+  }
 
   // If the list is not empty at this point, either a decoding error terminated
   // the while-loop, or list must hold exactly one CNG packet.

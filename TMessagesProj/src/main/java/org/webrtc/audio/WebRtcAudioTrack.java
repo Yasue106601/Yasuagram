@@ -164,6 +164,18 @@ class WebRtcAudioTrack {
         long delayInFrames = writtenFrames - playbackHeadPosition;
         long delayInMs = (delayInFrames * 1000) / sampleRate;
 
+        // YASU: Measure PCM queued inside AudioTrack.
+        if ((writtenFrames / Math.max(1, (sizeInBytes / bytesPerFrame))) % 100 == 0) {
+          Logging.d(TAG,
+              "YASU AUDIOTRACK QUEUE"
+                  + " written_frames=" + writtenFrames
+                  + " playback_head=" + playbackHeadPosition
+                  + " queued_frames=" + delayInFrames
+                  + " queued_ms=" + delayInMs
+                  + " buffer_frames=" + audioTrack.getBufferSizeInFrames()
+                  + " sample_rate=" + sampleRate);
+        }
+
         // The byte buffer must be rewinded since byteBuffer.position() is
         // increased at each call to AudioTrack.write(). If we don't do this,
         // next call to AudioTrack.write() will fail.

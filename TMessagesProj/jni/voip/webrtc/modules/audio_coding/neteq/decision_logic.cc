@@ -247,6 +247,16 @@ void DecisionLogic::FilterBufferLevel(size_t buffer_size_samples) {
     buffer_flush_ = false;
   } else {
     buffer_level_filter_->Update(buffer_size_samples, time_stretched_samples);
+
+    // YASU: Hard-limit the filtered NetEq buffer contribution.
+    // Prefer latency growth to be cut rather than carried forward.
+    constexpr int kYasuMaxFilteredBufferMs = 50;
+    const int max_filtered_samples =
+        kYasuMaxFilteredBufferMs * sample_rate_khz_;
+    if (buffer_level_filter_->filtered_current_level() >
+        max_filtered_samples) {
+      buffer_level_filter_->SetFilteredBufferLevel(max_filtered_samples);
+    }
   }
   prev_time_scale_ = false;
   time_stretched_cn_samples_ = 0;
@@ -409,7 +419,9 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
     if (config_.combine_concealment_decision) {
       if (timestamp_leap != status.generated_noise_samples) {
         // The delay was adjusted, reinitialize the buffer level filter.
-        buffer_level_filter_->SetFilteredBufferLevel(buffer_delay_samples);
+        const int max_filtered_samples = 50 * sample_rate_khz_;
+        buffer_level_filter_->SetFilteredBufferLevel(
+            std::min(buffer_delay_samples, max_filtered_samples));
       }
     } else {
       time_stretched_cn_samples_ =
