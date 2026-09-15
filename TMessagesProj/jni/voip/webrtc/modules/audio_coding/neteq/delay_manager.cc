@@ -96,11 +96,28 @@ void DelayManager::Update(int arrival_delay_ms, bool reordered) {
   }
   target_level_ms_ =
       underrun_optimizer_.GetOptimalDelayMs().value_or(kStartDelayMs);
+  const int yasu_underrun_target_ms = target_level_ms_;
+
+  int yasu_reorder_target_ms = 0;
   if (reorder_optimizer_) {
     reorder_optimizer_->Update(arrival_delay_ms, reordered, target_level_ms_);
-    target_level_ms_ = std::max(
-        target_level_ms_, reorder_optimizer_->GetOptimalDelayMs().value_or(0));
+    yasu_reorder_target_ms =
+        reorder_optimizer_->GetOptimalDelayMs().value_or(0);
+    target_level_ms_ =
+        std::max(target_level_ms_, yasu_reorder_target_ms);
   }
+
+  static int yasu_target_measure_count = 0;
+  if (++yasu_target_measure_count % 100 == 0) {
+    RTC_LOG(LS_INFO)
+        << "YASU TARGET COMPONENTS "
+        << "arrival=" << arrival_delay_ms << "ms "
+        << "reordered=" << reordered << " "
+        << "underrun=" << yasu_underrun_target_ms << "ms "
+        << "reorder=" << yasu_reorder_target_ms << "ms "
+        << "combined=" << target_level_ms_ << "ms";
+  }
+
   constexpr int kYasuMaxTargetDelayMs = 50;
 
   // YASU: Never allow adaptive NetEq delay to grow into hundreds of ms.
