@@ -629,19 +629,6 @@ public class ChatActivityEnterView extends FrameLayout implements
     private LinearLayout attachLayout;
     private ViewPropertyAnimator attachButtonAnimator;
     private ImageView attachButton;
-        // YASU_FEATURES_BUTTON
-        private TextView yasuFeaturesButton;
-
-        // الحالة الشكلية فقط حالياً - سيتم ربطها لاحقاً بالإرسال الحقيقي
-        private boolean yasuFeature000 = false;
-        private boolean yasuFeature001 = false;
-        private boolean yasuFeature002 = false;
-        private boolean yasuFeature003 = false;
-        private boolean yasuFeature004 = false;
-        private boolean yasuFeature005 = false;
-        private boolean yasuDeleteMessages = false;
-
-
     private AiButtonDrawable aiButtonIcon;
     private ImageView aiButton;
     private ImageView richButton;
@@ -2760,28 +2747,6 @@ public class ChatActivityEnterView extends FrameLayout implements
             attachLayout.setOrientation(LinearLayout.HORIZONTAL);
             attachLayout.setEnabled(false);
             attachLayout.setClipChildren(false);
-        // YASU_FEATURES_BUTTON
-        yasuFeaturesButton = new TextView(context);
-        yasuFeaturesButton.setText("الميزات");
-        yasuFeaturesButton.setTextSize(14);
-        yasuFeaturesButton.setGravity(Gravity.CENTER);
-        yasuFeaturesButton.setPadding(dp(10), 0, dp(10), 0);
-        yasuFeaturesButton.setClickable(true);
-        yasuFeaturesButton.setFocusable(true);
-
-        yasuFeaturesButton.setOnClickListener(
-                v -> showYasuFeaturesPanel()
-        );
-
-        attachLayout.addView(
-                yasuFeaturesButton,
-                LayoutHelper.createLinear(
-                        LayoutHelper.WRAP_CONTENT,
-                        DEFAULT_HEIGHT
-                )
-        );
-
-
             messageEditTextContainer.addView(attachLayout, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.RIGHT, 0, 0, DEFAULT_HEIGHT, 0));
 
             notifyButton = new ImageView(context);
@@ -7734,102 +7699,6 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
         }
         setEditingMessageObject(null, null, false);
-    }
-
-
-    // YASU_FEATURES_PANEL
-    // لوحة شكلية فقط حالياً — لا تقوم بأي عملية إرسال أو حذف
-    private void showYasuFeaturesPanel() {
-        if (getContext() == null) {
-            return;
-        }
-
-        LinearLayout layout = new LinearLayout(getContext());
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(dp(20), dp(12), dp(20), dp(12));
-
-        TextView title = new TextView(getContext());
-        title.setText("الميزات");
-        title.setTextSize(20);
-        title.setGravity(Gravity.CENTER);
-        layout.addView(
-                title,
-                LayoutHelper.createLinear(
-                        LayoutHelper.MATCH_PARENT,
-                        52
-                )
-        );
-
-        final String[] names = {
-                "000 — الميزة 000",
-                "001 — تكرار النص داخل الرسالة",
-                "002 — إرسال النص عدة مرات",
-                "003 — معالجة الأرقام",
-                "004 — تكرار الأحرف داخل الرسالة",
-                "005 — إرسال كل حرف كرسالة",
-                "مسح الرسائل"
-        };
-
-        final boolean[] values = {
-                yasuFeature000,
-                yasuFeature001,
-                yasuFeature002,
-                yasuFeature003,
-                yasuFeature004,
-                yasuFeature005,
-                yasuDeleteMessages
-        };
-
-        for (int i = 0; i < names.length; i++) {
-            final int index = i;
-
-            CheckBox checkBox = new CheckBox(getContext());
-            checkBox.setText(names[i]);
-            checkBox.setTextSize(16);
-            checkBox.setChecked(values[i]);
-
-            checkBox.setOnCheckedChangeListener((buttonView, checked) -> {
-                // شكلي فقط حالياً، لا يوجد ربط بالإرسال أو الحذف
-                switch (index) {
-                    case 0:
-                        yasuFeature000 = checked;
-                        break;
-                    case 1:
-                        yasuFeature001 = checked;
-                        break;
-                    case 2:
-                        yasuFeature002 = checked;
-                        break;
-                    case 3:
-                        yasuFeature003 = checked;
-                        break;
-                    case 4:
-                        yasuFeature004 = checked;
-                        break;
-                    case 5:
-                        yasuFeature005 = checked;
-                        break;
-                    case 6:
-                        yasuDeleteMessages = checked;
-                        break;
-                }
-            });
-
-            layout.addView(
-                    checkBox,
-                    LayoutHelper.createLinear(
-                            LayoutHelper.MATCH_PARENT,
-                            LayoutHelper.WRAP_CONTENT
-                    )
-            );
-        }
-
-        AlertDialog dialog = new AlertDialog.Builder(getContext())
-                .setView(layout)
-                .setPositiveButton("إغلاق", null)
-                .create();
-
-        dialog.show();
     }
 
     public boolean processSendingText(CharSequence text, boolean notify, int scheduleDate, int scheduleRepeatPeriod, long payStars) {
