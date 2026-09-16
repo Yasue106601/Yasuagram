@@ -1008,6 +1008,51 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
 
   const size_t yasu_sync_future_after_output = sync_buffer_->FutureLength();
 
+  // YASU: Hard low-latency SyncBuffer future ceiling.
+  // Prefer dropping accumulated future audio over adding playback latency.
+  constexpr size_t kYasuMaxSyncFutureMs = 10;
+  const size_t yasu_max_sync_future_samples =
+      kYasuMaxSyncFutureMs * sample_rate_khz_;
+
+  if (sync_buffer_->FutureLength() > yasu_max_sync_future_samples) {
+    const size_t yasu_future_before_drop = sync_buffer_->FutureLength();
+    const size_t yasu_drop_samples =
+        yasu_future_before_drop - yasu_max_sync_future_samples;
+
+    sync_buffer_->set_next_index(
+        sync_buffer_->next_index() + yasu_drop_samples);
+
+    RTC_LOG(LS_WARNING)
+        << "YASU SYNC FUTURE DROP"
+        << " before_ms="
+        << (yasu_future_before_drop * 1000 / fs_hz_)
+        << " dropped_ms="
+        << (yasu_drop_samples * 1000 / fs_hz_)
+        << " after_ms="
+        << (sync_buffer_->FutureLength() * 1000 / fs_hz_);
+  }
+
+
+  static uint64_t yasu_sync_trace_count = 0;
+  if ((++yasu_sync_trace_count % 50) == 0) {
+    const int yasu_sample_rate = static_cast<int>(fs_hz_);
+    const int yasu_future_before_ms =
+        static_cast<int>(yasu_sync_future_before * 1000 / yasu_sample_rate);
+    const int yasu_pushed_ms =
+        static_cast<int>(yasu_sync_pushed * 1000 / yasu_sample_rate);
+    const int yasu_future_after_push_ms =
+        static_cast<int>(yasu_sync_future_after_push * 1000 / yasu_sample_rate);
+    const int yasu_future_after_output_ms =
+        static_cast<int>(yasu_sync_future_after_output * 1000 / yasu_sample_rate);
+
+    RTC_LOG(LS_WARNING)
+        << "YASU SYNC TRACE"
+        << " FutureBefore=" << yasu_future_before_ms << "ms"
+        << " Pushed=" << yasu_pushed_ms << "ms"
+        << " FutureAfterPush=" << yasu_future_after_push_ms << "ms"
+        << " FutureAfterOutput=" << yasu_future_after_output_ms << "ms";
+  }
+
   // YASU: Measure decoded audio entering and leaving SyncBuffer.
   static uint64_t yasu_sync_measure_count = 0;
   static size_t yasu_sync_max_future = 0;
@@ -1144,7 +1189,7 @@ int NetEqImpl::GetDecision(Operation* operation,
   }
   // YASU: Never allow stale packets to participate in NetEq decisions.
   // Prefer packet loss/PLC over accumulating playback latency.
-  packet_buffer_->DiscardPacketsOlderThan(50);
+  packet_buffer_->DiscardPacketsOlderThan(10);
 
   const Packet* packet = packet_buffer_->PeekNextPacket();
 
