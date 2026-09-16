@@ -7770,25 +7770,31 @@ public class ChatActivityEnterView extends FrameLayout implements
                 "مسح الرسائل"
         };
 
-        final boolean[] values = {
-                yasuFeature000,
-                yasuFeature001,
-                yasuFeature002,
-                yasuFeature003,
-                yasuFeature004,
-                yasuFeature005,
-                yasuDeleteMessages
-        };
-
         for (int i = 0; i < names.length; i++) {
             final int index = i;
 
-            CheckBox checkBox = new CheckBox(getContext());
-            checkBox.setText(names[i]);
-            checkBox.setTextSize(16);
-            checkBox.setChecked(values[i]);
+            LinearLayout row = new LinearLayout(getContext());
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
 
-            checkBox.setOnCheckedChangeListener((buttonView, checked) -> {
+            TextView name = new TextView(getContext());
+            name.setText(names[i]);
+            name.setTextSize(16);
+            name.setGravity(Gravity.CENTER_VERTICAL);
+
+            row.addView(
+                    name,
+                    LayoutHelper.createLinear(
+                            0,
+                            52,
+                            1.0f
+                    )
+            );
+
+            Switch switchView = new Switch(getContext());
+            switchView.setChecked(false);
+
+            switchView.setOnCheckedChangeListener((buttonView, checked) -> {
                 // شكلي فقط حالياً، لا يوجد ربط بالإرسال أو الحذف
                 switch (index) {
                     case 0:
@@ -7815,11 +7821,19 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             });
 
+            row.addView(
+                    switchView,
+                    LayoutHelper.createLinear(
+                            52,
+                            52
+                    )
+            );
+
             layout.addView(
-                    checkBox,
+                    row,
                     LayoutHelper.createLinear(
                             LayoutHelper.MATCH_PARENT,
-                            LayoutHelper.WRAP_CONTENT
+                            52
                     )
             );
         }
