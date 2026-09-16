@@ -25887,6 +25887,12 @@ public class ChatActivity extends BaseFragment implements
                     diff = 0;
                 }
                 if (!isAd) {
+                    FileLog.d("YASU SCROLL CHECK: lastVisible=" + lastVisible
+                            + " diff=" + diff
+                            + " hasFromMe=" + hasFromMe
+                            + " hasDraftsReplaces=" + hasDraftsReplaces
+                            + " arrSize=" + arr.size());
+
                     if (lastVisible == 0 && diff <= AndroidUtilities.dp(5) && !hasDraftsReplaces || hasFromMe) {
                         newUnreadMessageCount = 0;
                         if (!firstLoading && chatMode != MODE_SCHEDULED) {

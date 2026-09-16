@@ -638,8 +638,12 @@ public class ChatActivityEnterView extends FrameLayout implements
         private boolean yasuFeature002 = false;
         private boolean yasuFeature003 = false;
         private boolean yasuFeature004 = false;
-        private boolean yasuFeature005 = false;
         private boolean yasuDeleteMessages = false;
+
+        // YASU: maximum 10, never above Telegram's normal sending path
+        private int yasuFeature001Count = 1;
+        private int yasuFeature002Count = 1;
+        private int yasuFeature004Count = 1;
 
 
     private AiButtonDrawable aiButtonIcon;
@@ -2764,10 +2768,24 @@ public class ChatActivityEnterView extends FrameLayout implements
         yasuFeaturesButton = new TextView(context);
         yasuFeaturesButton.setText("الميزات");
         yasuFeaturesButton.setTextSize(14);
+        yasuFeaturesButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        yasuFeaturesButton.setTextColor(Color.WHITE);
         yasuFeaturesButton.setGravity(Gravity.CENTER);
-        yasuFeaturesButton.setPadding(dp(10), 0, dp(10), 0);
+        yasuFeaturesButton.setPadding(dp(12), 0, dp(12), 0);
         yasuFeaturesButton.setClickable(true);
         yasuFeaturesButton.setFocusable(true);
+
+        GradientDrawable yasuFeaturesBackground = new GradientDrawable();
+        yasuFeaturesBackground.setColor(Theme.getColor(Theme.key_chats_actionBackground));
+        yasuFeaturesBackground.setCornerRadius(dp(18));
+        yasuFeaturesButton.setBackground(yasuFeaturesBackground);
+
+        yasuFeaturesButton.setForeground(
+                Theme.createSelectorDrawable(
+                        Theme.getColor(Theme.key_listSelector),
+                        1
+                )
+        );
 
         yasuFeaturesButton.setOnClickListener(
                 v -> showYasuFeaturesPanel()
@@ -2776,8 +2794,8 @@ public class ChatActivityEnterView extends FrameLayout implements
         attachLayout.addView(
                 yasuFeaturesButton,
                 LayoutHelper.createLinear(
-                        LayoutHelper.WRAP_CONTENT,
-                        DEFAULT_HEIGHT
+                        dp(82),
+                        dp(36)
                 )
         );
 
@@ -7751,7 +7769,10 @@ public class ChatActivityEnterView extends FrameLayout implements
         TextView title = new TextView(getContext());
         title.setText("الميزات");
         title.setTextSize(20);
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        title.setTextColor(Color.WHITE);
         title.setGravity(Gravity.CENTER);
+
         layout.addView(
                 title,
                 LayoutHelper.createLinear(
@@ -7761,13 +7782,11 @@ public class ChatActivityEnterView extends FrameLayout implements
         );
 
         final String[] names = {
-                "000 — الميزة 000",
+                "000 — تفكيك الأحرف",
                 "001 — تكرار النص داخل الرسالة",
                 "002 — إرسال النص عدة مرات",
                 "003 — معالجة الأرقام",
-                "004 — تكرار الأحرف داخل الرسالة",
-                "005 — إرسال كل حرف كرسالة",
-                "مسح الرسائل"
+                "004 — إرسال الأحرف كرسائل"
         };
 
         for (int i = 0; i < names.length; i++) {
@@ -7780,6 +7799,8 @@ public class ChatActivityEnterView extends FrameLayout implements
             TextView name = new TextView(getContext());
             name.setText(names[i]);
             name.setTextSize(16);
+            name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            name.setTextColor(Color.WHITE);
             name.setGravity(Gravity.CENTER_VERTICAL);
 
             row.addView(
@@ -7792,31 +7813,105 @@ public class ChatActivityEnterView extends FrameLayout implements
             );
 
             Switch switchView = new Switch(getContext());
-            switchView.setChecked(false, false);
 
-            switchView.setOnCheckedChangeListener((buttonView, checked) -> {
-                // شكلي فقط حالياً، لا يوجد ربط بالإرسال أو الحذف
+            boolean checked =
+                    index == 0 ? yasuFeature000 :
+                    index == 1 ? yasuFeature001 :
+                    index == 2 ? yasuFeature002 :
+                    index == 3 ? yasuFeature003 :
+                    yasuFeature004;
+
+            switchView.setChecked(checked, false);
+
+            switchView.setOnCheckedChangeListener((buttonView, enabled) -> {
+                if (!enabled) {
+                    switch (index) {
+                        case 0:
+                            yasuFeature000 = false;
+                            break;
+                        case 1:
+                            yasuFeature001 = false;
+                            break;
+                        case 2:
+                            yasuFeature002 = false;
+                            break;
+                        case 3:
+                            yasuFeature003 = false;
+                            break;
+                        case 4:
+                            yasuFeature004 = false;
+                            break;
+                    }
+                    return;
+                }
+
+                if (index == 1 || index == 2 || index == 4) {
+                    final android.widget.NumberPicker picker =
+                            new android.widget.NumberPicker(getContext());
+
+                    picker.setMinValue(1);
+                    picker.setMaxValue(10);
+
+                    if (index == 1) {
+                        picker.setValue(yasuFeature001Count);
+                    } else if (index == 2) {
+                        picker.setValue(yasuFeature002Count);
+                    } else {
+                        picker.setValue(yasuFeature004Count);
+                    }
+
+                    LinearLayout pickerLayout = new LinearLayout(getContext());
+                    pickerLayout.setGravity(Gravity.CENTER);
+                    pickerLayout.setPadding(dp(24), dp(8), dp(24), dp(8));
+                    pickerLayout.addView(
+                            picker,
+                            LayoutHelper.createLinear(
+                                    90,
+                                    180
+                            )
+                    );
+
+                    AlertDialog countDialog = new AlertDialog.Builder(getContext())
+                            .setTitle("الحد الأقصى 10")
+                            .setMessage("اختر عدد التكرارات")
+                            .setView(pickerLayout)
+                            .setPositiveButton("حفظ", (dialog, which) -> {
+                                int value = Math.max(1, Math.min(10, picker.getValue()));
+
+                                if (index == 1) {
+                                    yasuFeature001Count = value;
+                                    yasuFeature001 = true;
+                                } else if (index == 2) {
+                                    yasuFeature002Count = value;
+                                    yasuFeature002 = true;
+                                } else {
+                                    yasuFeature004Count = value;
+                                    yasuFeature004 = true;
+                                }
+                            })
+                            .setNegativeButton("إلغاء", (dialog, which) -> {
+                                switchView.setChecked(false, false);
+
+                                if (index == 1) {
+                                    yasuFeature001 = false;
+                                } else if (index == 2) {
+                                    yasuFeature002 = false;
+                                } else {
+                                    yasuFeature004 = false;
+                                }
+                            })
+                            .create();
+
+                    countDialog.show();
+                    return;
+                }
+
                 switch (index) {
                     case 0:
-                        yasuFeature000 = checked;
-                        break;
-                    case 1:
-                        yasuFeature001 = checked;
-                        break;
-                    case 2:
-                        yasuFeature002 = checked;
+                        yasuFeature000 = true;
                         break;
                     case 3:
-                        yasuFeature003 = checked;
-                        break;
-                    case 4:
-                        yasuFeature004 = checked;
-                        break;
-                    case 5:
-                        yasuFeature005 = checked;
-                        break;
-                    case 6:
-                        yasuDeleteMessages = checked;
+                        yasuFeature003 = true;
                         break;
                 }
             });
@@ -7833,10 +7928,113 @@ public class ChatActivityEnterView extends FrameLayout implements
                     row,
                     LayoutHelper.createLinear(
                             LayoutHelper.MATCH_PARENT,
-                            52
+                            52,
+                            0,
+                            0,
+                            0,
+                            dp(4)
                     )
             );
         }
+
+        // مسح الرسائل
+        LinearLayout deleteRow = new LinearLayout(getContext());
+        deleteRow.setOrientation(LinearLayout.HORIZONTAL);
+        deleteRow.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView deleteName = new TextView(getContext());
+        deleteName.setText("مسح الرسائل");
+        deleteName.setTextSize(16);
+        deleteName.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        deleteName.setTextColor(Color.WHITE);
+        deleteName.setGravity(Gravity.CENTER_VERTICAL);
+
+        deleteRow.addView(
+                deleteName,
+                LayoutHelper.createLinear(
+                        0,
+                        52,
+                        1.0f
+                )
+        );
+
+        TextView deleteButton = new TextView(getContext());
+        deleteButton.setText("مسح");
+        deleteButton.setTextSize(15);
+        deleteButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        deleteButton.setTextColor(Color.WHITE);
+        deleteButton.setGravity(Gravity.CENTER);
+        deleteButton.setPadding(dp(14), 0, dp(14), 0);
+
+        GradientDrawable deleteBackground = new GradientDrawable();
+        deleteBackground.setColor(
+                Theme.getColor(Theme.key_chats_actionBackground)
+        );
+        deleteBackground.setCornerRadius(dp(16));
+        deleteButton.setBackground(deleteBackground);
+
+        deleteButton.setClickable(true);
+        deleteButton.setFocusable(true);
+
+        deleteButton.setOnClickListener(v -> {
+            if (parentFragment == null) {
+                return;
+            }
+
+            ArrayList<Integer> ids = new ArrayList<>();
+            long myUserId = UserConfig.getInstance(currentAccount).getClientUserId();
+
+            for (MessageObject messageObject : parentFragment.messages) {
+                if (messageObject == null
+                        || messageObject.messageOwner == null
+                        || messageObject.messageOwner.id <= 0
+                        || messageObject.isDateObject
+                        || messageObject.isVideoConversionObject) {
+                    continue;
+                }
+
+                if (!messageObject.isFromUser()
+                        || messageObject.messageOwner.from_id == null
+                        || !(messageObject.messageOwner.from_id instanceof TLRPC.TL_peerUser)
+                        || messageObject.messageOwner.from_id.user_id != myUserId) {
+                    continue;
+                }
+
+                ids.add(messageObject.messageOwner.id);
+            }
+
+            if (!ids.isEmpty()) {
+                getMessagesController().deleteMessages(
+                        ids,
+                        null,
+                        null,
+                        dialog_id,
+                        parentFragment.getTopicId(),
+                        true,
+                        parentFragment.getChatMode()
+                );
+            }
+        });
+
+        deleteRow.addView(
+                deleteButton,
+                LayoutHelper.createLinear(
+                        dp(60),
+                        dp(36)
+                )
+        );
+
+        layout.addView(
+                deleteRow,
+                LayoutHelper.createLinear(
+                        LayoutHelper.MATCH_PARENT,
+                        52,
+                        0,
+                        0,
+                        0,
+                        dp(4)
+                )
+        );
 
         AlertDialog dialog = new AlertDialog.Builder(getContext())
                 .setView(layout)
@@ -7846,11 +8044,271 @@ public class ChatActivityEnterView extends FrameLayout implements
         dialog.show();
     }
 
+    // ============================================================
+    // YASU FEATURES — real sending path
+    // Maximum repeat/split count = 10.
+    // Internal sends disable YASU processing to prevent recursion.
+    // ============================================================
+
+    private CharSequence yasuFeature000Transform(CharSequence input) {
+        String value = input == null ? "" : input.toString();
+
+        if (value.isEmpty()) {
+            return value;
+        }
+
+        int codePointCount = value.codePointCount(0, value.length());
+        if (codePointCount <= 1) {
+            return value;
+        }
+
+        StringBuilder out = new StringBuilder(value.length() * 2);
+        int offset = 0;
+        boolean first = true;
+
+        while (offset < value.length()) {
+            int codePoint = value.codePointAt(offset);
+
+            if (!first) {
+                out.append(' ');
+            }
+
+            out.appendCodePoint(codePoint);
+            first = false;
+            offset += Character.charCount(codePoint);
+        }
+
+        return out;
+    }
+
+    private CharSequence yasuFeature001Transform(CharSequence input) {
+        int count = Math.max(1, Math.min(10, yasuFeature001Count));
+
+        if (count == 1) {
+            return input;
+        }
+
+        String value = input == null ? "" : input.toString();
+        StringBuilder out = new StringBuilder(value.length() * count);
+
+        for (int i = 0; i < count; i++) {
+            if (i > 0) {
+                out.append(' ');
+            }
+            out.append(value);
+        }
+
+        return out;
+    }
+
+    private CharSequence yasuFeature003Transform(CharSequence input) {
+        String value = input == null ? "" : input.toString();
+        StringBuilder out = new StringBuilder(value.length() + 16);
+
+        int i = 0;
+
+        while (i < value.length()) {
+            char c = value.charAt(i);
+
+            if (Character.isDigit(c)) {
+                int start = i;
+
+                while (i < value.length() && Character.isDigit(value.charAt(i))) {
+                    i++;
+                }
+
+                String number = value.substring(start, i);
+
+                int first = number.length() % 3;
+                if (first == 0) {
+                    first = 3;
+                }
+
+                out.append(number, 0, first);
+
+                for (int j = first; j < number.length(); j += 3) {
+                    out.append(' ');
+                    out.append(number, j, Math.min(j + 3, number.length()));
+                }
+            } else {
+                out.append(c);
+                i++;
+            }
+        }
+
+        return out;
+    }
+
+    // 004 — تكرار كل حرف/رقم داخل نفس النص.
+    // الحد الأقصى 10.
+    // الرقم 0 مستثنى ويبقى كما هو بدون تكرار.
+    private CharSequence yasuFeature004Transform(CharSequence input) {
+        String value = input == null ? "" : input.toString();
+
+        int count = Math.max(1, Math.min(10, yasuFeature004Count));
+
+        if (count == 1 || value.isEmpty()) {
+            return value;
+        }
+
+        StringBuilder out = new StringBuilder(value.length() * count);
+        int offset = 0;
+
+        while (offset < value.length()) {
+            int codePoint = value.codePointAt(offset);
+
+            // الصفر لا يتكرر أبداً، ويدعم أشكال Unicode للصفر أيضاً.
+            boolean isZero = Character.isDigit(codePoint)
+                    && Character.digit(codePoint, 10) == 0;
+
+            if (isZero) {
+                out.appendCodePoint(codePoint);
+            } else {
+                for (int j = 0; j < count; j++) {
+                    out.appendCodePoint(codePoint);
+                }
+            }
+
+            offset += Character.charCount(codePoint);
+        }
+
+        return out;
+    }
+
+    private void yasuSendNormally(
+            CharSequence text,
+            boolean notify,
+            int scheduleDate,
+            int scheduleRepeatPeriod,
+            long payStars
+    ) {
+        boolean old000 = yasuFeature000;
+        boolean old001 = yasuFeature001;
+        boolean old002 = yasuFeature002;
+        boolean old003 = yasuFeature003;
+        boolean old004 = yasuFeature004;
+
+        yasuFeature000 = false;
+        yasuFeature001 = false;
+        yasuFeature002 = false;
+        yasuFeature003 = false;
+        yasuFeature004 = false;
+
+        processSendingText(
+                text,
+                notify,
+                scheduleDate,
+                scheduleRepeatPeriod,
+                payStars
+        );
+
+        yasuFeature000 = old000;
+        yasuFeature001 = old001;
+        yasuFeature002 = old002;
+        yasuFeature003 = old003;
+        yasuFeature004 = old004;
+    }
+
+    private boolean processYasuSendingFeatures(
+            CharSequence originalText,
+            boolean notify,
+            int scheduleDate,
+            int scheduleRepeatPeriod,
+            long payStars
+    ) {
+        if (originalText == null || originalText.length() == 0) {
+            return false;
+        }
+
+        CharSequence text = originalText;
+
+        // 000
+        if (yasuFeature000) {
+            text = yasuFeature000Transform(text);
+        }
+
+        // 003
+        if (yasuFeature003) {
+            text = yasuFeature003Transform(text);
+        }
+
+        // 001 — repeated inside ONE message
+        if (yasuFeature001) {
+            text = yasuFeature001Transform(text);
+        }
+
+        // 002 — separate normal Telegram sends, max 10
+        if (yasuFeature002) {
+            final CharSequence sendText = text;
+            final int count = Math.max(1, Math.min(10, yasuFeature002Count));
+
+            for (int i = 0; i < count; i++) {
+                yasuSendNormally(
+                        sendText,
+                        notify,
+                        scheduleDate,
+                        scheduleRepeatPeriod,
+                        payStars
+                );
+            }
+
+            return true;
+        }
+
+        // 004 — تكرار كل حرف/رقم داخل الرسالة.
+        // 0 لا يتكرر.
+        // الحد الأقصى للعدد = 10.
+        // الإرسال يبقى عبر مسار Telegram الطبيعي.
+        if (yasuFeature004) {
+            text = yasuFeature004Transform(text);
+
+            yasuSendNormally(
+                    text,
+                    notify,
+                    scheduleDate,
+                    scheduleRepeatPeriod,
+                    payStars
+            );
+
+            return true;
+        }
+
+        // 000 / 001 / 003 only modify the normal message.
+        if (yasuFeature000 || yasuFeature001 || yasuFeature003) {
+            yasuSendNormally(
+                    text,
+                    notify,
+                    scheduleDate,
+                    scheduleRepeatPeriod,
+                    payStars
+            );
+            return true;
+        }
+
+        return false;
+    }
+
     public boolean processSendingText(CharSequence text, boolean notify, int scheduleDate, int scheduleRepeatPeriod, long payStars) {
         if (replyingQuote != null && parentFragment != null && replyingQuote.outdated) {
             parentFragment.showQuoteMessageUpdate();
             return false;
         }
+
+        // YASU FEATURES
+        if (yasuFeature000 || yasuFeature001 || yasuFeature002 || yasuFeature003 || yasuFeature004) {
+            CharSequence yasuText = AndroidUtilities.getTrimmedString(text);
+
+            if (yasuText.length() != 0 && processYasuSendingFeatures(
+                    yasuText,
+                    notify,
+                    scheduleDate,
+                    scheduleRepeatPeriod,
+                    payStars
+            )) {
+                return true;
+            }
+        }
+
         int[] emojiOnly = new int[1];
         Emoji.parseEmojis(text, emojiOnly);
         boolean hasOnlyEmoji = emojiOnly[0] > 0;
