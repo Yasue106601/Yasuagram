@@ -333,6 +333,7 @@ class WebRtcAudioTrack {
       releaseAudioResources();
       return -1;
     }
+
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
       initialBufferSizeInFrames = audioTrack.getBufferSizeInFrames();
 

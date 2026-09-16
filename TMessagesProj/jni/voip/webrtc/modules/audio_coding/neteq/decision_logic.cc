@@ -319,21 +319,29 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
       !status.play_dtmf) {
     if (config_.enable_stable_delay_mode) {
       const int playout_delay_ms = GetPlayoutDelayMs(status);
+      const int sync_buffer_ms = static_cast<int>(status.sync_buffer_samples / sample_rate_khz_);
       const int64_t low_limit = TargetLevelMs();
-      constexpr int kYasuMaxNetworkDelayContributionMs = 0;
-      const int network_delay_ms =
-          std::min(packet_arrival_history_->GetMaxDelayMs(),
-                   kYasuMaxNetworkDelayContributionMs);
-      const int64_t high_limit =
-          low_limit + network_delay_ms + kDelayAdjustmentGranularityMs;
-      if (playout_delay_ms >= high_limit * 4) {
+      RTC_LOG(LS_WARNING)
+          << "YASU DELAY DECISION"
+          << " target_ms=" << low_limit
+          << " sync_buffer_ms=" << sync_buffer_ms
+          << " playout_delay_ms=" << playout_delay_ms
+          << " accel_limit_ms=" << (static_cast<int>(low_limit) + 10)
+          << " fast_limit_ms=" << (static_cast<int>(low_limit) + 30);
+      const int yasu_accelerate_limit_ms =
+          static_cast<int>(low_limit) + 10;
+      const int yasu_fast_accelerate_limit_ms =
+          static_cast<int>(low_limit) + 30;
+
+      if (sync_buffer_ms >= yasu_fast_accelerate_limit_ms) {
         return NetEq::Operation::kFastAccelerate;
       }
+
       if (TimescaleAllowed()) {
-        if (playout_delay_ms >= high_limit) {
+        if (sync_buffer_ms >= yasu_accelerate_limit_ms) {
           return NetEq::Operation::kAccelerate;
         }
-        if (playout_delay_ms < low_limit) {
+        if (sync_buffer_ms < low_limit && playout_delay_ms < low_limit) {
           return NetEq::Operation::kPreemptiveExpand;
         }
       }
