@@ -1012,7 +1012,7 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
   // Prefer dropping accumulated future audio over adding playback latency.
   constexpr size_t kYasuMaxSyncFutureMs = 10;
   const size_t yasu_max_sync_future_samples =
-      kYasuMaxSyncFutureMs * sample_rate_khz_;
+      kYasuMaxSyncFutureMs * fs_hz_ / 1000;
 
   if (sync_buffer_->FutureLength() > yasu_max_sync_future_samples) {
     const size_t yasu_future_before_drop = sync_buffer_->FutureLength();
