@@ -124,7 +124,7 @@ NetEqImpl::Dependencies::Dependencies(
                                      stats.get())),
       neteq_controller(
           CreateNetEqController(controller_factory,
-                                config.min_delay_ms,
+                                std::max(config.min_delay_ms, 15),
                                 config.max_packets_in_buffer,
                                 !config.for_test_no_time_stretching,
                                 tick_timer.get(),
