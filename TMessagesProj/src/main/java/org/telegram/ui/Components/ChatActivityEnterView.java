@@ -7792,7 +7792,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             );
 
             Switch switchView = new Switch(getContext());
-            switchView.setChecked(false);
+            switchView.setChecked(false, false);
 
             switchView.setOnCheckedChangeListener((buttonView, checked) -> {
                 // شكلي فقط حالياً، لا يوجد ربط بالإرسال أو الحذف
