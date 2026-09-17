@@ -2769,17 +2769,19 @@ public class ChatActivityEnterView extends FrameLayout implements
         // YASU_FEATURES_BUTTON
         yasuFeaturesButton = new TextView(context);
         yasuFeaturesButton.setText("الميزات");
-        yasuFeaturesButton.setTextSize(14);
+        yasuFeaturesButton.setTextSize(12);
         yasuFeaturesButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         yasuFeaturesButton.setTextColor(Color.WHITE);
         yasuFeaturesButton.setGravity(Gravity.CENTER);
-        yasuFeaturesButton.setPadding(dp(12), 0, dp(12), 0);
+        yasuFeaturesButton.setPadding(dp(6), 0, dp(6), 0);
         yasuFeaturesButton.setClickable(true);
         yasuFeaturesButton.setFocusable(true);
 
         GradientDrawable yasuFeaturesBackground = new GradientDrawable();
-        yasuFeaturesBackground.setColor(Theme.getColor(Theme.key_chats_actionBackground));
-        yasuFeaturesBackground.setCornerRadius(dp(18));
+        yasuFeaturesBackground.setColor(
+                Theme.getColor(Theme.key_chats_actionBackground)
+        );
+        yasuFeaturesBackground.setCornerRadius(dp(14));
         yasuFeaturesButton.setBackground(yasuFeaturesBackground);
 
         yasuFeaturesButton.setForeground(
@@ -2796,8 +2798,8 @@ public class ChatActivityEnterView extends FrameLayout implements
         attachLayout.addView(
                 yasuFeaturesButton,
                 LayoutHelper.createLinear(
-                        dp(82),
-                        dp(36)
+                        dp(64),
+                        dp(30)
                 )
         );
 
