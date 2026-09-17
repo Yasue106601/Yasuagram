@@ -1010,27 +1010,9 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
 
   // YASU: Hard low-latency SyncBuffer future ceiling.
   // Prefer dropping accumulated future audio over adding playback latency.
-  constexpr size_t kYasuMaxSyncFutureMs = 10;
-  const size_t yasu_max_sync_future_samples =
-      kYasuMaxSyncFutureMs * fs_hz_ / 1000;
-
-  if (sync_buffer_->FutureLength() > yasu_max_sync_future_samples) {
-    const size_t yasu_future_before_drop = sync_buffer_->FutureLength();
-    const size_t yasu_drop_samples =
-        yasu_future_before_drop - yasu_max_sync_future_samples;
-
-    sync_buffer_->set_next_index(
-        sync_buffer_->next_index() + yasu_drop_samples);
-
-    RTC_LOG(LS_WARNING)
-        << "YASU SYNC FUTURE DROP"
-        << " before_ms="
-        << (yasu_future_before_drop * 1000 / fs_hz_)
-        << " dropped_ms="
-        << (yasu_drop_samples * 1000 / fs_hz_)
-        << " after_ms="
-        << (sync_buffer_->FutureLength() * 1000 / fs_hz_);
-  }
+  // YASU: Keep all decoded audio in SyncBuffer.
+  // A single Opus packet may legitimately decode to multiple frames
+  // (up to 120 ms). Do not discard the future audio here.
 
 
   static uint64_t yasu_sync_trace_count = 0;
