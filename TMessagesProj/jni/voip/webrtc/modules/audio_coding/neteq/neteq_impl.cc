@@ -373,9 +373,21 @@ NetEqNetworkStatistics NetEqImpl::CurrentNetworkStatistics() const {
 NetEqNetworkStatistics NetEqImpl::CurrentNetworkStatisticsInternal() const {
   RTC_DCHECK(decoder_database_.get());
   NetEqNetworkStatistics stats;
+  const size_t packet_buffer_samples =
+      packet_buffer_->NumSamplesInBuffer(decoder_frame_length_);
+  const size_t sync_future_samples = sync_buffer_->FutureLength();
   const size_t total_samples_in_buffers =
-      packet_buffer_->NumSamplesInBuffer(decoder_frame_length_) +
-      sync_buffer_->FutureLength();
+      packet_buffer_samples + sync_future_samples;
+
+  RTC_LOG(LS_INFO)
+      << "YASU BUFFER COMPONENTS"
+      << " PacketBuffer="
+      << (packet_buffer_samples * 1000 / fs_hz_)
+      << "ms SyncFuture="
+      << (sync_future_samples * 1000 / fs_hz_)
+      << "ms RawBuffer="
+      << (total_samples_in_buffers * 1000 / fs_hz_)
+      << "ms";
 
   RTC_DCHECK(controller_.get());
   stats.preferred_buffer_size_ms = controller_->TargetLevelMs();

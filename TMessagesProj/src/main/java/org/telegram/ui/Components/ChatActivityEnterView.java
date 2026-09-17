@@ -640,6 +640,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         private boolean yasuFeature002 = false;
         private boolean yasuFeature003 = false;
         private boolean yasuFeature004 = false;
+        private boolean yasuProcessingFeatures = false;
         private boolean yasuDeleteMessages = false;
 
         // YASU: maximum 10, never above Telegram's normal sending path
@@ -7799,6 +7800,8 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         LinearLayout layout = new LinearLayout(getContext());
         layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setClipChildren(true);
+        layout.setClipToPadding(true);
         layout.setPadding(dp(6), dp(1), dp(6), dp(1));
 
         TextView title = new TextView(getContext());
@@ -7833,11 +7836,13 @@ public class ChatActivityEnterView extends FrameLayout implements
 
             TextView name = new TextView(getContext());
             name.setText(names[i]);
-            name.setTextSize(11);
+            name.setTextSize(13);
             name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             name.setTextColor(Color.WHITE);
             name.setGravity(Gravity.CENTER_VERTICAL);
-            name.setPadding(0, 0, dp(8), 0);
+            name.setSingleLine(true);
+            name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            name.setPadding(0, 0, dp(10), 0);
 
             row.addView(
                     name,
@@ -7849,7 +7854,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             );
 
             TextView toggle = new TextView(getContext());
-            toggle.setTextSize(10);
+            toggle.setTextSize(11);
             toggle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             toggle.setGravity(Gravity.CENTER);
             toggle.setTextColor(Color.WHITE);
@@ -8086,11 +8091,18 @@ public class ChatActivityEnterView extends FrameLayout implements
                 updateToggle.run();
             });
 
+            toggle.setPadding(dp(2), 0, dp(2), 0);
+            toggle.setIncludeFontPadding(true);
+
             row.addView(
                     toggle,
                     LayoutHelper.createLinear(
-                            dp(43),
-                            dp(19)
+                            dp(48),
+                            dp(22),
+                            0,
+                            0,
+                            0,
+                            0
                     )
             );
 
@@ -8108,106 +8120,129 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         // مسح الرسائل
-        LinearLayout deleteRow = new LinearLayout(getContext());
-        deleteRow.setOrientation(LinearLayout.HORIZONTAL);
-        deleteRow.setGravity(Gravity.CENTER_VERTICAL);
+        // فاصل بسيط بين الميزات وقسم مسح الرسائل
+    View deleteSeparator = new View(getContext());
+    deleteSeparator.setBackgroundColor(Color.BLACK);
+    layout.addView(
+            deleteSeparator,
+            LayoutHelper.createLinear(
+                    MATCH_PARENT,
+                    dp(1),
+                    0,
+                    dp(5),
+                    0,
+                    dp(4)
+            )
+    );
 
-        TextView deleteName = new TextView(getContext());
-        deleteName.setText("مسح الرسائل");
-        deleteName.setTextSize(13);
-        deleteName.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        deleteName.setTextColor(Color.WHITE);
-        deleteName.setGravity(Gravity.CENTER_VERTICAL);
+    LinearLayout deleteRow = new LinearLayout(getContext());
+    deleteRow.setOrientation(LinearLayout.HORIZONTAL);
+    deleteRow.setGravity(Gravity.CENTER_VERTICAL);
 
-        deleteRow.addView(
-                deleteName,
-                LayoutHelper.createLinear(
-                        0,
-                        dp(27),
-                        1.0f
-                )
-        );
+    TextView deleteName = new TextView(getContext());
+    deleteName.setText("مسح الرسائل");
+    deleteName.setTextSize(13);
+    deleteName.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+    deleteName.setTextColor(Color.WHITE);
+    deleteName.setGravity(Gravity.CENTER_VERTICAL);
+    deleteName.setPadding(0, 0, dp(12), 0);
 
-        TextView deleteButton = new TextView(getContext());
-        deleteButton.setText("مسح");
-        deleteButton.setTextSize(11);
-        deleteButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        deleteButton.setTextColor(Color.WHITE);
-        deleteButton.setGravity(Gravity.CENTER);
-        deleteButton.setClickable(true);
-        deleteButton.setFocusable(true);
-        deleteButton.setPadding(dp(8), 0, dp(8), 0);
+    deleteRow.addView(
+            deleteName,
+            LayoutHelper.createLinear(
+                    0,
+                    dp(25),
+                    1.0f
+            )
+    );
 
-        GradientDrawable deleteBackground = new GradientDrawable();
-        deleteBackground.setColor(
-                Theme.getColor(Theme.key_chats_actionBackground)
-        );
-        deleteBackground.setCornerRadius(dp(10));
-        deleteButton.setBackground(deleteBackground);
+    TextView deleteButton = new TextView(getContext());
+    deleteButton.setText("مسح");
+    deleteButton.setTextSize(10);
+    deleteButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+    deleteButton.setTextColor(Color.WHITE);
+    deleteButton.setGravity(Gravity.CENTER);
+    deleteButton.setClickable(true);
+    deleteButton.setFocusable(true);
+    deleteButton.setPadding(dp(2), 0, dp(2), 0);
+    deleteButton.setIncludeFontPadding(true);
+    deleteButton.setSingleLine(true);
+    deleteButton.setEllipsize(android.text.TextUtils.TruncateAt.END);
 
-        deleteButton.setForeground(
-                Theme.createSelectorDrawable(
-                        Theme.getColor(Theme.key_listSelector),
-                        1
-                )
-        );
+    GradientDrawable deleteBackground = new GradientDrawable();
+    deleteBackground.setColor(
+            Theme.getColor(Theme.key_chats_actionBackground)
+    );
+    deleteBackground.setCornerRadius(dp(8));
+    deleteButton.setBackground(deleteBackground);
 
-        deleteButton.setOnClickListener(v -> {
-            if (parentFragment == null || !DialogObject.isChatDialog(dialog_id)) {
-                return;
-            }
+    deleteButton.setForeground(
+            Theme.createSelectorDrawable(
+                    Theme.getColor(Theme.key_listSelector),
+                    1
+            )
+    );
 
-            TLRPC.Chat chat = accountInstance.getMessagesController().getChat(-dialog_id);
+    deleteButton.setOnClickListener(v -> {
+        if (parentFragment == null || !DialogObject.isChatDialog(dialog_id)) {
+            return;
+        }
 
-            // This feature is only for real groups / megagroups.
-            if (chat == null || (ChatObject.isChannel(chat) && !chat.megagroup)) {
-                android.widget.Toast.makeText(
-                        getContext(),
-                        "هذه الميزة تعمل داخل المجموعات فقط",
-                        android.widget.Toast.LENGTH_SHORT
-                ).show();
-                return;
-            }
+        TLRPC.Chat chat = accountInstance.getMessagesController().getChat(-dialog_id);
 
+        // This feature is only for real groups / megagroups.
+        if (chat == null || (ChatObject.isChannel(chat) && !chat.megagroup)) {
             android.widget.Toast.makeText(
                     getContext(),
-                    "جاري مسح جميع رسائلك...",
+                    "هذه الميزة تعمل داخل المجموعات فقط",
                     android.widget.Toast.LENGTH_SHORT
             ).show();
+            return;
+        }
 
-            accountInstance.getMessagesController().yasuDeleteAllMyGroupMessages(
-                    dialog_id,
-                    (int) parentFragment.getTopicId(),
-                    parentFragment.getChatMode(),
-                    () -> android.widget.Toast.makeText(
-                            getContext(),
-                            "تم مسح جميع رسائلك",
-                            android.widget.Toast.LENGTH_SHORT
-                    ).show()
-            );
-        });
+        android.widget.Toast.makeText(
+                getContext(),
+                "جاري مسح جميع رسائلك...",
+                android.widget.Toast.LENGTH_SHORT
+        ).show();
 
-        deleteRow.addView(
-                deleteButton,
-                LayoutHelper.createLinear(
-                        dp(48),
-                        dp(22)
-                )
+        accountInstance.getMessagesController().yasuDeleteAllMyGroupMessages(
+                dialog_id,
+                (int) parentFragment.getTopicId(),
+                parentFragment.getChatMode(),
+                () -> android.widget.Toast.makeText(
+                        getContext(),
+                        "تم مسح جميع رسائلك",
+                        android.widget.Toast.LENGTH_SHORT
+                ).show()
         );
+    });
 
-        layout.addView(
-                deleteRow,
-                LayoutHelper.createLinear(
-                        LayoutHelper.MATCH_PARENT,
-                        dp(27),
-                        0,
-                        dp(3),
-                        0,
-                        0
-                )
-        );
+    deleteRow.addView(
+            deleteButton,
+            LayoutHelper.createLinear(
+                    dp(44),
+                    dp(20),
+                    0,
+                    0,
+                    0,
+                    0
+            )
+    );
 
-        AlertDialog dialog = new AlertDialog.Builder(getContext())
+    layout.addView(
+            deleteRow,
+            LayoutHelper.createLinear(
+                    MATCH_PARENT,
+                    dp(28),
+                    0,
+                    0,
+                    0,
+                    0
+            )
+    );
+
+    AlertDialog dialog = new AlertDialog.Builder(getContext())
                 .setView(layout)
                 .setPositiveButton("إغلاق", null)
                 .create();
@@ -8392,17 +8427,8 @@ public class ChatActivityEnterView extends FrameLayout implements
             int scheduleRepeatPeriod,
             long payStars
     ) {
-        boolean old000 = yasuFeature000;
-        boolean old001 = yasuFeature001;
-        boolean old002 = yasuFeature002;
-        boolean old003 = yasuFeature003;
-        boolean old004 = yasuFeature004;
-
-        yasuFeature000 = false;
-        yasuFeature001 = false;
-        yasuFeature002 = false;
-        yasuFeature003 = false;
-        yasuFeature004 = false;
+        boolean oldProcessing = yasuProcessingFeatures;
+        yasuProcessingFeatures = true;
 
         try {
             processSendingText(
@@ -8413,11 +8439,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                     payStars
             );
         } finally {
-            yasuFeature000 = old000;
-            yasuFeature001 = old001;
-            yasuFeature002 = old002;
-            yasuFeature003 = old003;
-            yasuFeature004 = old004;
+            yasuProcessingFeatures = oldProcessing;
         }
     }
 
@@ -8428,6 +8450,10 @@ public class ChatActivityEnterView extends FrameLayout implements
             int scheduleRepeatPeriod,
             long payStars
     ) {
+        if (yasuProcessingFeatures) {
+            return false;
+        }
+
         if (originalText == null || originalText.length() == 0) {
             return false;
         }
@@ -8437,9 +8463,6 @@ public class ChatActivityEnterView extends FrameLayout implements
         // جميع الميزات قابلة للدمج.
         // ترتيب التحويلات:
         // 000 → 003 → 001 → 004
-        //
-        // 002 ليس تحويلًا للنص، بل يحدد عدد مرات
-        // إرسال الناتج النهائي عبر مسار Telegram الطبيعي.
 
         if (yasuFeature000) {
             text = yasuFeature000Transform(text);
@@ -8457,30 +8480,18 @@ public class ChatActivityEnterView extends FrameLayout implements
             text = yasuFeature004Transform(text);
         }
 
+        // 002 = إرسال الناتج النهائي عدة مرات.
         if (yasuFeature002) {
             final int count = Math.max(
                     1,
                     Math.min(10, yasuFeature002Count)
             );
 
-            final boolean old000 = yasuFeature000;
-            final boolean old001 = yasuFeature001;
-            final boolean old002 = yasuFeature002;
-            final boolean old003 = yasuFeature003;
-            final boolean old004 = yasuFeature004;
-
-            yasuFeature000 = false;
-            yasuFeature001 = false;
-            yasuFeature002 = false;
-            yasuFeature003 = false;
-            yasuFeature004 = false;
-
+            boolean oldProcessing = yasuProcessingFeatures;
+            yasuProcessingFeatures = true;
             yasu002BurstActive = true;
 
             try {
-                // 002 = count separate Telegram messages.
-                // No sleep, no postDelayed, no extra threads.
-                // Each iteration enters the normal Telegram send path.
                 for (int i = 0; i < count; i++) {
                     processSendingText(
                             text,
@@ -8492,6 +8503,8 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             } finally {
                 yasu002BurstActive = false;
+                yasuProcessingFeatures = oldProcessing;
+
                 yasu002CachedProcessedText = null;
                 yasu002CachedSendText = null;
                 yasu002CachedHasOnlyEmoji = false;
@@ -8499,18 +8512,12 @@ public class ChatActivityEnterView extends FrameLayout implements
                 yasu002CachedMaxLength = 0;
                 yasu002CachedEntities = null;
                 yasu002CachedUpdateStickersOrder = false;
-
-                yasuFeature000 = old000;
-                yasuFeature001 = old001;
-                yasuFeature002 = old002;
-                yasuFeature003 = old003;
-                yasuFeature004 = old004;
             }
 
             return true;
         }
 
-        // إذا لم تكن 002 مفعلة، أرسل الناتج المعالج مرة واحدة.
+        // إذا كانت هناك ميزات تحويل، أرسل الناتج المعالج مرة واحدة.
         if (yasuFeature000
                 || yasuFeature001
                 || yasuFeature003
