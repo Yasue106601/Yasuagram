@@ -1187,10 +1187,6 @@ int NetEqImpl::GetDecision(Operation* operation,
     const uint32_t five_seconds_samples = 5 * fs_hz_;
     packet_buffer_->DiscardOldPackets(end_timestamp, five_seconds_samples);
   }
-  // YASU: Never allow stale packets to participate in NetEq decisions.
-  // Prefer packet loss/PLC over accumulating playback latency.
-  packet_buffer_->DiscardPacketsOlderThan(10);
-
   const Packet* packet = packet_buffer_->PeekNextPacket();
 
   RTC_DCHECK(!generated_noise_stopwatch_ ||
