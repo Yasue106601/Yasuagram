@@ -8126,7 +8126,7 @@ public class ChatActivityEnterView extends FrameLayout implements
     layout.addView(
             deleteSeparator,
             LayoutHelper.createLinear(
-                    MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
                     dp(1),
                     0,
                     dp(5),
@@ -8233,7 +8233,7 @@ public class ChatActivityEnterView extends FrameLayout implements
     layout.addView(
             deleteRow,
             LayoutHelper.createLinear(
-                    MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
                     dp(28),
                     0,
                     0,
