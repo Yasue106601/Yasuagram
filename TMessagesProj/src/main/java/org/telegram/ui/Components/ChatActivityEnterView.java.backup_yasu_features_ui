@@ -2769,21 +2769,17 @@ public class ChatActivityEnterView extends FrameLayout implements
         // YASU_FEATURES_BUTTON
         yasuFeaturesButton = new TextView(context);
         yasuFeaturesButton.setText("الميزات");
-        yasuFeaturesButton.setTextSize(12);
+        yasuFeaturesButton.setTextSize(14);
         yasuFeaturesButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         yasuFeaturesButton.setTextColor(Color.WHITE);
         yasuFeaturesButton.setGravity(Gravity.CENTER);
-        yasuFeaturesButton.setPadding(dp(4), 0, dp(4), 0);
+        yasuFeaturesButton.setPadding(dp(12), 0, dp(12), 0);
         yasuFeaturesButton.setClickable(true);
         yasuFeaturesButton.setFocusable(true);
-        yasuFeaturesButton.setMinHeight(0);
-        yasuFeaturesButton.setMinimumHeight(0);
 
         GradientDrawable yasuFeaturesBackground = new GradientDrawable();
-        yasuFeaturesBackground.setColor(
-                Theme.getColor(Theme.key_chats_actionBackground)
-        );
-        yasuFeaturesBackground.setCornerRadius(dp(13));
+        yasuFeaturesBackground.setColor(Theme.getColor(Theme.key_chats_actionBackground));
+        yasuFeaturesBackground.setCornerRadius(dp(18));
         yasuFeaturesButton.setBackground(yasuFeaturesBackground);
 
         yasuFeaturesButton.setForeground(
@@ -2800,8 +2796,8 @@ public class ChatActivityEnterView extends FrameLayout implements
         attachLayout.addView(
                 yasuFeaturesButton,
                 LayoutHelper.createLinear(
-                        dp(58),
-                        dp(28)
+                        dp(82),
+                        dp(36)
                 )
         );
 
@@ -7762,7 +7758,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
 
     // YASU_FEATURES_PANEL
-    // لوحة الميزات — أزرار مباشرة وسريعة مع تأثير لمس.
+    // لوحة شكلية فقط حالياً — لا تقوم بأي عملية إرسال أو حذف
     private void showYasuFeaturesPanel() {
         if (getContext() == null) {
             return;
@@ -7770,11 +7766,11 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         LinearLayout layout = new LinearLayout(getContext());
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(dp(16), dp(8), dp(16), dp(8));
+        layout.setPadding(dp(20), dp(12), dp(20), dp(12));
 
         TextView title = new TextView(getContext());
         title.setText("الميزات");
-        title.setTextSize(18);
+        title.setTextSize(20);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setTextColor(Color.WHITE);
         title.setGravity(Gravity.CENTER);
@@ -7783,7 +7779,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 title,
                 LayoutHelper.createLinear(
                         LayoutHelper.MATCH_PARENT,
-                        dp(42)
+                        52
                 )
         );
 
@@ -7792,7 +7788,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 "001 — تكرار النص داخل الرسالة",
                 "002 — إرسال النص عدة مرات",
                 "003 — معالجة الأرقام",
-                "004 — تكرار الأحرف داخل الرسالة"
+                "004 — إرسال الأحرف كرسائل"
         };
 
         for (int i = 0; i < names.length; i++) {
@@ -7804,7 +7800,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
             TextView name = new TextView(getContext());
             name.setText(names[i]);
-            name.setTextSize(15);
+            name.setTextSize(16);
             name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             name.setTextColor(Color.WHITE);
             name.setGravity(Gravity.CENTER_VERTICAL);
@@ -7813,93 +7809,24 @@ public class ChatActivityEnterView extends FrameLayout implements
                     name,
                     LayoutHelper.createLinear(
                             0,
-                            dp(42),
+                            52,
                             1.0f
                     )
             );
 
-            TextView toggle = new TextView(getContext());
-            toggle.setTextSize(12);
-            toggle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-            toggle.setGravity(Gravity.CENTER);
-            toggle.setTextColor(Color.WHITE);
-            toggle.setClickable(true);
-            toggle.setFocusable(true);
-            toggle.setMinHeight(0);
-            toggle.setMinimumHeight(0);
+            Switch switchView = new Switch(getContext());
 
-            GradientDrawable toggleBackground = new GradientDrawable();
-            toggleBackground.setCornerRadius(dp(12));
-            toggle.setBackground(toggleBackground);
+            boolean checked =
+                    index == 0 ? yasuFeature000 :
+                    index == 1 ? yasuFeature001 :
+                    index == 2 ? yasuFeature002 :
+                    index == 3 ? yasuFeature003 :
+                    yasuFeature004;
 
-            toggle.setForeground(
-                    Theme.createSelectorDrawable(
-                            Theme.getColor(Theme.key_listSelector),
-                            1
-                    )
-            );
+            switchView.setChecked(checked, false);
 
-            Runnable updateToggle = () -> {
-                boolean enabled;
-
-                switch (index) {
-                    case 0:
-                        enabled = yasuFeature000;
-                        break;
-                    case 1:
-                        enabled = yasuFeature001;
-                        break;
-                    case 2:
-                        enabled = yasuFeature002;
-                        break;
-                    case 3:
-                        enabled = yasuFeature003;
-                        break;
-                    default:
-                        enabled = yasuFeature004;
-                        break;
-                }
-
-                toggle.setText(enabled ? "تشغيل" : "إيقاف");
-
-                GradientDrawable background = new GradientDrawable();
-                background.setCornerRadius(dp(12));
-
-                if (enabled) {
-                    background.setColor(Color.rgb(45, 175, 75));
-                } else {
-                    background.setColor(
-                            Theme.getColor(Theme.key_chats_actionBackground)
-                    );
-                }
-
-                toggle.setBackground(background);
-            };
-
-            updateToggle.run();
-
-            toggle.setOnClickListener(v -> {
-                boolean currentlyEnabled;
-
-                switch (index) {
-                    case 0:
-                        currentlyEnabled = yasuFeature000;
-                        break;
-                    case 1:
-                        currentlyEnabled = yasuFeature001;
-                        break;
-                    case 2:
-                        currentlyEnabled = yasuFeature002;
-                        break;
-                    case 3:
-                        currentlyEnabled = yasuFeature003;
-                        break;
-                    default:
-                        currentlyEnabled = yasuFeature004;
-                        break;
-                }
-
-                if (currentlyEnabled) {
+            switchView.setOnCheckedChangeListener((buttonView, enabled) -> {
+                if (!enabled) {
                     switch (index) {
                         case 0:
                             yasuFeature000 = false;
@@ -7917,8 +7844,6 @@ public class ChatActivityEnterView extends FrameLayout implements
                             yasuFeature004 = false;
                             break;
                     }
-
-                    updateToggle.run();
                     return;
                 }
 
@@ -7930,45 +7855,30 @@ public class ChatActivityEnterView extends FrameLayout implements
                     picker.setMaxValue(10);
 
                     if (index == 1) {
-                        picker.setValue(
-                                Math.max(1, Math.min(10, yasuFeature001Count))
-                        );
+                        picker.setValue(yasuFeature001Count);
                     } else if (index == 2) {
-                        picker.setValue(
-                                Math.max(1, Math.min(10, yasuFeature002Count))
-                        );
+                        picker.setValue(yasuFeature002Count);
                     } else {
-                        picker.setValue(
-                                Math.max(1, Math.min(10, yasuFeature004Count))
-                        );
+                        picker.setValue(yasuFeature004Count);
                     }
 
                     LinearLayout pickerLayout = new LinearLayout(getContext());
                     pickerLayout.setGravity(Gravity.CENTER);
-                    pickerLayout.setPadding(
-                            dp(20),
-                            dp(4),
-                            dp(20),
-                            dp(4)
-                    );
-
+                    pickerLayout.setPadding(dp(24), dp(8), dp(24), dp(8));
                     pickerLayout.addView(
                             picker,
                             LayoutHelper.createLinear(
-                                    dp(90),
-                                    dp(170)
+                                    90,
+                                    180
                             )
                     );
 
                     AlertDialog countDialog = new AlertDialog.Builder(getContext())
-                            .setTitle("عدد التكرارات")
-                            .setMessage("اختر رقمًا من 1 إلى 10")
+                            .setTitle("الحد الأقصى 10")
+                            .setMessage("اختر عدد التكرارات")
                             .setView(pickerLayout)
                             .setPositiveButton("حفظ", (dialog, which) -> {
-                                int value = Math.max(
-                                        1,
-                                        Math.min(10, picker.getValue())
-                                );
+                                int value = Math.max(1, Math.min(10, picker.getValue()));
 
                                 if (index == 1) {
                                     yasuFeature001Count = value;
@@ -7980,30 +7890,39 @@ public class ChatActivityEnterView extends FrameLayout implements
                                     yasuFeature004Count = value;
                                     yasuFeature004 = true;
                                 }
-
-                                updateToggle.run();
                             })
-                            .setNegativeButton("إلغاء", null)
+                            .setNegativeButton("إلغاء", (dialog, which) -> {
+                                switchView.setChecked(false, false);
+
+                                if (index == 1) {
+                                    yasuFeature001 = false;
+                                } else if (index == 2) {
+                                    yasuFeature002 = false;
+                                } else {
+                                    yasuFeature004 = false;
+                                }
+                            })
                             .create();
 
                     countDialog.show();
                     return;
                 }
 
-                if (index == 0) {
-                    yasuFeature000 = true;
-                } else if (index == 3) {
-                    yasuFeature003 = true;
+                switch (index) {
+                    case 0:
+                        yasuFeature000 = true;
+                        break;
+                    case 3:
+                        yasuFeature003 = true;
+                        break;
                 }
-
-                updateToggle.run();
             });
 
             row.addView(
-                    toggle,
+                    switchView,
                     LayoutHelper.createLinear(
-                            dp(62),
-                            dp(30)
+                            52,
+                            52
                     )
             );
 
@@ -8011,11 +7930,11 @@ public class ChatActivityEnterView extends FrameLayout implements
                     row,
                     LayoutHelper.createLinear(
                             LayoutHelper.MATCH_PARENT,
-                            dp(42),
+                            52,
                             0,
                             0,
                             0,
-                            dp(3)
+                            dp(4)
                     )
             );
         }
@@ -8027,7 +7946,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         TextView deleteName = new TextView(getContext());
         deleteName.setText("مسح الرسائل");
-        deleteName.setTextSize(15);
+        deleteName.setTextSize(16);
         deleteName.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         deleteName.setTextColor(Color.WHITE);
         deleteName.setGravity(Gravity.CENTER_VERTICAL);
@@ -8036,34 +7955,28 @@ public class ChatActivityEnterView extends FrameLayout implements
                 deleteName,
                 LayoutHelper.createLinear(
                         0,
-                        dp(42),
+                        52,
                         1.0f
                 )
         );
 
         TextView deleteButton = new TextView(getContext());
         deleteButton.setText("مسح");
-        deleteButton.setTextSize(13);
+        deleteButton.setTextSize(15);
         deleteButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         deleteButton.setTextColor(Color.WHITE);
         deleteButton.setGravity(Gravity.CENTER);
-        deleteButton.setClickable(true);
-        deleteButton.setFocusable(true);
-        deleteButton.setPadding(dp(8), 0, dp(8), 0);
+        deleteButton.setPadding(dp(14), 0, dp(14), 0);
 
         GradientDrawable deleteBackground = new GradientDrawable();
         deleteBackground.setColor(
                 Theme.getColor(Theme.key_chats_actionBackground)
         );
-        deleteBackground.setCornerRadius(dp(12));
+        deleteBackground.setCornerRadius(dp(16));
         deleteButton.setBackground(deleteBackground);
 
-        deleteButton.setForeground(
-                Theme.createSelectorDrawable(
-                        Theme.getColor(Theme.key_listSelector),
-                        1
-                )
-        );
+        deleteButton.setClickable(true);
+        deleteButton.setFocusable(true);
 
         deleteButton.setOnClickListener(v -> {
             if (parentFragment == null) {
@@ -8071,8 +7984,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
 
             ArrayList<Integer> ids = new ArrayList<>();
-            long myUserId =
-                    UserConfig.getInstance(currentAccount).getClientUserId();
+            long myUserId = UserConfig.getInstance(currentAccount).getClientUserId();
 
             for (MessageObject messageObject : parentFragment.messages) {
                 if (messageObject == null
@@ -8085,8 +7997,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
                 if (!messageObject.isFromUser()
                         || messageObject.messageOwner.from_id == null
-                        || !(messageObject.messageOwner.from_id
-                                instanceof TLRPC.TL_peerUser)
+                        || !(messageObject.messageOwner.from_id instanceof TLRPC.TL_peerUser)
                         || messageObject.messageOwner.from_id.user_id != myUserId) {
                     continue;
                 }
@@ -8104,26 +8015,14 @@ public class ChatActivityEnterView extends FrameLayout implements
                         true,
                         parentFragment.getChatMode()
                 );
-
-                android.widget.Toast.makeText(
-                        getContext(),
-                        "تم مسح جميع الرسائل",
-                        android.widget.Toast.LENGTH_SHORT
-                ).show();
-            } else {
-                android.widget.Toast.makeText(
-                        getContext(),
-                        "لا توجد رسائل لمسحها",
-                        android.widget.Toast.LENGTH_SHORT
-                ).show();
             }
         });
 
         deleteRow.addView(
                 deleteButton,
                 LayoutHelper.createLinear(
-                        dp(58),
-                        dp(30)
+                        dp(60),
+                        dp(36)
                 )
         );
 
@@ -8131,11 +8030,11 @@ public class ChatActivityEnterView extends FrameLayout implements
                 deleteRow,
                 LayoutHelper.createLinear(
                         LayoutHelper.MATCH_PARENT,
-                        dp(42),
+                        52,
                         0,
-                        dp(3),
                         0,
-                        0
+                        0,
+                        dp(4)
                 )
         );
 
