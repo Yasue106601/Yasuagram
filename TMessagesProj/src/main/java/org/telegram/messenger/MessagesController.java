@@ -9313,6 +9313,155 @@ public class MessagesController extends BaseController implements NotificationCe
         }
     }
 
+    /**
+     * YASU: Delete all messages authored by the current account in a group.
+     * History is fetched from Telegram in batches, including messages that
+     * are not currently loaded in the UI.
+     */
+    public void yasuDeleteAllMyGroupMessages(
+            final long dialogId,
+            final int topicId,
+            final int mode,
+            final Runnable onFinished
+    ) {
+        if (!DialogObject.isChatDialog(dialogId)) {
+            if (onFinished != null) {
+                AndroidUtilities.runOnUIThread(onFinished);
+            }
+            return;
+        }
+
+        final TLRPC.Chat chat = getChat(-dialogId);
+
+        if (chat == null || (ChatObject.isChannel(chat) && !chat.megagroup)) {
+            if (onFinished != null) {
+                AndroidUtilities.runOnUIThread(onFinished);
+            }
+            return;
+        }
+
+        final long myUserId =
+                UserConfig.getInstance(currentAccount).getClientUserId();
+
+        final int classGuid = ConnectionsManager.generateClassGuid();
+
+        yasuDeleteAllMyGroupMessagesBatch(
+                dialogId,
+                topicId,
+                mode,
+                myUserId,
+                classGuid,
+                0,
+                onFinished
+        );
+    }
+
+    private void yasuDeleteAllMyGroupMessagesBatch(
+            final long dialogId,
+            final int topicId,
+            final int mode,
+            final long myUserId,
+            final int classGuid,
+            final int offsetId,
+            final Runnable onFinished
+    ) {
+        final TLRPC.TL_messages_getHistory req =
+                new TLRPC.TL_messages_getHistory();
+
+        req.peer = getInputPeer(dialogId);
+        req.offset_id = offsetId;
+        req.offset_date = 0;
+        req.add_offset = 0;
+        req.limit = 100;
+        req.max_id = 0;
+        req.min_id = 0;
+
+        final int requestId = getConnectionsManager().sendRequest(
+                req,
+                (response, error) -> {
+                    if (error != null
+                            || !(response instanceof TLRPC.messages_Messages)) {
+                        AndroidUtilities.runOnUIThread(() -> {
+                            if (onFinished != null) {
+                                onFinished.run();
+                            }
+                        });
+                        return;
+                    }
+
+                    final TLRPC.messages_Messages result =
+                            (TLRPC.messages_Messages) response;
+
+                    final ArrayList<Integer> ownIds =
+                            new ArrayList<>();
+
+                    int oldestId = Integer.MAX_VALUE;
+
+                    for (int i = 0; i < result.messages.size(); i++) {
+                        TLRPC.Message message = result.messages.get(i);
+
+                        if (message == null || message.id <= 0) {
+                            continue;
+                        }
+
+                        if (message.id < oldestId) {
+                            oldestId = message.id;
+                        }
+
+                        if (message.from_id instanceof TLRPC.TL_peerUser
+                                && message.from_id.user_id == myUserId) {
+                            ownIds.add(message.id);
+                        }
+                    }
+
+                    final int nextOffsetId =
+                            oldestId == Integer.MAX_VALUE ? 0 : oldestId;
+
+                    AndroidUtilities.runOnUIThread(() -> {
+                        if (!ownIds.isEmpty()) {
+                            deleteMessages(
+                                    ownIds,
+                                    null,
+                                    null,
+                                    dialogId,
+                                    topicId,
+                                    true,
+                                    mode
+                            );
+                        }
+
+                        // Empty page = end of server history.
+                        if (result.messages.isEmpty()) {
+                            if (onFinished != null) {
+                                onFinished.run();
+                            }
+                            return;
+                        }
+
+                        // No valid older message or no pagination progress.
+                        if (nextOffsetId <= 0 || nextOffsetId >= offsetId && offsetId != 0) {
+                            if (onFinished != null) {
+                                onFinished.run();
+                            }
+                            return;
+                        }
+
+                        yasuDeleteAllMyGroupMessagesBatch(
+                                dialogId,
+                                topicId,
+                                mode,
+                                myUserId,
+                                classGuid,
+                                nextOffsetId,
+                                onFinished
+                        );
+                    });
+                }
+        );
+
+        getConnectionsManager().bindRequestToGuid(requestId, classGuid);
+    }
+
     public void deleteMessages(ArrayList<Integer> messages, ArrayList<Long> randoms, TLRPC.EncryptedChat encryptedChat, long dialogId, int topicId, boolean forAll, int mode) {
         deleteMessages(messages, randoms, encryptedChat, dialogId, forAll, mode, false, 0, null, topicId);
     }

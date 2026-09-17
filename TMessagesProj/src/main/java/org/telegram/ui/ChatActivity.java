@@ -6357,6 +6357,7 @@ public class ChatActivity extends BaseFragment implements
         chatListView.setHideIfEmpty(false);
         chatListView.setAccessibilityEnabled(false);
         chatListView.setNestedScrollingEnabled(false);
+        chatListView.setItemViewCacheSize(8);
         chatListView.setInstantClick(true);
         chatListView.setDisableHighlightState(true);
         chatListView.setTag(1);

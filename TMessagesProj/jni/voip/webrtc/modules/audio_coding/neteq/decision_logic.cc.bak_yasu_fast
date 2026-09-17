@@ -331,7 +331,7 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
       const int yasu_accelerate_limit_ms =
           static_cast<int>(low_limit) + 5;
       const int yasu_fast_accelerate_limit_ms =
-          static_cast<int>(low_limit) + 10;
+          static_cast<int>(low_limit) + 15;
 
       if (sync_buffer_ms >= yasu_fast_accelerate_limit_ms) {
         return NetEq::Operation::kFastAccelerate;
