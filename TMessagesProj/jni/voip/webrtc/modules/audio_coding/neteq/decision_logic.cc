@@ -173,6 +173,20 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
     return NoPacket(status);
   }
 
+  // YASU: If the actual audio payload accumulated in PacketBuffer
+  // reaches 100 ms, accelerate playout to drain the backlog without
+  // dropping packets.
+  constexpr size_t kYasuPacketBufferCeilingMs = 100;
+  if (status.packet_buffer_info.num_samples >=
+      kYasuPacketBufferCeilingMs * sample_rate_khz_) {
+    RTC_LOG(LS_WARNING)
+        << "YASU PACKET_BUFFER_CEILING"
+        << " samples_ms="
+        << (status.packet_buffer_info.num_samples / sample_rate_khz_)
+        << " packets=" << status.packet_buffer_info.num_packets;
+    return NetEq::Operation::kFastAccelerate;
+  }
+
   const uint32_t five_seconds_samples =
       static_cast<uint32_t>(5000 * sample_rate_khz_);
   // Check if the required packet is available.
@@ -330,8 +344,13 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
           << " fast_limit_ms=" << (static_cast<int>(low_limit) + 30);
       const int yasu_accelerate_limit_ms =
           static_cast<int>(low_limit) + 5;
+      constexpr int kYasuHardDelayCeilingMs = 100;
       const int yasu_fast_accelerate_limit_ms =
           static_cast<int>(low_limit) + 10;
+
+      if (sync_buffer_ms >= kYasuHardDelayCeilingMs) {
+        return NetEq::Operation::kFastAccelerate;
+      }
 
       if (sync_buffer_ms >= yasu_fast_accelerate_limit_ms) {
         return NetEq::Operation::kFastAccelerate;
@@ -417,7 +436,7 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
           << (status.packet_buffer_info.span_samples_wait_time /
               sample_rate_khz_)
           << " leap_ms=" << (timestamp_leap / sample_rate_khz_);
-      return NetEq::Operation::kNormal;
+      return NetEq::Operation::kFastAccelerate;
     }
 
     if ((PacketTooEarly(status) && !above_target_delay) ||
