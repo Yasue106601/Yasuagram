@@ -8011,7 +8011,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                         null,
                         null,
                         dialog_id,
-                        parentFragment.getTopicId(),
+                        (int) parentFragment.getTopicId(),
                         true,
                         parentFragment.getChatMode()
                 );
