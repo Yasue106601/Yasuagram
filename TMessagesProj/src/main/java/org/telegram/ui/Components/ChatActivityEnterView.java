@@ -38,6 +38,7 @@ import android.graphics.ColorFilter;
 import android.graphics.LinearGradient;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
@@ -47,6 +48,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
@@ -8004,7 +8006,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
 
             if (!ids.isEmpty()) {
-                getMessagesController().deleteMessages(
+                accountInstance.getMessagesController().deleteMessages(
                         ids,
                         null,
                         null,
