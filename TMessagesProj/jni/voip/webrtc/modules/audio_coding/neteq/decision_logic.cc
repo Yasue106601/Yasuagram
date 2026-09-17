@@ -329,9 +329,9 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
           << " accel_limit_ms=" << (static_cast<int>(low_limit) + 10)
           << " fast_limit_ms=" << (static_cast<int>(low_limit) + 30);
       const int yasu_accelerate_limit_ms =
-          static_cast<int>(low_limit) + 10;
+          static_cast<int>(low_limit) + 5;
       const int yasu_fast_accelerate_limit_ms =
-          static_cast<int>(low_limit) + 30;
+          static_cast<int>(low_limit) + 15;
 
       if (sync_buffer_ms >= yasu_fast_accelerate_limit_ms) {
         return NetEq::Operation::kFastAccelerate;
@@ -403,6 +403,22 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
         << (status.packet_buffer_info.span_samples_wait_time /
             sample_rate_khz_)
         << " last_mode=" << static_cast<int>(status.last_mode);
+
+    // YASU: Do not allow a future packet to remain queued indefinitely.
+    // Once its PacketBuffer residence reaches 100 ms, use it instead of
+    // continuing to return NoPacket. This limits excessive NetEq waiting
+    // without dropping the packet.
+    constexpr int kYasuMaxPacketWaitMs = 100;
+    if (status.packet_buffer_info.span_samples_wait_time >=
+        static_cast<size_t>(kYasuMaxPacketWaitMs * sample_rate_khz_)) {
+      RTC_LOG(LS_WARNING)
+          << "YASU FORCE_FUTURE_PACKET"
+          << " wait_ms="
+          << (status.packet_buffer_info.span_samples_wait_time /
+              sample_rate_khz_)
+          << " leap_ms=" << (timestamp_leap / sample_rate_khz_);
+      return NetEq::Operation::kNormal;
+    }
 
     if ((PacketTooEarly(status) && !above_target_delay) ||
         (below_target_delay && !config_.combine_concealment_decision)) {
