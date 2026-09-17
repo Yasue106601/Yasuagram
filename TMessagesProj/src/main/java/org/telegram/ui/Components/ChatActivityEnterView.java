@@ -8291,25 +8291,30 @@ public class ChatActivityEnterView extends FrameLayout implements
         boolean old003 = yasuFeature003;
         boolean old004 = yasuFeature004;
 
-        yasuFeature000 = false;
-        yasuFeature001 = false;
-        yasuFeature002 = false;
-        yasuFeature003 = false;
-        yasuFeature004 = false;
+        try {
+            // Send directly through the original Telegram sending path.
+            // Disable YASU processing only for this internal send.
+            yasuFeature000 = false;
+            yasuFeature001 = false;
+            yasuFeature002 = false;
+            yasuFeature003 = false;
+            yasuFeature004 = false;
 
-        processSendingText(
-                text,
-                notify,
-                scheduleDate,
-                scheduleRepeatPeriod,
-                payStars
-        );
-
-        yasuFeature000 = old000;
-        yasuFeature001 = old001;
-        yasuFeature002 = old002;
-        yasuFeature003 = old003;
-        yasuFeature004 = old004;
+            processSendingText(
+                    text,
+                    notify,
+                    scheduleDate,
+                    scheduleRepeatPeriod,
+                    payStars
+            );
+        } finally {
+            // Always restore the user's feature state.
+            yasuFeature000 = old000;
+            yasuFeature001 = old001;
+            yasuFeature002 = old002;
+            yasuFeature003 = old003;
+            yasuFeature004 = old004;
+        }
     }
 
     private boolean processYasuSendingFeatures(
@@ -8324,6 +8329,14 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         CharSequence text = originalText;
+
+        android.util.Log.e("YASU_FEATURE_TEST",
+                "ACTIVE 001=" + yasuFeature001
+                + " 002=" + yasuFeature002
+                + " 004=" + yasuFeature004
+                + " C1=" + yasuFeature001Count
+                + " C2=" + yasuFeature002Count
+                + " C4=" + yasuFeature004Count);
 
         // 000
         if (yasuFeature000) {
