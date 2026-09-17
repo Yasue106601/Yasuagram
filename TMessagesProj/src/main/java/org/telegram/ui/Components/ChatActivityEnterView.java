@@ -647,6 +647,16 @@ public class ChatActivityEnterView extends FrameLayout implements
         private int yasuFeature002Count = 1;
         private int yasuFeature004Count = 1;
 
+        // 002 burst cache: reuse identical local processing across repeated sends.
+        private boolean yasu002BurstActive = false;
+        private CharSequence yasu002CachedProcessedText;
+        private String yasu002CachedSendText;
+        private boolean yasu002CachedHasOnlyEmoji;
+        private boolean yasu002CachedSupportsNewEntities;
+        private int yasu002CachedMaxLength;
+        private ArrayList<TLRPC.MessageEntity> yasu002CachedEntities;
+        private boolean yasu002CachedUpdateStickersOrder;
+
 
     private AiButtonDrawable aiButtonIcon;
     private ImageView aiButton;
@@ -2764,12 +2774,13 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             };
             attachLayout.setOrientation(LinearLayout.HORIZONTAL);
+            attachLayout.setGravity(Gravity.CENTER_VERTICAL);
             attachLayout.setEnabled(false);
             attachLayout.setClipChildren(false);
         // YASU_FEATURES_BUTTON
         yasuFeaturesButton = new TextView(context);
         yasuFeaturesButton.setText("الميزات");
-        yasuFeaturesButton.setTextSize(12);
+        yasuFeaturesButton.setTextSize(11);
         yasuFeaturesButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         yasuFeaturesButton.setTextColor(Color.WHITE);
         yasuFeaturesButton.setGravity(Gravity.CENTER);
@@ -2783,7 +2794,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         yasuFeaturesBackground.setColor(
                 Theme.getColor(Theme.key_chats_actionBackground)
         );
-        yasuFeaturesBackground.setCornerRadius(dp(12));
+        yasuFeaturesBackground.setCornerRadius(dp(9));
         yasuFeaturesButton.setBackground(yasuFeaturesBackground);
 
         yasuFeaturesButton.setForeground(
@@ -2793,6 +2804,15 @@ public class ChatActivityEnterView extends FrameLayout implements
                 )
         );
 
+        TLRPC.Chat yasuFeaturesChat = parentFragment != null
+                ? parentFragment.getCurrentChat()
+                : null;
+        boolean yasuFeaturesOnlyGroup = yasuFeaturesChat != null
+                && (!ChatObject.isChannel(yasuFeaturesChat) || yasuFeaturesChat.megagroup);
+        yasuFeaturesButton.setVisibility(
+                yasuFeaturesOnlyGroup ? View.VISIBLE : View.GONE
+        );
+
         yasuFeaturesButton.setOnClickListener(
                 v -> showYasuFeaturesPanel()
         );
@@ -2800,8 +2820,8 @@ public class ChatActivityEnterView extends FrameLayout implements
         attachLayout.addView(
                 yasuFeaturesButton,
                 LayoutHelper.createLinear(
-                        dp(50),
-                        dp(24)
+                        dp(42),
+                        dp(18)
                 )
         );
 
@@ -6701,9 +6721,18 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         sendPlainEnabled = true;
+        TLRPC.Chat yasuDialogChat = null;
         if (DialogObject.isChatDialog(dialog_id)) {
-            TLRPC.Chat chat = accountInstance.getMessagesController().getChat(-dialog_id);
-            sendPlainEnabled = ChatObject.canSendPlain(chat);
+            yasuDialogChat = accountInstance.getMessagesController().getChat(-dialog_id);
+            sendPlainEnabled = ChatObject.canSendPlain(yasuDialogChat);
+        }
+
+        if (yasuFeaturesButton != null) {
+            boolean yasuFeaturesOnlyGroup = yasuDialogChat != null
+                    && (!ChatObject.isChannel(yasuDialogChat) || yasuDialogChat.megagroup);
+            yasuFeaturesButton.setVisibility(
+                    yasuFeaturesOnlyGroup ? View.VISIBLE : View.GONE
+            );
         }
 
         updateScheduleButton(false);
@@ -7770,11 +7799,11 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         LinearLayout layout = new LinearLayout(getContext());
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(dp(6), dp(2), dp(6), dp(2));
+        layout.setPadding(dp(6), dp(1), dp(6), dp(1));
 
         TextView title = new TextView(getContext());
         title.setText("الميزات");
-        title.setTextSize(14);
+        title.setTextSize(13);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setTextColor(Color.WHITE);
         title.setGravity(Gravity.CENTER);
@@ -7783,7 +7812,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 title,
                 LayoutHelper.createLinear(
                         LayoutHelper.MATCH_PARENT,
-                        dp(27)
+                        dp(23)
                 )
         );
 
@@ -7804,22 +7833,23 @@ public class ChatActivityEnterView extends FrameLayout implements
 
             TextView name = new TextView(getContext());
             name.setText(names[i]);
-            name.setTextSize(12);
+            name.setTextSize(11);
             name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             name.setTextColor(Color.WHITE);
             name.setGravity(Gravity.CENTER_VERTICAL);
+            name.setPadding(0, 0, dp(8), 0);
 
             row.addView(
                     name,
                     LayoutHelper.createLinear(
                             0,
-                            dp(34),
+                            dp(25),
                             1.0f
                     )
             );
 
             TextView toggle = new TextView(getContext());
-            toggle.setTextSize(11);
+            toggle.setTextSize(10);
             toggle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             toggle.setGravity(Gravity.CENTER);
             toggle.setTextColor(Color.WHITE);
@@ -7829,7 +7859,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             toggle.setMinimumHeight(0);
 
             GradientDrawable toggleBackground = new GradientDrawable();
-            toggleBackground.setCornerRadius(dp(11));
+            toggleBackground.setCornerRadius(dp(9));
             toggle.setBackground(toggleBackground);
 
             toggle.setForeground(
@@ -7863,7 +7893,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 toggle.setText(enabled ? "تعطيل" : "تفعيل");
 
                 GradientDrawable background = new GradientDrawable();
-                background.setCornerRadius(dp(11));
+                background.setCornerRadius(dp(9));
 
                 if (enabled) {
                     background.setColor(Color.rgb(45, 175, 75));
@@ -7936,15 +7966,15 @@ public class ChatActivityEnterView extends FrameLayout implements
                     pickerLayout.setOrientation(LinearLayout.VERTICAL);
                     pickerLayout.setGravity(Gravity.CENTER);
                     pickerLayout.setPadding(
-                            dp(10),
-                            dp(2),
-                            dp(10),
-                            dp(2)
+                            dp(6),
+                            dp(0),
+                            dp(6),
+                            dp(0)
                     );
 
                     final TextView valueText = new TextView(getContext());
                     valueText.setText(String.valueOf(currentValue));
-                    valueText.setTextSize(15);
+                    valueText.setTextSize(14);
                     valueText.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
                     valueText.setTextColor(Color.WHITE);
                     valueText.setGravity(Gravity.CENTER);
@@ -7988,8 +8018,9 @@ public class ChatActivityEnterView extends FrameLayout implements
 
                     TextView rangeText = new TextView(getContext());
                     rangeText.setText("1                 10");
-                    rangeText.setTextSize(10);
-                    rangeText.setTextColor(Color.LTGRAY);
+                    rangeText.setTextSize(9);
+                    rangeText.setTextColor(Color.WHITE);
+                    rangeText.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
                     rangeText.setGravity(Gravity.CENTER);
                     rangeText.setTextDirection(View.TEXT_DIRECTION_LTR);
 
@@ -7997,7 +8028,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                             valueText,
                             LayoutHelper.createLinear(
                                     LayoutHelper.MATCH_PARENT,
-                                    dp(24)
+                                    dp(20)
                             )
                     );
 
@@ -8005,7 +8036,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                             seekBar,
                             LayoutHelper.createLinear(
                                     LayoutHelper.MATCH_PARENT,
-                                    dp(36)
+                                    dp(28)
                             )
                     );
 
@@ -8013,7 +8044,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                             rangeText,
                             LayoutHelper.createLinear(
                                     LayoutHelper.MATCH_PARENT,
-                                    dp(16)
+                                    dp(12)
                             )
                     );
 
@@ -8058,8 +8089,8 @@ public class ChatActivityEnterView extends FrameLayout implements
             row.addView(
                     toggle,
                     LayoutHelper.createLinear(
-                            dp(48),
-                            dp(22)
+                            dp(43),
+                            dp(19)
                     )
             );
 
@@ -8122,57 +8153,38 @@ public class ChatActivityEnterView extends FrameLayout implements
         );
 
         deleteButton.setOnClickListener(v -> {
-            if (parentFragment == null) {
+            if (parentFragment == null || !DialogObject.isChatDialog(dialog_id)) {
                 return;
             }
 
-            ArrayList<Integer> ids = new ArrayList<>();
-            long myUserId =
-                    UserConfig.getInstance(currentAccount).getClientUserId();
+            TLRPC.Chat chat = accountInstance.getMessagesController().getChat(-dialog_id);
 
-            for (MessageObject messageObject : parentFragment.messages) {
-                if (messageObject == null
-                        || messageObject.messageOwner == null
-                        || messageObject.messageOwner.id <= 0
-                        || messageObject.isDateObject
-                        || messageObject.isVideoConversionObject) {
-                    continue;
-                }
-
-                if (!messageObject.isFromUser()
-                        || messageObject.messageOwner.from_id == null
-                        || !(messageObject.messageOwner.from_id
-                                instanceof TLRPC.TL_peerUser)
-                        || messageObject.messageOwner.from_id.user_id != myUserId) {
-                    continue;
-                }
-
-                ids.add(messageObject.messageOwner.id);
-            }
-
-            if (!ids.isEmpty()) {
-                accountInstance.getMessagesController().deleteMessages(
-                        ids,
-                        null,
-                        null,
-                        dialog_id,
-                        (int) parentFragment.getTopicId(),
-                        true,
-                        parentFragment.getChatMode()
-                );
-
+            // This feature is only for real groups / megagroups.
+            if (chat == null || (ChatObject.isChannel(chat) && !chat.megagroup)) {
                 android.widget.Toast.makeText(
                         getContext(),
-                        "تم مسح جميع الرسائل",
+                        "هذه الميزة تعمل داخل المجموعات فقط",
                         android.widget.Toast.LENGTH_SHORT
                 ).show();
-            } else {
-                android.widget.Toast.makeText(
-                        getContext(),
-                        "لا توجد رسائل لمسحها",
-                        android.widget.Toast.LENGTH_SHORT
-                ).show();
+                return;
             }
+
+            android.widget.Toast.makeText(
+                    getContext(),
+                    "جاري مسح جميع رسائلك...",
+                    android.widget.Toast.LENGTH_SHORT
+            ).show();
+
+            accountInstance.getMessagesController().yasuDeleteAllMyGroupMessages(
+                    dialog_id,
+                    (int) parentFragment.getTopicId(),
+                    parentFragment.getChatMode(),
+                    () -> android.widget.Toast.makeText(
+                            getContext(),
+                            "تم مسح جميع رسائلك",
+                            android.widget.Toast.LENGTH_SHORT
+                    ).show()
+            );
         });
 
         deleteRow.addView(
@@ -8213,7 +8225,7 @@ public class ChatActivityEnterView extends FrameLayout implements
     // ============================================================
     // YASU FEATURES — real sending path
     // Maximum repeat/split count = 10.
-    // Internal sends disable YASU processing to prevent recursion.
+    // Internal sends use the normal Telegram sending path directly.
     // ============================================================
 
     private CharSequence yasuFeature000Transform(CharSequence input) {
@@ -8223,12 +8235,20 @@ public class ChatActivityEnterView extends FrameLayout implements
             return value;
         }
 
-        int codePointCount = value.codePointCount(0, value.length());
-        if (codePointCount <= 1) {
+        final int length = value.length();
+
+        if (length <= 1) {
             return value;
         }
 
-        StringBuilder out = new StringBuilder(value.length() * 2);
+        // A valid surrogate pair is one Unicode code point.
+        if (length == 2
+                && Character.isHighSurrogate(value.charAt(0))
+                && Character.isLowSurrogate(value.charAt(1))) {
+            return value;
+        }
+
+        StringBuilder out = new StringBuilder(length * 2);
         int offset = 0;
         boolean first = true;
 
@@ -8255,7 +8275,12 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         String value = input == null ? "" : input.toString();
-        StringBuilder out = new StringBuilder(value.length() * count);
+        int valueLength = value.length();
+
+        // Exact capacity: repeated text + one separator between copies.
+        StringBuilder out = new StringBuilder(
+                valueLength * count + count - 1
+        );
 
         for (int i = 0; i < count; i++) {
             if (i > 0) {
@@ -8268,33 +8293,52 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     private CharSequence yasuFeature003Transform(CharSequence input) {
-        String value = input == null ? "" : input.toString();
-        StringBuilder out = new StringBuilder(value.length() + 16);
+        if (input == null || input.length() == 0) {
+            return "";
+        }
 
+        final int length = input.length();
+
+        // Fast path: if there are no digits, return the original text
+        // without allocating a StringBuilder or copying anything.
+        boolean hasDigit = false;
+        for (int scan = 0; scan < length; scan++) {
+            if (Character.isDigit(input.charAt(scan))) {
+                hasDigit = true;
+                break;
+            }
+        }
+
+        if (!hasDigit) {
+            return input;
+        }
+
+        StringBuilder out = new StringBuilder(length + 16);
         int i = 0;
 
-        while (i < value.length()) {
-            char c = value.charAt(i);
+        while (i < length) {
+            char c = input.charAt(i);
 
             if (Character.isDigit(c)) {
                 int start = i;
 
-                while (i < value.length() && Character.isDigit(value.charAt(i))) {
+                while (i < length && Character.isDigit(input.charAt(i))) {
                     i++;
                 }
 
-                String number = value.substring(start, i);
+                int numberLength = i - start;
+                int first = numberLength % 3;
 
-                int first = number.length() % 3;
                 if (first == 0) {
                     first = 3;
                 }
 
-                out.append(number, 0, first);
+                out.append(input, start, start + first);
 
-                for (int j = first; j < number.length(); j += 3) {
+                for (int j = first; j < numberLength; j += 3) {
                     out.append(' ');
-                    out.append(number, j, Math.min(j + 3, number.length()));
+                    int end = Math.min(j + 3, numberLength);
+                    out.append(input, start + j, start + end);
                 }
             } else {
                 out.append(c);
@@ -8419,14 +8463,48 @@ public class ChatActivityEnterView extends FrameLayout implements
                     Math.min(10, yasuFeature002Count)
             );
 
-            for (int i = 0; i < count; i++) {
-                yasuSendNormally(
-                        text,
-                        notify,
-                        scheduleDate,
-                        scheduleRepeatPeriod,
-                        payStars
-                );
+            final boolean old000 = yasuFeature000;
+            final boolean old001 = yasuFeature001;
+            final boolean old002 = yasuFeature002;
+            final boolean old003 = yasuFeature003;
+            final boolean old004 = yasuFeature004;
+
+            yasuFeature000 = false;
+            yasuFeature001 = false;
+            yasuFeature002 = false;
+            yasuFeature003 = false;
+            yasuFeature004 = false;
+
+            yasu002BurstActive = true;
+
+            try {
+                // 002 = count separate Telegram messages.
+                // No sleep, no postDelayed, no extra threads.
+                // Each iteration enters the normal Telegram send path.
+                for (int i = 0; i < count; i++) {
+                    processSendingText(
+                            text,
+                            notify,
+                            scheduleDate,
+                            scheduleRepeatPeriod,
+                            payStars
+                    );
+                }
+            } finally {
+                yasu002BurstActive = false;
+                yasu002CachedProcessedText = null;
+                yasu002CachedSendText = null;
+                yasu002CachedHasOnlyEmoji = false;
+                yasu002CachedSupportsNewEntities = false;
+                yasu002CachedMaxLength = 0;
+                yasu002CachedEntities = null;
+                yasu002CachedUpdateStickersOrder = false;
+
+                yasuFeature000 = old000;
+                yasuFeature001 = old001;
+                yasuFeature002 = old002;
+                yasuFeature003 = old003;
+                yasuFeature004 = old004;
             }
 
             return true;
@@ -8473,14 +8551,34 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
         }
 
-        int[] emojiOnly = new int[1];
-        Emoji.parseEmojis(text, emojiOnly);
-        boolean hasOnlyEmoji = emojiOnly[0] > 0;
-        if (!hasOnlyEmoji) {
-            text = AndroidUtilities.getTrimmedString(text);
+        boolean hasOnlyEmoji;
+        boolean supportsNewEntities;
+        int maxLength;
+
+        if (yasu002BurstActive && yasu002CachedProcessedText != null) {
+            text = yasu002CachedProcessedText;
+            hasOnlyEmoji = yasu002CachedHasOnlyEmoji;
+            supportsNewEntities = yasu002CachedSupportsNewEntities;
+            maxLength = yasu002CachedMaxLength;
+        } else {
+            int[] emojiOnly = new int[1];
+            Emoji.parseEmojis(text, emojiOnly);
+            hasOnlyEmoji = emojiOnly[0] > 0;
+
+            if (!hasOnlyEmoji) {
+                text = AndroidUtilities.getTrimmedString(text);
+            }
+
+            supportsNewEntities = supportsSendingNewEntities();
+            maxLength = accountInstance.getMessagesController().getMaxMessageLength();
+
+            if (yasu002BurstActive) {
+                yasu002CachedProcessedText = text;
+                yasu002CachedHasOnlyEmoji = hasOnlyEmoji;
+                yasu002CachedSupportsNewEntities = supportsNewEntities;
+                yasu002CachedMaxLength = maxLength;
+            }
         }
-        boolean supportsNewEntities = supportsSendingNewEntities();
-        int maxLength = accountInstance.getMessagesController().getMaxMessageLength();
         if (text.length() != 0) {
             if (delegate != null && parentFragment != null && (scheduleDate != 0) == parentFragment.isInScheduleMode()) {
                 delegate.prepareMessageSending();
@@ -8528,7 +8626,20 @@ public class ChatActivityEnterView extends FrameLayout implements
                     part = AndroidUtilities.getTrimmedString(part);
                 }
                 CharSequence[] message = new CharSequence[]{ part };
-                ArrayList<TLRPC.MessageEntity> entities = MediaDataController.getInstance(currentAccount).getEntities(message, supportsNewEntities);
+                ArrayList<TLRPC.MessageEntity> entities;
+                if (yasu002BurstActive
+                        && yasu002CachedEntities != null
+                        && start == 0
+                        && end == text.length()) {
+                    entities = yasu002CachedEntities;
+                } else {
+                    entities = MediaDataController.getInstance(currentAccount).getEntities(message, supportsNewEntities);
+                    if (yasu002BurstActive
+                            && start == 0
+                            && end == text.length()) {
+                        yasu002CachedEntities = entities;
+                    }
+                }
                 MessageObject.SendAnimationData sendAnimationData = null;
 
                 if (!delegate.hasForwardingMessages()) {
@@ -8548,14 +8659,32 @@ public class ChatActivityEnterView extends FrameLayout implements
                     sendAnimationData.fromPreview = System.currentTimeMillis() - sentFromPreview < 200;
                 }
 
-                boolean updateStickersOrder = false;
-                updateStickersOrder = SendMessagesHelper.checkUpdateStickersOrder(text);
+                boolean updateStickersOrder;
+                if (yasu002BurstActive && yasu002CachedProcessedText != null) {
+                    updateStickersOrder = yasu002CachedUpdateStickersOrder;
+                } else {
+                    updateStickersOrder = SendMessagesHelper.checkUpdateStickersOrder(text);
+                    if (yasu002BurstActive) {
+                        yasu002CachedUpdateStickersOrder = updateStickersOrder;
+                    }
+                }
 
                 MessageObject replyToTopMsg = getThreadMessage();
                 if (replyToTopMsg == null && replyingTopMessage != null) {
                     replyToTopMsg = replyingTopMessage;
                 }
-                SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(message[0].toString(), dialog_id, replyingMessageObject, replyToTopMsg, messageWebPage, messageWebPageSearch, entities, null, null, notify, scheduleDate, scheduleRepeatPeriod, sendAnimationData, updateStickersOrder);
+                String yasuSendText;
+                if (yasu002BurstActive && yasu002CachedSendText != null
+                        && start == 0 && end == text.length()) {
+                    yasuSendText = yasu002CachedSendText;
+                } else {
+                    yasuSendText = message[0].toString();
+                    if (yasu002BurstActive && start == 0 && end == text.length()) {
+                        yasu002CachedSendText = yasuSendText;
+                    }
+                }
+
+                SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(yasuSendText, dialog_id, replyingMessageObject, replyToTopMsg, messageWebPage, messageWebPageSearch, entities, null, null, notify, scheduleDate, scheduleRepeatPeriod, sendAnimationData, updateStickersOrder);
                 params.quick_reply_shortcut = parentFragment != null ? parentFragment.quickReplyShortcut : null;
                 params.quick_reply_shortcut_id = parentFragment != null ? parentFragment.getQuickReplyId() : 0;
                 params.effect_id = effectId;
