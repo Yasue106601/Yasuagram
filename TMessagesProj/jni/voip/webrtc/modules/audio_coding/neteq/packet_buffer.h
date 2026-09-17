@@ -77,7 +77,6 @@ class PacketBuffer {
   virtual const Packet* PeekNextPacket() const;
 
   // YASU: Discards packets that have waited longer than max_wait_ms.
-  virtual void DiscardPacketsOlderThan(int max_wait_ms);
 
   // Extracts the first packet in the buffer and returns it.
   // Returns an empty optional if the buffer is empty.

@@ -153,89 +153,50 @@ const Packet* PacketBuffer::PeekNextPacket() const {
   return buffer_.empty() ? nullptr : &buffer_.front();
 }
 
-void PacketBuffer::DiscardPacketsOlderThan(int max_wait_ms) {
-  if (max_wait_ms < 0) {
-    return;
-  }
-
-  buffer_.remove_if([this, max_wait_ms](const Packet& packet) {
-    if (!packet.waiting_time ||
-        packet.waiting_time->ElapsedMs() <=
-            static_cast<uint64_t>(max_wait_ms)) {
-      return false;
-    }
-
-    RTC_LOG(LS_WARNING)
-        << "YASU DROP_OLD_PACKET"
-        << " waiting_ms=" << packet.waiting_time->ElapsedMs()
-        << " timestamp=" << packet.timestamp
-        << " seq=" << packet.sequence_number;
-
-    LogPacketDiscarded(packet.priority.codec_level);
-    return true;
-  });
-}
-
 absl::optional<Packet> PacketBuffer::GetNextPacket() {
-  constexpr int kYasuMaxPacketWaitMs = 10;
-
-  while (!Empty()) {
-    Packet& front = buffer_.front();
-
-    if (front.waiting_time &&
-        front.waiting_time->ElapsedMs() > kYasuMaxPacketWaitMs) {
-      RTC_LOG(LS_WARNING)
-          << "YASU DROP_OLD_PACKET"
-          << " waiting_ms=" << front.waiting_time->ElapsedMs()
-          << " timestamp=" << front.timestamp
-          << " seq=" << front.sequence_number;
-
-      LogPacketDiscarded(front.priority.codec_level);
-      buffer_.pop_front();
-      continue;
-    }
-
-    if (front.waiting_time) {
-      const int waiting_ms = front.waiting_time->ElapsedMs();
-
-      // YASU: periodic PacketBuffer residence measurement.
-      static uint64_t yasu_packet_count = 0;
-      static int yasu_packet_max_ms = 0;
-      static int yasu_packet_sum_ms = 0;
-
-      ++yasu_packet_count;
-      yasu_packet_max_ms = std::max(yasu_packet_max_ms, waiting_ms);
-      yasu_packet_sum_ms += waiting_ms;
-
-      if ((yasu_packet_count % 100) == 0) {
-        RTC_LOG(LS_INFO)
-            << "YASU PACKET BUFFER"
-            << " n=" << yasu_packet_count
-            << " last_ms=" << waiting_ms
-            << " max_ms=" << yasu_packet_max_ms
-            << " avg_ms="
-            << (yasu_packet_sum_ms /
-                static_cast<int>(yasu_packet_count));
-      }
-
-      if (waiting_ms >= 10) {
-        RTC_LOG(LS_INFO)
-            << "YASU PACKET WAIT"
-            << " waiting_ms=" << waiting_ms
-            << " timestamp=" << front.timestamp
-            << " seq=" << front.sequence_number;
-      }
-    }
-
-    absl::optional<Packet> packet(std::move(front));
-    // Assert that the packet sanity checks in InsertPacket method works.
-    RTC_DCHECK(!packet->empty());
-    buffer_.pop_front();
-
-    return packet;
+  if (Empty()) {
+    // Buffer is empty.
+    return absl::nullopt;
   }
 
-  return absl::nullopt;
+  if (buffer_.front().waiting_time) {
+    const int waiting_ms = buffer_.front().waiting_time->ElapsedMs();
+
+    // YASU: periodic PacketBuffer residence measurement.
+    static uint64_t yasu_packet_count = 0;
+    static int yasu_packet_max_ms = 0;
+    static int yasu_packet_sum_ms = 0;
+
+    ++yasu_packet_count;
+    yasu_packet_max_ms = std::max(yasu_packet_max_ms, waiting_ms);
+    yasu_packet_sum_ms += waiting_ms;
+
+    if ((yasu_packet_count % 100) == 0) {
+      RTC_LOG(LS_INFO)
+          << "YASU PACKET BUFFER"
+          << " n=" << yasu_packet_count
+          << " last_ms=" << waiting_ms
+          << " max_ms=" << yasu_packet_max_ms
+          << " avg_ms="
+          << (yasu_packet_sum_ms /
+              static_cast<int>(yasu_packet_count));
+    }
+
+    if (waiting_ms >= 10) {
+      RTC_LOG(LS_INFO)
+          << "YASU PACKET WAIT"
+          << " waiting_ms=" << waiting_ms
+          << " timestamp=" << buffer_.front().timestamp
+          << " seq=" << buffer_.front().sequence_number;
+    }
+  }
+
+  absl::optional<Packet> packet(std::move(buffer_.front()));
+  // Assert that the packet sanity checks in InsertPacket method works.
+  RTC_DCHECK(!packet->empty());
+  buffer_.pop_front();
+
+  return packet;
 }
 
 int PacketBuffer::DiscardNextPacket() {
