@@ -52,7 +52,7 @@ Accelerate::ReturnCodes Accelerate::CheckCriteriaAndStretch(
     AudioMultiVector* output) const {
   // Check for strong correlation or passive speech.
   // Use 8192 (0.5 in Q14) in fast mode.
-  const int correlation_threshold = fast_mode ? 8192 : kCorrelationThreshold;
+  const int correlation_threshold = fast_mode ? 6144 : kCorrelationThreshold;
   if ((best_correlation > correlation_threshold) || !active_speech) {
     // Do accelerate operation by overlap add.
 
