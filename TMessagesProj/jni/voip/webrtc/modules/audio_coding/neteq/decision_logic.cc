@@ -386,8 +386,9 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
         if (sync_buffer_ms >= yasu_accelerate_limit_ms) {
           return NetEq::Operation::kAccelerate;
         }
-        // YASU: Do not force preemptive expansion when the buffer is below
-        // target. Keep normal decoding for incoming speech.
+        if (sync_buffer_ms < low_limit && playout_delay_ms < low_limit) {
+          return NetEq::Operation::kPreemptiveExpand;
+        }
       }
     } else {
       const int target_level_samples = TargetLevelMs() * sample_rate_khz_;

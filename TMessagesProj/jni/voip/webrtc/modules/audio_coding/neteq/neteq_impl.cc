@@ -1217,6 +1217,12 @@ int NetEqImpl::GetDecision(Operation* operation,
     packet_buffer_->DiscardOldPackets(end_timestamp, five_seconds_samples);
   }
   const Packet* packet = packet_buffer_->PeekNextPacket();
+  RTC_LOG(LS_INFO) << "YASU CHECK NETEQ "
+                   << "packets=" << packet_buffer_->NumPacketsInBuffer()
+                   << "samples=" << packet_buffer_->NumSamplesInBuffer(decoder_frame_length_)
+                   << "span=" << packet_buffer_->GetSpanSamples(
+                          decoder_frame_length_, last_output_sample_rate_hz_, false)
+                   << "has_packet=" << (packet != nullptr);
 
   RTC_DCHECK(!generated_noise_stopwatch_ ||
              generated_noise_stopwatch_->ElapsedTicks() >= 1);
