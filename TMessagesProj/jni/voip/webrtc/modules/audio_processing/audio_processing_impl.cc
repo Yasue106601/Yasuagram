@@ -1912,8 +1912,7 @@ int AudioProcessingImpl::ProcessReverseStream(const int16_t* const src,
       !aec_dump_) {
     if (input_config.num_samples() == output_config.num_samples() &&
         input_config.num_channels() == output_config.num_channels()) {
-      CopyAudioIfNeeded(src, input_config.num_frames(),
-                        input_config.num_channels(), dest);
+      std::copy(src, src + input_config.num_samples(), dest);
       return kNoError;
     }
   }
