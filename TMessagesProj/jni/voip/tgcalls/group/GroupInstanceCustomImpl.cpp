@@ -2144,11 +2144,18 @@ public:
         peerConnectionFactoryDeps.video_decoder_factory = PlatformInterface::SharedInstance()->makeVideoDecoderFactory(_platformContext);
 
 #if USE_RNNOISE
+        RTC_LOG(LS_INFO)
+            << "YASU GROUP APM FACTORY"
+            << " audioLevelsUpdated=" << (_audioLevelsUpdated ? 1 : 0)
+            << " audioProcessor=" << (audioProcessor ? 1 : 0);
+
         if (_audioLevelsUpdated && audioProcessor) {
             webrtc::AudioProcessingBuilder builder;
             builder.SetCapturePostProcessing(std::move(audioProcessor));
 
-            builder.SetEchoDetector(rtc::make_ref_counted<CustomEchoDetector>());
+            // YASU: CustomEchoDetector is a no-op.
+            // Do not inject it into the APM render path.
+            // This avoids the unnecessary render queue on every 10 ms callback.
 
             peerConnectionFactoryDeps.audio_processing = builder.Create();
         }

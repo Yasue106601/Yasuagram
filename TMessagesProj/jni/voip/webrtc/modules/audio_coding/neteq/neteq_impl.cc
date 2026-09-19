@@ -733,6 +733,17 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     }
   }
 
+  // YASU: Hard 50 ms PacketBuffer ceiling.
+  // Prefer dropping the oldest queued packet over accumulating playout delay.
+  constexpr size_t kYasuPacketBufferCeilingMs = 50;
+  const size_t yasu_packet_ceiling_samples =
+      kYasuPacketBufferCeilingMs * (fs_hz_ / 1000);
+  while (!packet_buffer_->Empty() &&
+         packet_buffer_->GetSpanSamples(last_decoded_length_, fs_hz_, false) >
+             yasu_packet_ceiling_samples) {
+    packet_buffer_->DiscardNextPacket();
+  }
+
   if (buffer_flush_occured) {
     // Reset DSP timestamp etc. if packet buffer flushed.
     new_codec_ = true;
@@ -1001,7 +1012,27 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
 
   sync_buffer_->PushBack(*algorithm_buffer_);
 
-  const size_t yasu_sync_future_after_push = sync_buffer_->FutureLength();
+  // YASU: Hard 50 ms SyncBuffer future-audio ceiling.
+  // Drop the oldest future samples instead of allowing decoded audio
+  // to accumulate and increase playout latency.
+  constexpr size_t kYasuSyncFutureCeilingMs = 50;
+  const size_t yasu_sync_future_ceiling_samples =
+      kYasuSyncFutureCeilingMs * (fs_hz_ / 1000);
+  const size_t yasu_sync_future_after_push =
+      sync_buffer_->FutureLength();
+
+  if (yasu_sync_future_after_push > yasu_sync_future_ceiling_samples) {
+    const size_t yasu_sync_drop_samples =
+        yasu_sync_future_after_push - yasu_sync_future_ceiling_samples;
+    sync_buffer_->set_next_index(
+        sync_buffer_->next_index() + yasu_sync_drop_samples);
+    RTC_LOG(LS_WARNING)
+        << "YASU SYNC CEILING drop_samples=" << yasu_sync_drop_samples
+        << " future_before=" << yasu_sync_future_after_push
+        << " future_after=" << sync_buffer_->FutureLength();
+  }
+
+  const size_t yasu_sync_future_after_cap = sync_buffer_->FutureLength();
 
   // Extract data from `sync_buffer_` to `output`.
   size_t num_output_samples_per_channel = output_size_samples_;
@@ -1044,6 +1075,10 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
         << " FutureBefore=" << yasu_future_before_ms << "ms"
         << " Pushed=" << yasu_pushed_ms << "ms"
         << " FutureAfterPush=" << yasu_future_after_push_ms << "ms"
+        << " FutureAfterCap="
+        << static_cast<int>(yasu_sync_future_after_cap * 1000 /
+                            yasu_sample_rate)
+        << "ms"
         << " FutureAfterOutput=" << yasu_future_after_output_ms << "ms";
   }
 
@@ -1054,7 +1089,7 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
 
   ++yasu_sync_measure_count;
   yasu_sync_max_future =
-      std::max(yasu_sync_max_future, yasu_sync_future_after_push);
+      std::max(yasu_sync_max_future, yasu_sync_future_after_cap);
   yasu_sync_max_push =
       std::max(yasu_sync_max_push, yasu_sync_pushed);
 
@@ -1361,8 +1396,15 @@ int NetEqImpl::GetDecision(Operation* operation,
     }
     case Operation::kAccelerate:
     case Operation::kFastAccelerate: {
+      // YASU: When actively draining a backlog, extract a larger contiguous
+      // audio block so FastAccelerate has enough material to remove delay.
+      if (*operation == Operation::kFastAccelerate) {
+        required_samples = std::max(required_samples, 6 * samples_10_ms);
+      }
+
       // In order to do an accelerate we need at least 30 ms of audio data.
-      if (samples_left >= static_cast<int>(samples_30_ms)) {
+      if (samples_left >= static_cast<int>(samples_30_ms) &&
+          *operation != Operation::kFastAccelerate) {
         // Already have enough data, so we do not need to extract any more.
         controller_->set_sample_memory(samples_left);
         controller_->set_prev_time_scale(true);
@@ -1827,8 +1869,11 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
                             AudioDecoder::SpeechType speech_type,
                             bool play_dtmf,
                             bool fast_accelerate) {
+  // YASU: FastAccelerate gets a larger working window so it can
+  // remove substantially more accumulated playout delay per operation.
+  // Normal accelerate remains at the original 30 ms requirement.
   const size_t required_samples =
-      static_cast<size_t>(240 * fs_mult_);  // Must have 30 ms.
+      static_cast<size_t>((fast_accelerate ? 480 : 240) * fs_mult_);
   size_t borrowed_samples_per_channel = 0;
   size_t num_channels = algorithm_buffer_->Channels();
   size_t decoded_length_per_channel = decoded_length / num_channels;

@@ -285,11 +285,30 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
   *elapsed_time_ms = mixed_frame_.elapsed_time_ms_;
   *ntp_time_ms = mixed_frame_.ntp_time_ms_;
 
+  static int yasu_apm_count = 0;
   if (audio_processing_) {
+    if ((++yasu_apm_count % 100) == 0) {
+      RTC_LOG(LS_INFO)
+          << "YASU APM RENDER ACTIVE"
+          << " sample_rate=" << mixed_frame_.sample_rate_hz_
+          << " channels=" << mixed_frame_.num_channels_
+          << " samples=" << mixed_frame_.samples_per_channel_;
+    }
     const auto error =
         ProcessReverseAudioFrame(audio_processing_, &mixed_frame_);
     RTC_DCHECK_EQ(error, AudioProcessing::kNoError);
+  } else {
+    if ((++yasu_apm_count % 100) == 0) {
+      RTC_LOG(LS_INFO) << "YASU APM RENDER NULL";
+    }
   }
+
+  RTC_LOG(LS_INFO)
+      << "YASU RESAMPLE PATH"
+      << " frame_rate=" << mixed_frame_.sample_rate_hz_
+      << " output_rate=" << samplesPerSec
+      << " frame_samples=" << mixed_frame_.samples_per_channel_
+      << " channels=" << mixed_frame_.num_channels_;
 
   nSamplesOut = Resample(mixed_frame_, samplesPerSec, &render_resampler_,
                          static_cast<int16_t*>(audioSamples));

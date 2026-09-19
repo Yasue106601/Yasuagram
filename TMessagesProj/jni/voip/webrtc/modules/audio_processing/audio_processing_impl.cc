@@ -1907,6 +1907,17 @@ int AudioProcessingImpl::ProcessReverseStream(const int16_t* const src,
       HandleUnsupportedAudioFormats(src, input_config, output_config, dest));
   MaybeInitializeRender(input_config, output_config);
 
+  if (!submodule_states_.RenderMultiBandProcessingActive() &&
+      !submodule_states_.RenderFullBandProcessingActive() &&
+      !aec_dump_) {
+    if (input_config.num_samples() == output_config.num_samples() &&
+        input_config.num_channels() == output_config.num_channels()) {
+      CopyAudioIfNeeded(src, input_config.num_frames(),
+                        input_config.num_channels(), dest);
+      return kNoError;
+    }
+  }
+
   if (aec_dump_) {
     aec_dump_->WriteRenderStreamMessage(src, input_config.num_frames(),
                                         input_config.num_channels());

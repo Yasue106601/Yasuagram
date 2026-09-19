@@ -118,7 +118,7 @@ void DelayManager::Update(int arrival_delay_ms, bool reordered) {
         << "combined=" << target_level_ms_ << "ms";
   }
 
-  constexpr int kYasuMaxTargetDelayMs = 50;
+  constexpr int kYasuMaxTargetDelayMs = 30;
 
   // YASU: Never allow adaptive NetEq delay to grow into hundreds of ms.
   // Prefer packet loss/PLC/stutter over accumulating playback latency.
