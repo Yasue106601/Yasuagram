@@ -2632,6 +2632,20 @@ public class ChatActivityEnterView extends FrameLayout implements
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         sendByEnter = preferences.getBoolean("send_by_enter", false);
 
+        // YASU_FEATURES: restore feature state so enabled features stay enabled.
+        yasuFeature000 = preferences.getBoolean("yasu_feature_000", false);
+        yasuFeature001 = preferences.getBoolean("yasu_feature_001", false);
+        yasuFeature002 = preferences.getBoolean("yasu_feature_002", false);
+        yasuFeature003 = preferences.getBoolean("yasu_feature_003", false);
+        yasuFeature004 = preferences.getBoolean("yasu_feature_004", false);
+
+        yasuFeature001Count = Math.max(1,
+                Math.min(10, preferences.getInt("yasu_feature_001_count", 1)));
+        yasuFeature002Count = Math.max(1,
+                Math.min(10, preferences.getInt("yasu_feature_002_count", 1)));
+        yasuFeature004Count = Math.max(1,
+                Math.min(10, preferences.getInt("yasu_feature_004_count", 1)));
+
         textFieldContainer = new FrameLayout(context) {
             @Override
             public boolean dispatchTouchEvent(MotionEvent ev) {
@@ -7951,6 +7965,14 @@ public class ChatActivityEnterView extends FrameLayout implements
                             break;
                     }
 
+                    MessagesController.getGlobalMainSettings().edit()
+                            .putBoolean("yasu_feature_000", yasuFeature000)
+                            .putBoolean("yasu_feature_001", yasuFeature001)
+                            .putBoolean("yasu_feature_002", yasuFeature002)
+                            .putBoolean("yasu_feature_003", yasuFeature003)
+                            .putBoolean("yasu_feature_004", yasuFeature004)
+                            .apply();
+
                     updateToggle.run();
                     return;
                 }
@@ -8073,6 +8095,17 @@ public class ChatActivityEnterView extends FrameLayout implements
                                     yasuFeature004 = true;
                                 }
 
+                                MessagesController.getGlobalMainSettings().edit()
+                                        .putBoolean("yasu_feature_000", yasuFeature000)
+                                        .putBoolean("yasu_feature_001", yasuFeature001)
+                                        .putBoolean("yasu_feature_002", yasuFeature002)
+                                        .putBoolean("yasu_feature_003", yasuFeature003)
+                                        .putBoolean("yasu_feature_004", yasuFeature004)
+                                        .putInt("yasu_feature_001_count", yasuFeature001Count)
+                                        .putInt("yasu_feature_002_count", yasuFeature002Count)
+                                        .putInt("yasu_feature_004_count", yasuFeature004Count)
+                                        .apply();
+
                                 updateToggle.run();
                             })
                             .setNegativeButton("إلغاء", null)
@@ -8087,6 +8120,17 @@ public class ChatActivityEnterView extends FrameLayout implements
                 } else if (index == 3) {
                     yasuFeature003 = true;
                 }
+
+                MessagesController.getGlobalMainSettings().edit()
+                        .putBoolean("yasu_feature_000", yasuFeature000)
+                        .putBoolean("yasu_feature_001", yasuFeature001)
+                        .putBoolean("yasu_feature_002", yasuFeature002)
+                        .putBoolean("yasu_feature_003", yasuFeature003)
+                        .putBoolean("yasu_feature_004", yasuFeature004)
+                        .putInt("yasu_feature_001_count", yasuFeature001Count)
+                        .putInt("yasu_feature_002_count", yasuFeature002Count)
+                        .putInt("yasu_feature_004_count", yasuFeature004Count)
+                        .apply();
 
                 updateToggle.run();
             });

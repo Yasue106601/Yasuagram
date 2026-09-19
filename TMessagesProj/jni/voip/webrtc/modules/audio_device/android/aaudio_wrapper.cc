@@ -961,12 +961,21 @@ bool AAudioWrapper::OptimizeBuffers() {
   aaudio_result_t result =
       AAudioStream_setBufferSizeInFrames(stream_, target_buffer);
 
-  if (result < 0) {
-    AAudioStream_setBufferSizeInFrames(stream_, frames_per_burst);
-  }
-
+  RTC_LOG(LS_INFO)
+      << "YASU AAudio SetBuffer Result: "
+      << result
+      << " requested=" << target_buffer
+      << " frames_per_burst=" << frames_per_burst;
 
   int32_t buffer_size = AAudioStream_getBufferSizeInFrames(stream_);
+
+  RTC_LOG(LS_INFO)
+      << "YASU AAudio Buffer After Request: "
+      << buffer_size
+      << " frames ("
+      << (static_cast<double>(buffer_size) * 1000.0 /
+          static_cast<double>(sample_rate()))
+      << " ms)";
 
 
   RTC_LOG(LS_INFO)

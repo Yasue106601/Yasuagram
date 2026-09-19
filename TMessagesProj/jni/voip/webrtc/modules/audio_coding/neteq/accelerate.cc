@@ -61,10 +61,15 @@ Accelerate::ReturnCodes Accelerate::CheckCriteriaAndStretch(
     size_t fs_mult_120 = fs_mult_ * 120;
 
     if (fast_mode) {
-      // Fit as many multiples of `peak_index` as possible in fs_mult_120.
-      // TODO(henrik.lundin) Consider finding multiple correlation peaks and
-      // pick the one with the longest correlation lag in this case.
-      peak_index = (fs_mult_120 / peak_index) * peak_index;
+      // YASU: FastAccelerate uses the largest safe multiple of the detected
+      // pitch period that fits the 15 ms acceleration window.
+      // Keep the original overlap/add structure and avoid packet dropping.
+      if (peak_index > 0) {
+        const size_t max_peak_count = fs_mult_120 / peak_index;
+        if (max_peak_count > 1) {
+          peak_index *= max_peak_count;
+        }
+      }
     }
 
     RTC_DCHECK_GE(fs_mult_120, peak_index);  // Should be handled in Process().
