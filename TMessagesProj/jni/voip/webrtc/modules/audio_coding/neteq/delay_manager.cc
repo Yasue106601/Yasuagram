@@ -31,7 +31,7 @@ namespace {
 
 constexpr int kMinBaseMinimumDelayMs = 0;
 constexpr int kMaxBaseMinimumDelayMs = 30;
-constexpr int kStartDelayMs = 0;
+constexpr int kStartDelayMs = 10;
 
 std::unique_ptr<ReorderOptimizer> MaybeCreateReorderOptimizer(
     const DelayManager::Config& config) {
