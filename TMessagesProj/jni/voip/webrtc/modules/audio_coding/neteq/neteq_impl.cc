@@ -749,17 +749,6 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     }
   }
 
-    packet_buffer_->DiscardNextPacket();
-
-    RTC_LOG(LS_WARNING)
-        << "YASU TRACE DROP"
-        << " span_before=" << yasu_span_before
-        << " span_after="
-        << packet_buffer_->GetSpanSamples(0, fs_hz_, false)
-        << " packets_before=" << yasu_packets_before
-        << " packets_after=" << packet_buffer_->NumPacketsInBuffer();
-  }
-
   if (buffer_flush_occured) {
     // Reset DSP timestamp etc. if packet buffer flushed.
     new_codec_ = true;
