@@ -154,8 +154,18 @@ int AcmReceiver::GetAudio(int desired_freq_hz,
   RTC_DCHECK(muted);
 
   int current_sample_rate_hz = 0;
-  if (neteq_->GetAudio(audio_frame, muted, &current_sample_rate_hz) !=
-      NetEq::kOK) {
+  const NetEq::ReturnCodes yasu_neteq_result =
+      neteq_->GetAudio(audio_frame, muted, &current_sample_rate_hz);
+
+  RTC_LOG(LS_INFO)
+      << "YASU TRACE NETEQ_OUTPUT"
+      << " result=" << static_cast<int>(yasu_neteq_result)
+      << " samples_per_channel=" << audio_frame->samples_per_channel_
+      << " channels=" << audio_frame->num_channels_
+      << " muted=" << (*muted ? 1 : 0)
+      << " sample_rate=" << current_sample_rate_hz;
+
+  if (yasu_neteq_result != NetEq::kOK) {
     RTC_LOG(LS_ERROR) << "AcmReceiver::GetAudio - NetEq Failed.";
     return -1;
   }
