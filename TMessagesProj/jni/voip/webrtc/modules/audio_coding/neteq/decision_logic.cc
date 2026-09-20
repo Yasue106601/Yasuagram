@@ -217,7 +217,8 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
       static_cast<uint32_t>(5000 * sample_rate_khz_);
   // Check if the required packet is available.
   if (status.target_timestamp == status.next_packet->timestamp) {
-    return ExpectedPacketAvailable(status);
+    // YASU: If the exact next audio packet is ready, decode it normally.
+    return NetEq::Operation::kNormal;
   }
   if (!PacketBuffer::IsObsoleteTimestamp(status.next_packet->timestamp,
                                          status.target_timestamp,
