@@ -196,6 +196,13 @@ absl::optional<Packet> PacketBuffer::GetNextPacket() {
   RTC_DCHECK(!packet->empty());
   buffer_.pop_front();
 
+  RTC_LOG(LS_INFO)
+      << "YASU FORENSIC T8_OUT"
+      << " seq=" << packet->sequence_number
+      << " timestamp=" << packet->timestamp
+      << " waiting_ms="
+      << (packet->waiting_time ? packet->waiting_time->ElapsedMs() : -1);
+
   return packet;
 }
 
