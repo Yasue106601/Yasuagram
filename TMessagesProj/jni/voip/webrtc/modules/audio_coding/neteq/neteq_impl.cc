@@ -677,6 +677,14 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
       std::vector<AudioDecoder::ParseResult> results =
           info->GetDecoder()->ParsePayload(std::move(packet.payload),
                                            packet.timestamp);
+
+      RTC_LOG(LS_INFO)
+          << "YASU TRACE PARSE"
+          << " seq=" << packet.sequence_number
+          << " ts=" << packet.timestamp
+          << " payload_type=" << static_cast<int>(packet.payload_type)
+          << " results=" << results.size();
+
       if (results.empty()) {
         packet_list.pop_front();
       } else {
@@ -716,6 +724,14 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     }
     NetEqController::PacketArrivedInfo info = ToPacketArrivedInfo(packet);
     int return_val = packet_buffer_->InsertPacket(std::move(packet));
+
+    RTC_LOG(LS_INFO)
+        << "YASU TRACE INSERT"
+        << " result=" << return_val
+        << " packets=" << packet_buffer_->NumPacketsInBuffer()
+        << " span_samples="
+        << packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+
     if (return_val == PacketBuffer::kFlushed) {
       buffer_flush_occured = true;
     } else if (return_val != PacketBuffer::kOK) {
@@ -741,7 +757,20 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
   while (!packet_buffer_->Empty() &&
          packet_buffer_->GetSpanSamples(0, fs_hz_, false) >
              yasu_packet_ceiling_samples) {
+    const size_t yasu_span_before =
+        packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+    const size_t yasu_packets_before =
+        packet_buffer_->NumPacketsInBuffer();
+
     packet_buffer_->DiscardNextPacket();
+
+    RTC_LOG(LS_WARNING)
+        << "YASU TRACE DROP"
+        << " span_before=" << yasu_span_before
+        << " span_after="
+        << packet_buffer_->GetSpanSamples(0, fs_hz_, false)
+        << " packets_before=" << yasu_packets_before
+        << " packets_after=" << packet_buffer_->NumPacketsInBuffer();
   }
 
   if (buffer_flush_occured) {
@@ -1297,6 +1326,14 @@ int NetEqImpl::GetDecision(Operation* operation,
   }
   *operation = controller_->GetDecision(status, &reset_decoder_);
 
+  RTC_LOG(LS_INFO)
+      << "YASU TRACE DECISION"
+      << " op=" << static_cast<int>(*operation)
+      << " packets=" << status.packet_buffer_info.num_packets
+      << " span_samples=" << status.packet_buffer_info.span_samples
+      << " sync_samples=" << status.sync_buffer_samples
+      << " next_packet=" << (packet ? 1 : 0);
+
   // Disallow time stretching if this packet is DTX, because such a decision may
   // be based on earlier buffer level estimate, as we do not update buffer level
   // during DTX. When we have a better way to update buffer level during DTX,
@@ -1466,6 +1503,13 @@ int NetEqImpl::GetDecision(Operation* operation,
   if (packet) {
     sync_buffer_->IncreaseEndTimestamp(packet->timestamp - end_timestamp);
     extracted_samples = ExtractPackets(required_samples, packet_list);
+
+    RTC_LOG(LS_INFO)
+        << "YASU TRACE EXTRACT"
+        << " extracted_samples=" << extracted_samples
+        << " packet_list_size=" << packet_list->size()
+        << " required_samples=" << required_samples;
+
     if (extracted_samples < 0) {
       return kPacketBufferCorruption;
     }
@@ -1644,6 +1688,12 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
   const int yasu_decode_start_samples = *decoded_length;
 
   // Do decoding.
+  RTC_LOG(LS_INFO)
+      << "YASU TRACE DECODE_IN"
+      << " packets=" << packet_list->size()
+      << " op=" << static_cast<int>(operation)
+      << " decoder=" << (decoder ? 1 : 0);
+
   while (!packet_list->empty() && !decoder_database_->IsComfortNoise(
                                       packet_list->front().payload_type)) {
     RTC_DCHECK(decoder);  // At this point, we must have a decoder object.
@@ -1666,6 +1716,13 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
     packet_list->pop_front();
     if (opt_result) {
       const auto& result = *opt_result;
+
+      RTC_LOG(LS_INFO)
+          << "YASU TRACE OPUS_DECODE"
+          << " samples=" << result.num_decoded_samples
+          << " channels=" << decoder->Channels()
+          << " speech_type=" << static_cast<int>(result.speech_type);
+
       *speech_type = result.speech_type;
       if (result.num_decoded_samples > 0) {
         *decoded_length += rtc::dchecked_cast<int>(result.num_decoded_samples);
