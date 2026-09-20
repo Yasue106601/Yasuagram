@@ -154,7 +154,7 @@ int AcmReceiver::GetAudio(int desired_freq_hz,
   RTC_DCHECK(muted);
 
   int current_sample_rate_hz = 0;
-  const NetEq::ReturnCodes yasu_neteq_result =
+  const int yasu_neteq_result =
       neteq_->GetAudio(audio_frame, muted, &current_sample_rate_hz);
 
   RTC_LOG(LS_INFO)
