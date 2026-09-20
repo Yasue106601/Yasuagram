@@ -749,19 +749,6 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     }
   }
 
-  // YASU: Hard 50 ms PacketBuffer ceiling.
-  // Prefer dropping the oldest queued packet over accumulating playout delay.
-  constexpr size_t kYasuPacketBufferCeilingMs = 50;
-  const size_t yasu_packet_ceiling_samples =
-      kYasuPacketBufferCeilingMs * (fs_hz_ / 1000);
-  while (!packet_buffer_->Empty() &&
-         packet_buffer_->GetSpanSamples(0, fs_hz_, false) >
-             yasu_packet_ceiling_samples) {
-    const size_t yasu_span_before =
-        packet_buffer_->GetSpanSamples(0, fs_hz_, false);
-    const size_t yasu_packets_before =
-        packet_buffer_->NumPacketsInBuffer();
-
     packet_buffer_->DiscardNextPacket();
 
     RTC_LOG(LS_WARNING)
