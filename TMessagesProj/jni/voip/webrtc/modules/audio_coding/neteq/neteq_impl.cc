@@ -739,19 +739,6 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
       return kOtherError;
     }
 
-    // YASU: Hard 100ms total RawBuffer ceiling.
-    constexpr size_t kYasuRawBufferCeilingMs = 80;
-    const size_t yasu_raw_ceiling_samples =
-        kYasuRawBufferCeilingMs * (fs_hz_ / 1000);
-    const size_t yasu_sync_samples = sync_buffer_->FutureLength();
-
-    while (!packet_buffer_->Empty() &&
-           packet_buffer_->NumSamplesInBuffer(decoder_frame_length_) +
-                   yasu_sync_samples >
-               yasu_raw_ceiling_samples) {
-      packet_buffer_->DiscardNextPacket();
-    }
-
     if (enable_fec_delay_adaptation_) {
       info.buffer_flush = buffer_flush_occured;
       const bool should_update_stats = !new_codec_ && !buffer_flush_occured;
@@ -1031,27 +1018,18 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
 
   sync_buffer_->PushBack(*algorithm_buffer_);
 
-  // YASU: Hard 50 ms SyncBuffer future-audio ceiling.
-  // Drop the oldest future samples instead of allowing decoded audio
-  // to accumulate and increase playout latency.
-  constexpr size_t kYasuSyncFutureCeilingMs = 80;
-  const size_t yasu_sync_future_ceiling_samples =
-      kYasuSyncFutureCeilingMs * (fs_hz_ / 1000);
-  const size_t yasu_sync_future_after_push =
+  // YASU: 50 ms SyncBuffer backlog trigger.
+  // Do NOT discard decoded audio here. DecisionLogic handles backlog
+  // reduction with FastAccelerate.
+  const size_t yasu_sync_future_after_cap =
       sync_buffer_->FutureLength();
 
-  if (yasu_sync_future_after_push > yasu_sync_future_ceiling_samples) {
-    const size_t yasu_sync_drop_samples =
-        yasu_sync_future_after_push - yasu_sync_future_ceiling_samples;
-    sync_buffer_->set_next_index(
-        sync_buffer_->next_index() + yasu_sync_drop_samples);
+  if (yasu_sync_future_after_cap > 50 * (fs_hz_ / 1000)) {
     RTC_LOG(LS_WARNING)
-        << "YASU SYNC CEILING drop_samples=" << yasu_sync_drop_samples
-        << " future_before=" << yasu_sync_future_after_push
-        << " future_after=" << sync_buffer_->FutureLength();
+        << "YASU SYNC BACKLOG_50MS"
+        << " future_ms="
+        << (yasu_sync_future_after_cap * 1000 / fs_hz_);
   }
-
-  const size_t yasu_sync_future_after_cap = sync_buffer_->FutureLength();
 
   // Extract data from `sync_buffer_` to `output`.
   size_t num_output_samples_per_channel = output_size_samples_;
