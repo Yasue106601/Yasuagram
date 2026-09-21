@@ -739,6 +739,57 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
       return kOtherError;
     }
 
+    // YASU: Unified 100ms backlog ceiling.
+    //
+    // 20ms / 50ms thresholds are handled by DecisionLogic as
+    // FastAccelerate only. No packet deletion happens there.
+    //
+    // Actual packet deletion starts only when the combined
+    // PacketBuffer + SyncBuffer backlog exceeds 100ms.
+    constexpr size_t kYasuEmergencyBacklogMs = 100;
+
+    const size_t yasu_emergency_samples =
+        kYasuEmergencyBacklogMs * (fs_hz_ / 1000);
+
+    const size_t yasu_total_backlog_samples =
+        packet_buffer_->NumSamplesInBuffer(decoder_frame_length_) +
+        sync_buffer_->FutureLength();
+
+    if (yasu_total_backlog_samples > yasu_emergency_samples) {
+      size_t yasu_dropped_packets = 0;
+
+      while (!packet_buffer_->Empty()) {
+        const size_t yasu_packet_samples =
+            packet_buffer_->NumSamplesInBuffer(decoder_frame_length_);
+
+        const size_t yasu_total_samples =
+            yasu_packet_samples + sync_buffer_->FutureLength();
+
+        if (yasu_total_samples <= yasu_emergency_samples) {
+          break;
+        }
+
+        const size_t yasu_before_packets =
+            packet_buffer_->NumPacketsInBuffer();
+
+        packet_buffer_->DiscardNextPacket();
+
+        ++yasu_dropped_packets;
+
+        RTC_LOG(LS_WARNING)
+            << "YASU EMERGENCY_DROP_100MS"
+            << " packets_before=" << yasu_before_packets
+            << " packets_dropped=" << yasu_dropped_packets
+            << " backlog_before_ms="
+            << (yasu_total_samples / (fs_hz_ / 1000))
+            << " backlog_after_ms="
+            << ((packet_buffer_->NumSamplesInBuffer(
+                     decoder_frame_length_) +
+                 sync_buffer_->FutureLength()) /
+                (fs_hz_ / 1000));
+      }
+    }
+
     if (enable_fec_delay_adaptation_) {
       info.buffer_flush = buffer_flush_occured;
       const bool should_update_stats = !new_codec_ && !buffer_flush_occured;
@@ -1895,74 +1946,153 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
                             AudioDecoder::SpeechType speech_type,
                             bool play_dtmf,
                             bool fast_accelerate) {
-  // YASU: FastAccelerate gets a larger working window so it can
-  // remove substantially more accumulated playout delay per operation.
-  // Normal accelerate remains at the original 30 ms requirement.
-  const size_t required_samples =
+  // YASU: FastAccelerate gets a 60 ms first-pass working window.
+  // Normal Accelerate keeps the original 30 ms requirement.
+  const size_t first_pass_required_samples =
       static_cast<size_t>((fast_accelerate ? 480 : 240) * fs_mult_);
+
+  // Subsequent FastAccelerate passes only need the real minimum
+  // required by Accelerate::Process(), which is approximately 30 ms.
+  const size_t next_pass_min_samples =
+      static_cast<size_t>(240 * fs_mult_);
+
   size_t borrowed_samples_per_channel = 0;
-  size_t num_channels = algorithm_buffer_->Channels();
+  const size_t num_channels = algorithm_buffer_->Channels();
   size_t decoded_length_per_channel = decoded_length / num_channels;
-  if (decoded_length_per_channel < required_samples) {
-    // Must move data from the `sync_buffer_` in order to get 30 ms.
+
+  if (decoded_length_per_channel < first_pass_required_samples) {
     borrowed_samples_per_channel =
-        static_cast<int>(required_samples - decoded_length_per_channel);
+        first_pass_required_samples - decoded_length_per_channel;
+
     memmove(&decoded_buffer[borrowed_samples_per_channel * num_channels],
             decoded_buffer, sizeof(int16_t) * decoded_length);
-    sync_buffer_->ReadInterleavedFromEnd(borrowed_samples_per_channel,
-                                         decoded_buffer);
-    decoded_length = required_samples * num_channels;
+
+    sync_buffer_->ReadInterleavedFromEnd(
+        borrowed_samples_per_channel, decoded_buffer);
+
+    decoded_length = first_pass_required_samples * num_channels;
   }
 
-  size_t samples_removed = 0;
-  Accelerate::ReturnCodes return_code =
-      accelerate_->Process(decoded_buffer, decoded_length, fast_accelerate,
-                           algorithm_buffer_.get(), &samples_removed);
-  stats_->AcceleratedSamples(samples_removed);
+  size_t total_samples_removed = 0;
+  Accelerate::ReturnCodes return_code = Accelerate::kNoStretch;
+
+  // YASU: A FastAccelerate decision may perform several consecutive
+  // stretch passes during one GetAudio() call.
+  //
+  // Pass 1 starts with up to 60 ms.
+  // Passes 2/3 can continue while at least 30 ms remain.
+  //
+  // This allows one NetEq decision to remove substantially more
+  // accumulated playout delay instead of waiting for another 10 ms
+  // playout cycle after every single stretch operation.
+  constexpr int kYasuMaxFastAcceleratePasses = 3;
+
+  const int max_passes =
+      fast_accelerate ? kYasuMaxFastAcceleratePasses : 1;
+
+  std::vector<int16_t> yasu_interleaved_buffer;
+
+  for (int pass = 0; pass < max_passes; ++pass) {
+    const int16_t* input = decoded_buffer;
+    size_t input_length = decoded_length;
+
+    if (pass > 0) {
+      const size_t input_samples_per_channel =
+          algorithm_buffer_->Size();
+
+      // Accelerate::Process() requires roughly 30 ms.
+      if (input_samples_per_channel < next_pass_min_samples) {
+        break;
+      }
+
+      yasu_interleaved_buffer.resize(
+          input_samples_per_channel * num_channels);
+
+      algorithm_buffer_->ReadInterleaved(
+          input_samples_per_channel,
+          yasu_interleaved_buffer.data());
+
+      input = yasu_interleaved_buffer.data();
+      input_length =
+          input_samples_per_channel * num_channels;
+
+      algorithm_buffer_->Clear();
+    }
+
+    size_t samples_removed = 0;
+
+    return_code = accelerate_->Process(
+        input,
+        input_length,
+        fast_accelerate,
+        algorithm_buffer_.get(),
+        &samples_removed);
+
+    total_samples_removed += samples_removed;
+
+    if (!fast_accelerate ||
+        return_code == Accelerate::kNoStretch ||
+        return_code == Accelerate::kError ||
+        samples_removed == 0) {
+      break;
+    }
+  }
+
+  stats_->AcceleratedSamples(total_samples_removed);
+
   switch (return_code) {
     case Accelerate::kSuccess:
       last_mode_ = Mode::kAccelerateSuccess;
       break;
+
     case Accelerate::kSuccessLowEnergy:
       last_mode_ = Mode::kAccelerateLowEnergy;
       break;
+
     case Accelerate::kNoStretch:
       last_mode_ = Mode::kAccelerateFail;
       break;
+
     case Accelerate::kError:
-      // TODO(hlundin): Map to Modes::kError instead?
       last_mode_ = Mode::kAccelerateFail;
       return kAccelerateError;
   }
 
   if (borrowed_samples_per_channel > 0) {
-    // Copy borrowed samples back to the `sync_buffer_`.
     size_t length = algorithm_buffer_->Size();
+
     if (length < borrowed_samples_per_channel) {
-      // This destroys the beginning of the buffer, but will not cause any
-      // problems.
       sync_buffer_->ReplaceAtIndex(
           *algorithm_buffer_,
           sync_buffer_->Size() - borrowed_samples_per_channel);
-      sync_buffer_->PushFrontZeros(borrowed_samples_per_channel - length);
+
+      sync_buffer_->PushFrontZeros(
+          borrowed_samples_per_channel - length);
+
       algorithm_buffer_->PopFront(length);
+
       RTC_DCHECK(algorithm_buffer_->Empty());
     } else {
       sync_buffer_->ReplaceAtIndex(
-          *algorithm_buffer_, borrowed_samples_per_channel,
+          *algorithm_buffer_,
+          borrowed_samples_per_channel,
           sync_buffer_->Size() - borrowed_samples_per_channel);
-      algorithm_buffer_->PopFront(borrowed_samples_per_channel);
+
+      algorithm_buffer_->PopFront(
+          borrowed_samples_per_channel);
     }
   }
 
-  // If last packet was decoded as an inband CNG, set mode to CNG instead.
   if (speech_type == AudioDecoder::kComfortNoise) {
     last_mode_ = Mode::kCodecInternalCng;
   }
+
   if (!play_dtmf) {
     dtmf_tone_generator_->Reset();
   }
+
   expand_->Reset();
+
   return 0;
 }
 
