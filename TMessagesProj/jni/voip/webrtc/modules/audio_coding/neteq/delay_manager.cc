@@ -119,9 +119,10 @@ void DelayManager::Update(int arrival_delay_ms, bool reordered) {
   }
 
   constexpr int kYasuMaxTargetDelayMs = 80;
+  constexpr int kYasuMinTargetDelayMs = 30;
 
   // YASU: Never allow adaptive NetEq delay to grow into hundreds of ms.
-  // Prefer packet loss/PLC/stutter over accumulating playback latency.
+  // Prefer a small stable playback buffer over repeated underruns.
   unlimited_target_level_ms_ =
       std::min(target_level_ms_, kYasuMaxTargetDelayMs);
 
@@ -132,11 +133,16 @@ void DelayManager::Update(int arrival_delay_ms, bool reordered) {
 
   target_level_ms_ =
       std::min(target_level_ms_, kYasuMaxTargetDelayMs);
+
   if (packet_len_ms_ > 0) {
     // Limit to 75% of maximum buffer size.
     target_level_ms_ = std::min(
         target_level_ms_, 3 * max_packets_in_buffer_ * packet_len_ms_ / 4);
   }
+
+  // YASU: Prevent Target=0..10ms from starving the jitter buffer.
+  target_level_ms_ =
+      std::max(target_level_ms_, kYasuMinTargetDelayMs);
 }
 
 int DelayManager::SetPacketAudioLength(int length_ms) {

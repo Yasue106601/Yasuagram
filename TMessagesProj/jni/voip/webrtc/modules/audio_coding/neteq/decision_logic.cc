@@ -169,17 +169,17 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
     return NetEq::Operation::kNormal;
   }
 
-  // YASU: Maximum-priority backlog draining.
+  // YASU: Two-level backlog draining.
   //
-  // 20ms SyncBuffer -> FastAccelerate immediately.
-  // 50ms PacketBuffer span -> FastAccelerate immediately.
-  // 50+ packets -> FastAccelerate immediately, regardless of span.
+  // <50ms  -> no forced backlog draining here.
+  // >=50ms -> Accelerate: reduce backlog, but less aggressively.
+  // >=70ms -> FastAccelerate: drain backlog aggressively.
   //
-  // These conditions deliberately run BEFORE PostponeDecode(), so backlog
-  // draining cannot be postponed while stale packets are queued.
-  constexpr size_t kYasuEarlyFastAccelerateMs = 20;
-  constexpr size_t kYasuFastAccelerateMs = 50;
-  constexpr size_t kYasuFastAcceleratePacketCount = 50;
+  // 20ms is intentionally removed as an acceleration threshold.
+  // These checks run BEFORE PostponeDecode(), so stale queued audio
+  // cannot indefinitely postpone backlog reduction.
+  constexpr size_t kYasuAccelerateMs = 50;
+  constexpr size_t kYasuFastAccelerateMs = 70;
 
   const size_t yasu_sync_buffer_ms =
       status.sync_buffer_samples / sample_rate_khz_;
@@ -188,10 +188,12 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
       status.packet_buffer_info.span_samples / sample_rate_khz_;
 
   const bool yasu_fast_accelerate =
-      yasu_sync_buffer_ms >= kYasuEarlyFastAccelerateMs ||
-      yasu_packet_buffer_ms >= kYasuFastAccelerateMs ||
-      status.packet_buffer_info.num_packets >=
-          kYasuFastAcceleratePacketCount;
+      yasu_sync_buffer_ms >= kYasuFastAccelerateMs ||
+      yasu_packet_buffer_ms >= kYasuFastAccelerateMs;
+
+  const bool yasu_accelerate =
+      yasu_sync_buffer_ms >= kYasuAccelerateMs ||
+      yasu_packet_buffer_ms >= kYasuAccelerateMs;
 
   if (yasu_fast_accelerate) {
     RTC_LOG(LS_WARNING)
@@ -200,6 +202,15 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
         << " span_ms=" << yasu_packet_buffer_ms
         << " packets=" << status.packet_buffer_info.num_packets;
     return NetEq::Operation::kFastAccelerate;
+  }
+
+  if (yasu_accelerate) {
+    RTC_LOG(LS_WARNING)
+        << "YASU ACCELERATE_50MS"
+        << " sync_ms=" << yasu_sync_buffer_ms
+        << " span_ms=" << yasu_packet_buffer_ms
+        << " packets=" << status.packet_buffer_info.num_packets;
+    return NetEq::Operation::kAccelerate;
   }
 
   if (PostponeDecode(status)) {
@@ -354,24 +365,29 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
       const int playout_delay_ms = GetPlayoutDelayMs(status);
       const int sync_buffer_ms = static_cast<int>(status.sync_buffer_samples / sample_rate_khz_);
       const int64_t low_limit = TargetLevelMs();
+
+      // YASU: Stable-delay mode uses the same absolute backlog policy
+      // as every other acceleration path:
+      // <50ms -> normal
+      // 50-69ms -> Accelerate
+      // >=70ms -> FastAccelerate
+      constexpr int kYasuAccelerateLimitMs = 50;
+      constexpr int kYasuFastAccelerateLimitMs = 70;
+
       RTC_LOG(LS_WARNING)
           << "YASU DELAY DECISION"
           << " target_ms=" << low_limit
           << " sync_buffer_ms=" << sync_buffer_ms
           << " playout_delay_ms=" << playout_delay_ms
-          << " accel_limit_ms=" << (static_cast<int>(low_limit) + 10)
-          << " fast_limit_ms=" << (static_cast<int>(low_limit) + 30);
-      const int yasu_accelerate_limit_ms =
-          static_cast<int>(low_limit) + 5;
-      const int yasu_fast_accelerate_limit_ms =
-          static_cast<int>(low_limit) + 30;
+          << " accel_limit_ms=" << kYasuAccelerateLimitMs
+          << " fast_limit_ms=" << kYasuFastAccelerateLimitMs;
 
-      if (sync_buffer_ms >= yasu_fast_accelerate_limit_ms) {
+      if (sync_buffer_ms >= kYasuFastAccelerateLimitMs) {
         return NetEq::Operation::kFastAccelerate;
       }
 
       if (TimescaleAllowed()) {
-        if (sync_buffer_ms >= yasu_accelerate_limit_ms) {
+        if (sync_buffer_ms >= kYasuAccelerateLimitMs) {
           return NetEq::Operation::kAccelerate;
         }
         if (sync_buffer_ms < low_limit && playout_delay_ms < low_limit) {
@@ -384,17 +400,24 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
           target_level_samples * 3 / 4,
           target_level_samples -
               config_.deceleration_target_level_offset_ms * sample_rate_khz_);
-      const int high_limit = std::max(
-          target_level_samples,
-          low_limit + kDelayAdjustmentGranularityMs * sample_rate_khz_);
+
+      const int yasu_accelerate_limit =
+          50 * sample_rate_khz_;
+      const int yasu_fast_accelerate_limit =
+          70 * sample_rate_khz_;
 
       const int buffer_level_samples =
           buffer_level_filter_->filtered_current_level();
-      if (buffer_level_samples >= high_limit * 4)
+
+      // YASU: All acceleration paths use the same absolute
+      // 50ms / 70ms backlog policy.
+      if (buffer_level_samples >= yasu_fast_accelerate_limit)
         return NetEq::Operation::kFastAccelerate;
+
       if (TimescaleAllowed()) {
-        if (buffer_level_samples >= high_limit)
+        if (buffer_level_samples >= yasu_accelerate_limit)
           return NetEq::Operation::kAccelerate;
+
         if (buffer_level_samples < low_limit)
           return NetEq::Operation::kPreemptiveExpand;
       }
@@ -441,16 +464,29 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
     // Once its PacketBuffer residence reaches 50 ms, use it instead of
     // continuing to return NoPacket. This limits excessive NetEq waiting
     // without dropping the packet.
-    constexpr int kYasuMaxPacketWaitMs = 50;
-    if (status.packet_buffer_info.span_samples_wait_time >=
-        static_cast<size_t>(kYasuMaxPacketWaitMs * sample_rate_khz_)) {
+    // YASU: Future-packet waiting follows the same global
+    // 50ms / 70ms acceleration policy.
+    constexpr int kYasuAcceleratePacketWaitMs = 50;
+    constexpr int kYasuFastAcceleratePacketWaitMs = 70;
+
+    const size_t yasu_packet_wait_ms =
+        status.packet_buffer_info.span_samples_wait_time /
+        sample_rate_khz_;
+
+    if (yasu_packet_wait_ms >= kYasuFastAcceleratePacketWaitMs) {
       RTC_LOG(LS_WARNING)
-          << "YASU FORCE_FUTURE_PACKET"
-          << " wait_ms="
-          << (status.packet_buffer_info.span_samples_wait_time /
-              sample_rate_khz_)
+          << "YASU FORCE_FUTURE_FAST_ACCELERATE"
+          << " wait_ms=" << yasu_packet_wait_ms
           << " leap_ms=" << (timestamp_leap / sample_rate_khz_);
       return NetEq::Operation::kFastAccelerate;
+    }
+
+    if (yasu_packet_wait_ms >= kYasuAcceleratePacketWaitMs) {
+      RTC_LOG(LS_WARNING)
+          << "YASU FORCE_FUTURE_ACCELERATE"
+          << " wait_ms=" << yasu_packet_wait_ms
+          << " leap_ms=" << (timestamp_leap / sample_rate_khz_);
+      return NetEq::Operation::kAccelerate;
     }
 
     if ((PacketTooEarly(status) && !above_target_delay) ||
