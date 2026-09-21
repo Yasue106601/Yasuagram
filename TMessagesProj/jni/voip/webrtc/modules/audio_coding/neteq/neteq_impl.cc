@@ -755,7 +755,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
         packet_buffer_->NumSamplesInBuffer(decoder_frame_length_) +
         sync_buffer_->FutureLength();
 
-    if (yasu_total_backlog_samples > yasu_emergency_samples) {
+    if (yasu_total_backlog_samples >= yasu_emergency_samples) {
       size_t yasu_dropped_packets = 0;
 
       while (!packet_buffer_->Empty()) {
@@ -765,7 +765,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
         const size_t yasu_total_samples =
             yasu_packet_samples + sync_buffer_->FutureLength();
 
-        if (yasu_total_samples <= yasu_emergency_samples) {
+        if (yasu_total_samples < yasu_emergency_samples) {
           break;
         }
 
