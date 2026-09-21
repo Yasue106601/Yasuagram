@@ -1063,7 +1063,7 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
     const int yasu_pushed_ms =
         static_cast<int>(yasu_sync_pushed * 1000 / yasu_sample_rate);
     const int yasu_future_after_push_ms =
-        static_cast<int>(yasu_sync_future_after_push * 1000 / yasu_sample_rate);
+        static_cast<int>(yasu_sync_future_after_cap * 1000 / yasu_sample_rate);
     const int yasu_future_after_output_ms =
         static_cast<int>(yasu_sync_future_after_output * 1000 / yasu_sample_rate);
 
@@ -1099,7 +1099,7 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
         << " pushed_ms="
         << (yasu_sync_pushed * 1000 / fs_hz_)
         << " future_after_push_ms="
-        << (yasu_sync_future_after_push * 1000 / fs_hz_)
+        << (yasu_sync_future_after_cap * 1000 / fs_hz_)
         << " output_ms="
         << (num_output_samples_per_channel * 1000 / fs_hz_)
         << " future_after_output_ms="
