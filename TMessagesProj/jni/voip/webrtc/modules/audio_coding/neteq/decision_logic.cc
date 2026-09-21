@@ -177,7 +177,7 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
   // Once decoded audio waiting for playout exceeds 30 ms, accelerate
   // immediately instead of waiting for PacketBuffer to reach 100 ms.
   constexpr size_t kYasuSyncFastAccelerateMs = 20;
-  constexpr size_t kYasuSyncBufferCeilingMs = 30;
+  constexpr size_t kYasuSyncBufferCeilingMs = 80;
 
   const size_t yasu_sync_buffer_ms =
       status.sync_buffer_samples / sample_rate_khz_;
@@ -201,7 +201,7 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
   // YASU: Hard PacketBuffer latency ceiling.
   // Never allow accumulated audio payload to remain above 100 ms
   // without immediately entering FastAccelerate.
-  constexpr size_t kYasuPacketBufferCeilingMs = 30;
+  constexpr size_t kYasuPacketBufferCeilingMs = 80;
   const size_t yasu_packet_buffer_ms =
       status.packet_buffer_info.num_samples / sample_rate_khz_;
 
@@ -290,7 +290,7 @@ void DecisionLogic::FilterBufferLevel(size_t buffer_size_samples) {
 
     // YASU: Hard-limit the filtered NetEq buffer contribution.
     // Prefer latency growth to be cut rather than carried forward.
-    constexpr int kYasuMaxFilteredBufferMs = 20;
+    constexpr int kYasuMaxFilteredBufferMs = 80;
     const int max_filtered_samples =
         kYasuMaxFilteredBufferMs * sample_rate_khz_;
     if (buffer_level_filter_->filtered_current_level() >
@@ -370,7 +370,7 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
           << " fast_limit_ms=" << (static_cast<int>(low_limit) + 30);
       const int yasu_accelerate_limit_ms =
           static_cast<int>(low_limit) + 5;
-      constexpr int kYasuHardDelayCeilingMs = 30;
+      constexpr int kYasuHardDelayCeilingMs = 80;
       const int yasu_fast_accelerate_limit_ms =
           static_cast<int>(low_limit) + 5;
 
@@ -453,7 +453,7 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
     // Once its PacketBuffer residence reaches 100 ms, use it instead of
     // continuing to return NoPacket. This limits excessive NetEq waiting
     // without dropping the packet.
-    constexpr int kYasuMaxPacketWaitMs = 30;
+    constexpr int kYasuMaxPacketWaitMs = 80;
     if (status.packet_buffer_info.span_samples_wait_time >=
         static_cast<size_t>(kYasuMaxPacketWaitMs * sample_rate_khz_)) {
       RTC_LOG(LS_WARNING)

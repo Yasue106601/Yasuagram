@@ -111,45 +111,47 @@ void AsyncUDPSocket::OnReadEvent(Socket* socket) {
   RTC_DCHECK(socket_.get() == socket);
   RTC_DCHECK_RUN_ON(&sequence_checker_);
 
-  Socket::ReceiveBuffer receive_buffer(buffer_);
-  int len = socket_->RecvFrom(receive_buffer);
-  if (len < 0) {
-    // An error here typically means we got an ICMP error in response to our
-    // send datagram, indicating the remote address was unreachable.
-    // When doing ICE, this kind of thing will often happen.
-    // TODO: Do something better like forwarding the error to the user.
-    SocketAddress local_addr = socket_->GetLocalAddress();
-    RTC_LOG(LS_INFO) << "AsyncUDPSocket[" << local_addr.ToSensitiveString()
-                     << "] receive failed with error " << socket_->GetError();
-    return;
-  }
-  if (len == 0) {
-    // Spurios wakeup.
-    return;
-  }
+  // YASU: Drain a small UDP burst immediately to reduce receive-side delay.
+  constexpr int kYasuMaxPacketsPerReadEvent = 8;
 
-  if (!receive_buffer.arrival_time) {
-    // Timestamp from socket is not available.
-    receive_buffer.arrival_time = webrtc::Timestamp::Micros(rtc::TimeMicros());
-  } else {
-    if (!socket_time_offset_) {
-      // Estimate timestamp offset from first packet arrival time unless
-      // disabled
-      bool estimate_time_offset = !IsScmTimeStampExperimentDisabled();
-      if (estimate_time_offset) {
-        socket_time_offset_ = webrtc::Timestamp::Micros(rtc::TimeMicros()) -
-                              *receive_buffer.arrival_time;
-      } else {
-        socket_time_offset_ = webrtc::TimeDelta::Micros(0);
-      }
+  for (int i = 0; i < kYasuMaxPacketsPerReadEvent; ++i) {
+    Socket::ReceiveBuffer receive_buffer(buffer_);
+    int len = socket_->RecvFrom(receive_buffer);
+
+    if (len < 0) {
+      // No more packets available, or a receive error occurred.
+      return;
     }
-    *receive_buffer.arrival_time += *socket_time_offset_;
-  }
-  NotifyPacketReceived(ReceivedPacket(receive_buffer.payload,
-                                      receive_buffer.source_address,
-                                      receive_buffer.arrival_time));
-}
 
+    if (len == 0) {
+      // Spurious wakeup.
+      return;
+    }
+
+    if (!receive_buffer.arrival_time) {
+      // Timestamp from socket is not available.
+      receive_buffer.arrival_time =
+          webrtc::Timestamp::Micros(rtc::TimeMicros());
+    } else {
+      if (!socket_time_offset_) {
+        bool estimate_time_offset = !IsScmTimeStampExperimentDisabled();
+        if (estimate_time_offset) {
+          socket_time_offset_ =
+              webrtc::Timestamp::Micros(rtc::TimeMicros()) -
+              *receive_buffer.arrival_time;
+        } else {
+          socket_time_offset_ = webrtc::TimeDelta::Micros(0);
+        }
+      }
+      *receive_buffer.arrival_time += *socket_time_offset_;
+    }
+
+    NotifyPacketReceived(ReceivedPacket(
+        receive_buffer.payload,
+        receive_buffer.source_address,
+        receive_buffer.arrival_time));
+  }
+}
 void AsyncUDPSocket::OnWriteEvent(Socket* socket) {
   SignalReadyToSend(this);
 }

@@ -738,6 +738,20 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
       // An error occurred.
       return kOtherError;
     }
+
+    // YASU: Hard 100ms total RawBuffer ceiling.
+    constexpr size_t kYasuRawBufferCeilingMs = 80;
+    const size_t yasu_raw_ceiling_samples =
+        kYasuRawBufferCeilingMs * (fs_hz_ / 1000);
+    const size_t yasu_sync_samples = sync_buffer_->FutureLength();
+
+    while (!packet_buffer_->Empty() &&
+           packet_buffer_->NumSamplesInBuffer(decoder_frame_length_) +
+                   yasu_sync_samples >
+               yasu_raw_ceiling_samples) {
+      packet_buffer_->DiscardNextPacket();
+    }
+
     if (enable_fec_delay_adaptation_) {
       info.buffer_flush = buffer_flush_occured;
       const bool should_update_stats = !new_codec_ && !buffer_flush_occured;
@@ -1020,7 +1034,7 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
   // YASU: Hard 50 ms SyncBuffer future-audio ceiling.
   // Drop the oldest future samples instead of allowing decoded audio
   // to accumulate and increase playout latency.
-  constexpr size_t kYasuSyncFutureCeilingMs = 50;
+  constexpr size_t kYasuSyncFutureCeilingMs = 80;
   const size_t yasu_sync_future_ceiling_samples =
       kYasuSyncFutureCeilingMs * (fs_hz_ / 1000);
   const size_t yasu_sync_future_after_push =
@@ -1306,8 +1320,9 @@ int NetEqImpl::GetDecision(Operation* operation,
       << "YASU TRACE DECISION"
       << " op=" << static_cast<int>(*operation)
       << " packets=" << status.packet_buffer_info.num_packets
-      << " span_samples=" << status.packet_buffer_info.span_samples
-      << " sync_samples=" << status.sync_buffer_samples
+      << " span_ms=" << (status.packet_buffer_info.span_samples * 1000 / fs_hz_)
+      << " wait_ms=" << (status.packet_buffer_info.span_samples_wait_time * 1000 / fs_hz_)
+      << " sync_ms=" << (status.sync_buffer_samples * 1000 / fs_hz_)
       << " next_packet=" << (packet ? 1 : 0);
 
   // Disallow time stretching if this packet is DTX, because such a decision may

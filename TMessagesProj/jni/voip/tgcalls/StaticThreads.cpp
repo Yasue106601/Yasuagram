@@ -63,6 +63,7 @@ public:
     media_ = create("tgc-media" + suffix);
     worker_ = create("tgc-work" + suffix);
     network_ = create_network("tgc-net" + suffix);
+    network_->SetPriority(rtc::ThreadPriority::kHigh);
       
     media_->AllowInvokesToThread(worker_.get());
     media_->AllowInvokesToThread(network_.get());
