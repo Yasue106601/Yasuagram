@@ -281,11 +281,15 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
   RTC_DCHECK_LE(nBytesPerSample * nSamples * nChannels,
                 AudioFrame::kMaxDataSizeBytes);
 
+  const int64_t yasu_mix_start_us = rtc::TimeMicros();
   mixer_->Mix(nChannels, &mixed_frame_);
+  const int64_t yasu_mix_us = rtc::TimeMicros() - yasu_mix_start_us;
+
   *elapsed_time_ms = mixed_frame_.elapsed_time_ms_;
   *ntp_time_ms = mixed_frame_.ntp_time_ms_;
 
   static int yasu_apm_count = 0;
+  int64_t yasu_apm_us = 0;
   if (audio_processing_) {
     if ((++yasu_apm_count % 100) == 0) {
       RTC_LOG(LS_INFO)
@@ -294,8 +298,10 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
           << " channels=" << mixed_frame_.num_channels_
           << " samples=" << mixed_frame_.samples_per_channel_;
     }
+    const int64_t yasu_apm_start_us = rtc::TimeMicros();
     const auto error =
         ProcessReverseAudioFrame(audio_processing_, &mixed_frame_);
+    yasu_apm_us = rtc::TimeMicros() - yasu_apm_start_us;
     RTC_DCHECK_EQ(error, AudioProcessing::kNoError);
   } else {
     if ((++yasu_apm_count % 100) == 0) {
@@ -310,9 +316,11 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
       << " frame_samples=" << mixed_frame_.samples_per_channel_
       << " channels=" << mixed_frame_.num_channels_;
 
+  const int64_t yasu_resample_start_us = rtc::TimeMicros();
   nSamplesOut = Resample(mixed_frame_, samplesPerSec, &render_resampler_,
                          static_cast<int16_t*>(audioSamples));
-
+  const int64_t yasu_resample_us =
+      rtc::TimeMicros() - yasu_resample_start_us;
 
   int64_t playback_processing_time =
       rtc::TimeMicros() - playback_start;
@@ -342,6 +350,12 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
           << "Average Playback Processing(us): "
           << (playback_total_time / playback_callback_count);
 
+      RTC_LOG(LS_VERBOSE)
+          << "YASU STAGE TIMING(us)"
+          << " Mix=" << yasu_mix_us
+          << " APM=" << yasu_apm_us
+          << " Resample=" << yasu_resample_us
+          << " Total=" << playback_processing_time;
 
       RTC_LOG(LS_VERBOSE)
           << "Maximum Playback Processing(us): "

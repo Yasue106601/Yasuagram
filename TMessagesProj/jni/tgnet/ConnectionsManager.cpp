@@ -343,6 +343,14 @@ void ConnectionsManager::wakeup() {
 }
 
 void *ConnectionsManager::ThreadProc(void *data) {
+#ifdef ANDROID
+    struct sched_param yasu_sched_param;
+    yasu_sched_param.sched_priority = 2;
+    int yasu_sched_result = pthread_setschedparam(pthread_self(), SCHED_FIFO, &yasu_sched_param);
+    if (LOGS_ENABLED) {
+        DEBUG_D("YASU NETWORK THREAD PRIORITY: SCHED_FIFO priority=2 result=%d", yasu_sched_result);
+    }
+#endif
     if (LOGS_ENABLED) DEBUG_D("network thread started");
     auto networkManager = (ConnectionsManager *) (data);
 #ifdef ANDROID
