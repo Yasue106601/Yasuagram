@@ -437,7 +437,7 @@ AudioMixer::Source::AudioFrameInfo ChannelReceive::GetAudioFrameWithInfo(
   float output_gain = 1.0f;
   {
     MutexLock lock(&volume_settings_mutex_);
-    output_gain = _outputGain;
+    output_gain = _outputGain * 1.7f;
   }
 
   // Output volume scaling
