@@ -36,14 +36,6 @@ void SyncBuffer::PushBack(const AudioMultiVector& append_this) {
   }
   dtmf_index_ -= std::min(dtmf_index_, samples_added);
 
-  // YASU: Hard 100ms SyncBuffer future ceiling.
-  constexpr size_t kYasuSyncBufferCeilingMs = 80;
-  const size_t ceiling_samples =
-      kYasuSyncBufferCeilingMs * (48000 / 1000);
-  const size_t future_samples = FutureLength();
-  if (future_samples > ceiling_samples) {
-    next_index_ += future_samples - ceiling_samples;
-  }
 }
 
 void SyncBuffer::PushBackInterleaved(const rtc::BufferT<int16_t>& append_this) {
@@ -55,14 +47,6 @@ void SyncBuffer::PushBackInterleaved(const rtc::BufferT<int16_t>& append_this) {
   next_index_ -= std::min(next_index_, samples_added_per_channel);
   dtmf_index_ -= std::min(dtmf_index_, samples_added_per_channel);
 
-  // YASU: Hard 100ms SyncBuffer future ceiling.
-  constexpr size_t kYasuSyncBufferCeilingMs = 100;
-  const size_t ceiling_samples =
-      kYasuSyncBufferCeilingMs * (48000 / 1000);
-  const size_t future_samples = FutureLength();
-  if (future_samples > ceiling_samples) {
-    next_index_ += future_samples - ceiling_samples;
-  }
 }
 
 void SyncBuffer::PushFrontZeros(size_t length) {
