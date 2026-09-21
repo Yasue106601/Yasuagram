@@ -178,6 +178,10 @@ int32_t AudioTransportImpl::RecordedDataIsAvailable(
                       swap_stereo_channels, audio_processing_,
                       audio_frame.get());
 
+  // YASU: Boost microphone audio sent to other participants.
+  // Applied after AudioProcessing and before the send pipeline.
+  AudioFrameOperations::ScaleWithSat(1.7f, audio_frame.get());
+
 
   int64_t capture_processing_time =
       rtc::TimeMicros() - capture_start;
