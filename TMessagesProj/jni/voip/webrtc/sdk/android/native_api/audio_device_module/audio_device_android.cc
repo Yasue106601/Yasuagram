@@ -183,9 +183,8 @@ rtc::scoped_refptr<AudioDeviceModule> CreateAndroidAudioDeviceModule(
     AudioDeviceModule::AudioLayer audio_layer) {
   auto env = AttachCurrentThreadIfNeeded();
   auto j_context = webrtc::GetAppContext(env);
-  // YASU: Force Java AudioTrack backend permanently.
-  // All latency/playout tuning is intentionally kept on this path.
-  audio_layer = AudioDeviceModule::kAndroidJavaAudio;
+  // YASU: Respect the backend requested by the caller.
+  // Group Call requests AAudio for low-latency playout.
 
   switch (audio_layer) {
     case AudioDeviceModule::kAndroidJavaAudio:
@@ -205,6 +204,7 @@ rtc::scoped_refptr<AudioDeviceModule> CreateAndroidAudioDeviceModule(
         env, j_context.obj());
 #if defined(WEBRTC_AUDIO_DEVICE_INCLUDE_ANDROID_AAUDIO)
     case AudioDeviceModule::kAndroidAAudioAudio:
+      RTC_LOG(LS_WARNING) << "YASU REAL AUDIO BACKEND = AAUDIO";
       // AAudio based audio for both input and output.
       return CreateAAudioAudioDeviceModule(env, j_context.obj());
     case AudioDeviceModule::kAndroidJavaInputAndAAudioOutputAudio:
