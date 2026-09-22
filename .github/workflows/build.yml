@@ -19,8 +19,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -29,19 +32,24 @@ jobs:
 
       - name: Install Android build tools
         run: |
-          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.2.12479018" \
+            "cmake;3.22.1"
           yes | sdkmanager --licenses >/dev/null || true
 
-      - name: Gradle cache
+      - name: Cache Android C++ build state
         uses: actions/cache@v4
         with:
           path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
             TMessagesProj/.cxx
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*','**/gradle-wrapper.properties') }}
+            TMessagesProj_App/.cxx
+            ~/.gradle/caches
+          key: yasuagram-cxx-${{ runner.os }}-${{ hashFiles('TMessagesProj/jni/**/*.cpp','TMessagesProj/jni/**/*.cc','TMessagesProj/jni/**/*.c','TMessagesProj/jni/**/*.h','TMessagesProj/jni/**/*.hpp','TMessagesProj/CMakeLists.txt','TMessagesProj/jni/**/CMakeLists.txt') }}
           restore-keys: |
-            gradle-${{ runner.os }}-
+            yasuagram-cxx-${{ runner.os }}-
 
       - name: Decode Keystore
         env:
@@ -52,7 +60,10 @@ jobs:
       - name: Build APK
         run: |
           chmod +x gradlew
-          ./gradlew :TMessagesProj_App:assembleAfatRelease --build-cache --no-daemon \
+          ./gradlew :TMessagesProj_App:assembleAfatRelease \
+            --build-cache \
+            --parallel \
+            --no-daemon \
             -PRELEASE_STORE_PASSWORD="${{ secrets.KEYSTORE_PASSWORD }}" \
             -PRELEASE_KEY_ALIAS="${{ secrets.KEY_ALIAS }}" \
             -PRELEASE_KEY_PASSWORD="${{ secrets.KEY_PASSWORD }}"
