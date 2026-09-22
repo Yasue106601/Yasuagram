@@ -2113,16 +2113,36 @@ constexpr int kYasuMaxFastAcceleratePasses = 12;
         break;
       }
 
+      // YASU: Hard AlgorithmBuffer processing ceiling.
+      // Never feed more than 120 ms into one FastAccelerate pass.
+      // This is a processing ceiling, NOT a packet/audio deletion ceiling.
+      constexpr size_t kYasuAlgorithmBufferCeilingMs = 120;
+      const size_t yasu_algorithm_ceiling_samples =
+          kYasuAlgorithmBufferCeilingMs * (fs_hz_ / 1000);
+
+      const size_t yasu_process_samples =
+          std::min(input_samples_per_channel,
+                   yasu_algorithm_ceiling_samples);
+
       yasu_interleaved_buffer.resize(
-          input_samples_per_channel * num_channels);
+          yasu_process_samples * num_channels);
 
       algorithm_buffer_->ReadInterleaved(
-          input_samples_per_channel,
+          yasu_process_samples,
           yasu_interleaved_buffer.data());
 
       input = yasu_interleaved_buffer.data();
       input_length =
-          input_samples_per_channel * num_channels;
+          yasu_process_samples * num_channels;
+
+      RTC_LOG(LS_WARNING)
+          << "YASU ALGORITHM CEILING"
+          << " buffer_ms="
+          << (input_samples_per_channel * 1000 / fs_hz_)
+          << " process_ms="
+          << (yasu_process_samples * 1000 / fs_hz_)
+          << " ceiling_ms="
+          << kYasuAlgorithmBufferCeilingMs;
 
       algorithm_buffer_->Clear();
     }
@@ -2137,6 +2157,19 @@ constexpr int kYasuMaxFastAcceleratePasses = 12;
         &samples_removed);
 
     total_samples_removed += samples_removed;
+
+    RTC_LOG(LS_WARNING)
+        << "YASU ACCELERATE PASS"
+        << " pass=" << pass
+        << " input_ms="
+        << (input_length / num_channels * 1000 / fs_hz_)
+        << " removed_ms="
+        << (samples_removed * 1000 / fs_hz_)
+        << " algorithm_ms="
+        << (algorithm_buffer_->Size() * 1000 / fs_hz_)
+        << " total_removed_ms="
+        << (total_samples_removed * 1000 / fs_hz_)
+        << " result=" << static_cast<int>(return_code);
 
     if (!fast_accelerate ||
         return_code == Accelerate::kNoStretch ||
