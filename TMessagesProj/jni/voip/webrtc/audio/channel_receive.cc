@@ -437,7 +437,7 @@ AudioMixer::Source::AudioFrameInfo ChannelReceive::GetAudioFrameWithInfo(
   float output_gain = 1.0f;
   {
     MutexLock lock(&volume_settings_mutex_);
-    output_gain = _outputGain * 1.7f;
+    output_gain = _outputGain * 2.0f;
   }
 
   // Output volume scaling
@@ -665,6 +665,14 @@ void ChannelReceive::SetReceiveCodecs(
 }
 
 void ChannelReceive::OnRtpPacket(const RtpPacketReceived& packet) {
+  RTC_LOG(LS_INFO)
+      << "YASU E2E TRACE"
+      << " stage=T4_CHANNEL_RECEIVE"
+      << " time_us=" << rtc::TimeMicros()
+      << " seq=" << packet.SequenceNumber()
+      << " ssrc=" << packet.Ssrc()
+      << " rtp_ts=" << packet.Timestamp();
+
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);
   // TODO(bugs.webrtc.org/11993): Expect to be called exclusively on the
   // network thread. Once that's done, the same applies to

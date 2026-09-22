@@ -151,6 +151,20 @@ void AAudioPlayer::OnErrorCallback(aaudio_result_t error) {
 
 aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
                                                            int32_t num_frames) {
+  // YASU E2E TRACE T13_AAUDIO START
+  const int64_t yasu_t13_aaudio_start_us = rtc::TimeMicros();
+  struct YasuT13AAUDIOTraceGuard {
+    int64_t start_us;
+    ~YasuT13AAUDIOTraceGuard() {
+      const int64_t end_us = rtc::TimeMicros();
+      RTC_LOG(LS_INFO)
+          << "YASU E2E TRACE"
+          << " stage=T13_AAUDIO_END"
+          << " time_us=" << end_us
+          << " cost_us=" << (end_us - start_us) << " num_frames=" << num_frames;
+    }
+  } yasu_t13aaudio_trace_guard{yasu_t13_aaudio_start_us};
+
 
   static int64_t player_callback_count = 0;
   static int64_t player_total_frames = 0;

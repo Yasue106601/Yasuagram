@@ -228,6 +228,20 @@ namespace tgvoip {
 	}
 
 	void AudioTrackJNI_nativeCallback(JNIEnv *env, jobject thiz, jbyteArray buffer) {
+  // YASU E2E TRACE T13_JAVA START
+  const int64_t yasu_t13_java_start_us = rtc::TimeMicros();
+  struct YasuT13JAVATraceGuard {
+    int64_t start_us;
+    ~YasuT13JAVATraceGuard() {
+      const int64_t end_us = rtc::TimeMicros();
+      RTC_LOG(LS_INFO)
+          << "YASU E2E TRACE"
+          << " stage=T13_JAVA_END"
+          << " time_us=" << end_us
+          << " cost_us=" << (end_us - start_us);
+    }
+  } yasu_t13java_trace_guard{yasu_t13_java_start_us};
+
 		jlong inst = env->GetLongField(thiz, audioTrackInstanceFld);
 		AudioOutputAndroid *in = (AudioOutputAndroid *) (intptr_t) inst;
 		in->HandleCallback(env, buffer);

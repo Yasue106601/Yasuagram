@@ -180,7 +180,7 @@ int32_t AudioTransportImpl::RecordedDataIsAvailable(
 
   // YASU: Boost microphone audio sent to other participants.
   // Applied after AudioProcessing and before the send pipeline.
-  AudioFrameOperations::ScaleWithSat(1.7f, audio_frame.get());
+  AudioFrameOperations::ScaleWithSat(2.0f, audio_frame.get());
 
 
   int64_t capture_processing_time =
@@ -263,6 +263,20 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
                                              size_t& nSamplesOut,
                                              int64_t* elapsed_time_ms,
                                              int64_t* ntp_time_ms) {
+  // YASU E2E TRACE T12 START
+  const int64_t yasu_t12_start_us = rtc::TimeMicros();
+  struct YasuT12TraceGuard {
+    int64_t start_us;
+    ~YasuT12TraceGuard() {
+      const int64_t end_us = rtc::TimeMicros();
+      RTC_LOG(LS_INFO)
+          << "YASU E2E TRACE"
+          << " stage=T12_END"
+          << " time_us=" << end_us
+          << " cost_us=" << (end_us - start_us);
+    }
+  } yasu_t12_trace_guard{yasu_t12_start_us};
+
   static int64_t playback_callback_count = 0;
   static int64_t playback_total_time = 0;
   static int64_t playback_max_time = 0;
