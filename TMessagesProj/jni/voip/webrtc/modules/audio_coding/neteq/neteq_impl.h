@@ -283,7 +283,8 @@ class NetEqImpl : public webrtc::NetEq {
                    size_t decoded_length,
                    AudioDecoder::SpeechType speech_type,
                    bool play_dtmf,
-                   bool fast_accelerate) RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+                   bool fast_accelerate,
+                   int max_accelerate_passes) RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Sub-method which calls the PreemptiveExpand class to perform the
   // preemtive expand operation.
