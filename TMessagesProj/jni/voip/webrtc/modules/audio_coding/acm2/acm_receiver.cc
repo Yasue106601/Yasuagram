@@ -25,6 +25,7 @@
 #include "modules/audio_coding/neteq/default_neteq_factory.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/time_utils.h"
 #include "rtc_base/numerics/safe_conversions.h"
 #include "rtc_base/strings/audio_format_to_string.h"
 #include "system_wrappers/include/clock.h"
