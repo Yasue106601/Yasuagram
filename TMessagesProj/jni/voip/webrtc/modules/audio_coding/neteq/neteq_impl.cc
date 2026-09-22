@@ -1532,6 +1532,48 @@ int NetEqImpl::GetDecision(Operation* operation,
     }
   }
 
+  // YASU: Large packet-drain batch.
+  //
+  // When packets are accumulating, do not ask ExtractPackets()
+  // for only the normal small audio frame. Give it up to 120ms
+  // of contiguous audio so Decode() and FastAccelerate() can
+  // process a much larger group of packets per pass.
+  //
+  // This is sample/time based, NOT a 100-packet ceiling.
+  // More packets are handled by subsequent audio cycles.
+  if (packet && !packet_buffer_->Empty()) {
+    constexpr size_t kYasuDrainBatchMs = 120;
+    const size_t yasu_drain_batch_samples =
+        kYasuDrainBatchMs * (fs_hz_ / 1000);
+
+    const size_t yasu_packet_span_samples =
+        packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+
+    const size_t yasu_backlog_threshold_samples =
+        50 * (fs_hz_ / 1000);
+
+    if (yasu_packet_span_samples >= yasu_backlog_threshold_samples) {
+      const size_t yasu_requested_samples =
+          std::min(yasu_packet_span_samples,
+                   yasu_drain_batch_samples);
+
+      if (yasu_requested_samples > required_samples) {
+        RTC_LOG(LS_WARNING)
+            << "YASU LARGE_PACKET_DRAIN"
+            << " backlog_ms="
+            << (yasu_packet_span_samples / (fs_hz_ / 1000))
+            << " old_required_ms="
+            << (required_samples / (fs_hz_ / 1000))
+            << " new_required_ms="
+            << (yasu_requested_samples / (fs_hz_ / 1000))
+            << " packets="
+            << packet_buffer_->NumPacketsInBuffer();
+
+        required_samples = yasu_requested_samples;
+      }
+    }
+  }
+
   // Get packets from buffer.
   int extracted_samples = 0;
   if (packet) {
@@ -2051,7 +2093,7 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
   // YASU: Adaptive FastAccelerate drain.
 // Continue while each pass is actually removing audio, but keep
 // a hard per-GetAudio safety cap to avoid unbounded processing.
-constexpr int kYasuMaxFastAcceleratePasses = 6;
+constexpr int kYasuMaxFastAcceleratePasses = 12;
 
   const int max_passes =
       fast_accelerate ? kYasuMaxFastAcceleratePasses : 1;
