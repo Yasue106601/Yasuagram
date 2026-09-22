@@ -9,6 +9,8 @@
  */
 
 #include "audio/channel_receive_frame_transformer_delegate.h"
+#include "rtc_base/logging.h"
+#include "rtc_base/time_utils.h"
 
 #include <string>
 #include <utility>
