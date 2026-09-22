@@ -18,6 +18,8 @@
 #include "libtgvoip/os/android/JNIUtilities.h"
 #include "libtgvoip/PrivateDefines.h"
 #include "libtgvoip/logging.h"
+#include "rtc_base/logging.h"
+#include "rtc_base/time_utils.h"
 #include "../c_utils.h"
 #include "tgnet/FileLog.h"
 
