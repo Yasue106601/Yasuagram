@@ -2048,7 +2048,10 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
   // This allows one NetEq decision to remove substantially more
   // accumulated playout delay instead of waiting for another 10 ms
   // playout cycle after every single stretch operation.
-  constexpr int kYasuMaxFastAcceleratePasses = 3;
+  // YASU: Adaptive FastAccelerate drain.
+// Continue while each pass is actually removing audio, but keep
+// a hard per-GetAudio safety cap to avoid unbounded processing.
+constexpr int kYasuMaxFastAcceleratePasses = 6;
 
   const int max_passes =
       fast_accelerate ? kYasuMaxFastAcceleratePasses : 1;

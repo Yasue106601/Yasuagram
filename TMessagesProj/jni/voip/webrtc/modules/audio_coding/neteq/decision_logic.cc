@@ -178,8 +178,8 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
   // 20ms is intentionally removed as an acceleration threshold.
   // These checks run BEFORE PostponeDecode(), so stale queued audio
   // cannot indefinitely postpone backlog reduction.
-  constexpr size_t kYasuAccelerateMs = 40;
-  constexpr size_t kYasuFastAccelerateMs = 60;
+  constexpr size_t kYasuAccelerateMs = 50;
+  constexpr size_t kYasuFastAccelerateMs = 70;
 
   const size_t yasu_sync_buffer_ms =
       status.sync_buffer_samples / sample_rate_khz_;
