@@ -1359,6 +1359,26 @@ int NetEqImpl::GetDecision(Operation* operation,
   }
   *operation = controller_->GetDecision(status, &reset_decoder_);
 
+  // YASU: 80ms Hard Drain.
+  // Processing trigger only. No packet deletion.
+  // The existing 100ms emergency drop remains unchanged.
+  constexpr size_t kYasuHardDrainMs = 80;
+  const size_t yasu_hard_drain_ms =
+      status.packet_buffer_info.span_samples / sample_rate_khz_;
+
+  if (yasu_hard_drain_ms >= kYasuHardDrainMs &&
+      !status.packet_buffer_info.dtx_or_cng &&
+      !status.play_dtmf) {
+    RTC_LOG(LS_WARNING)
+        << "YASU HARD_DRAIN_80MS"
+        << " span_ms=" << yasu_hard_drain_ms
+        << " packets=" << status.packet_buffer_info.num_packets
+        << " sync_ms="
+        << (status.sync_buffer_samples / sample_rate_khz_);
+
+    *operation = Operation::kFastAccelerate;
+  }
+
   RTC_LOG(LS_INFO)
       << "YASU TRACE DECISION"
       << " op=" << static_cast<int>(*operation)
