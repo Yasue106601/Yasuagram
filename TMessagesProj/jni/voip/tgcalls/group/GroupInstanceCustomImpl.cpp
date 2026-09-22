@@ -4207,9 +4207,8 @@ private:
 #endif
         const auto create = [&](webrtc::AudioDeviceModule::AudioLayer layer) {
 #ifdef WEBRTC_ANDROID
-            // YASU HARD FORCE: Group Call Android ADM is ALWAYS Java AudioTrack.
-            // Ignore every requested backend and prevent automatic backend selection.
-            layer = webrtc::AudioDeviceModule::kAndroidJavaAudio;
+            // YASU: Group Call Android ADM uses AAudio for low-latency playout.
+            layer = webrtc::AudioDeviceModule::kAndroidAAudioAudio;
 #endif
 #ifdef WEBRTC_IOS
             auto result = rtc::make_ref_counted<webrtc::tgcalls_ios_adm::AudioDeviceModuleIOS>(false, disableRecording, enableSystemMute, disableRecording ? 2 : 1);
@@ -4223,11 +4222,10 @@ private:
             return result;
 #else
 #ifdef WEBRTC_ANDROID
-            // YASU: Android ADM must use the dedicated Android factory.
-            // AudioDeviceModule::Create(kAndroidJavaAudio) intentionally
-            // returns nullptr on Android.
+            // YASU: Android Group Call uses the dedicated Android factory.
+            // Request AAudio for low-latency playout.
             return webrtc::CreateAndroidAudioDeviceModule(
-                webrtc::AudioDeviceModule::kAndroidJavaAudio);
+                webrtc::AudioDeviceModule::kAndroidAAudioAudio);
 #else
             return webrtc::AudioDeviceModule::Create(
                 layer,
