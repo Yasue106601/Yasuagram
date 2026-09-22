@@ -724,9 +724,9 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     }
     NetEqController::PacketArrivedInfo info = ToPacketArrivedInfo(packet);
     const int64_t yasu_t7_start_us = rtc::TimeMicros();
-    const uint16_t yasu_t7_seq = packet.sequence_number();
-    const uint32_t yasu_t7_ssrc = packet.ssrc();
-    const uint32_t yasu_t7_rtp_ts = packet.timestamp();
+    const uint16_t yasu_t7_seq = packet.sequence_number;
+    const uint32_t yasu_t7_ssrc = 0;
+    const uint32_t yasu_t7_rtp_ts = packet.timestamp;
 
     int return_val = packet_buffer_->InsertPacket(std::move(packet));
 
@@ -1731,11 +1731,11 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
   uint32_t yasu_corr_ssrc = 0;
 
   if (!packet_list->empty()) {
-    yasu_corr_first_seq = packet_list->front().sequence_number();
-    yasu_corr_last_seq = packet_list->back().sequence_number();
-    yasu_corr_first_rtp_ts = packet_list->front().timestamp();
-    yasu_corr_last_rtp_ts = packet_list->back().timestamp();
-    yasu_corr_ssrc = packet_list->front().ssrc();
+    yasu_corr_first_seq = packet_list->front().sequence_number;
+    yasu_corr_last_seq = packet_list->back().sequence_number;
+    yasu_corr_first_rtp_ts = packet_list->front().timestamp;
+    yasu_corr_last_rtp_ts = packet_list->back().timestamp;
+    yasu_corr_ssrc = 0;
   }
 
   RTC_LOG(LS_INFO)
