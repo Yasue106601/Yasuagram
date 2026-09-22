@@ -477,6 +477,7 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
   }
   return NetEq::Operation::kNormal;
 }
+}
 
 NetEq::Operation DecisionLogic::FuturePacketAvailable(
     NetEqController::NetEqStatus status) {
