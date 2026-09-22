@@ -1364,7 +1364,7 @@ int NetEqImpl::GetDecision(Operation* operation,
   // The existing 100ms emergency drop remains unchanged.
   constexpr size_t kYasuHardDrainMs = 80;
   const size_t yasu_hard_drain_ms =
-      status.packet_buffer_info.span_samples / sample_rate_khz_;
+      status.packet_buffer_info.span_samples / (fs_hz_ / 1000);
 
   if (yasu_hard_drain_ms >= kYasuHardDrainMs &&
       !status.packet_buffer_info.dtx_or_cng &&
@@ -1374,7 +1374,7 @@ int NetEqImpl::GetDecision(Operation* operation,
         << " span_ms=" << yasu_hard_drain_ms
         << " packets=" << status.packet_buffer_info.num_packets
         << " sync_ms="
-        << (status.sync_buffer_samples / sample_rate_khz_);
+        << (status.sync_buffer_samples / (fs_hz_ / 1000));
 
     *operation = Operation::kFastAccelerate;
   }
