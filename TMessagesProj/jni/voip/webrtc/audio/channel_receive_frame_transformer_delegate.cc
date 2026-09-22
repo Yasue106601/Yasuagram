@@ -111,6 +111,11 @@ void ChannelReceiveFrameTransformerDelegate::Transform(
 
 void ChannelReceiveFrameTransformerDelegate::OnTransformedFrame(
     std::unique_ptr<TransformableFrameInterface> frame) {
+  RTC_LOG(LS_INFO)
+      << "YASU E2E TRACE"
+      << " stage=T5_TRANSFORM_DONE"
+      << " time_us=" << rtc::TimeMicros();
+
   rtc::scoped_refptr<ChannelReceiveFrameTransformerDelegate> delegate(this);
   channel_receive_thread_->PostTask(
       [delegate = std::move(delegate), frame = std::move(frame)]() mutable {
@@ -128,6 +133,11 @@ void ChannelReceiveFrameTransformerDelegate::StartShortCircuiting() {
 
 void ChannelReceiveFrameTransformerDelegate::ReceiveFrame(
     std::unique_ptr<TransformableFrameInterface> frame) const {
+  RTC_LOG(LS_INFO)
+      << "YASU E2E TRACE"
+      << " stage=T5_RECEIVE_FRAME"
+      << " time_us=" << rtc::TimeMicros();
+
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   if (!receive_frame_callback_)
     return;

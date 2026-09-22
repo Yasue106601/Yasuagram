@@ -1224,8 +1224,17 @@ WebRtcVoiceSendChannel::~WebRtcVoiceSendChannel() {
   RTC_DCHECK_RUN_ON(worker_thread_);
         static bool yasu_worker_audio_priority_set = false;
         if (!yasu_worker_audio_priority_set) {
-yasu_worker_audio_priority_set = true;
-          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+          const bool yasu_priority_result =
+              rtc::PlatformThread::SetCurrentThreadPriority(
+                  rtc::ThreadPriority::kRealtime);
+
+          yasu_worker_audio_priority_set = yasu_priority_result;
+
+          RTC_LOG(LS_WARNING)
+              << "YASU RTP WORKER REALTIME PRIORITY "
+              << "result="
+              << (yasu_priority_result ? "SUCCESS" : "FAILED");
+        }
         }
   RTC_DLOG(LS_VERBOSE) << "WebRtcVoiceSendChannel::~WebRtcVoiceSendChannel";
   // TODO(solenberg): Should be able to delete the streams directly, without
@@ -1237,12 +1246,18 @@ yasu_worker_audio_priority_set = true;
 }
 
 bool WebRtcVoiceSendChannel::SetOptions(const AudioOptions& options) {
-  RTC_DCHECK_RUN_ON(worker_thread_);
-        static bool yasu_worker_audio_priority_set = false;
-        if (!yasu_worker_audio_priority_set) {
-yasu_worker_audio_priority_set = true;
-          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
-        }
+  RTC_DCHECK_RUN_ON(worker_thread_);\1
+          const bool yasu_priority_result =
+              rtc::PlatformThread::SetCurrentThreadPriority(
+                  rtc::ThreadPriority::kRealtime);
+
+          yasu_worker_audio_priority_set = yasu_priority_result;
+
+          RTC_LOG(LS_WARNING)
+              << "YASU RTP WORKER REALTIME PRIORITY "
+              << "result="
+              << (yasu_priority_result ? "SUCCESS" : "FAILED");
+\2
   RTC_LOG(LS_INFO) << "Setting voice channel options: " << options.ToString();
 
   // We retain all of the existing options, and apply the given ones
@@ -2597,10 +2612,27 @@ yasu_network_priority_set = true;
   worker_thread_->PostTask(
       SafeTask(task_safety_.flag(), [this, packet = packet]() mutable {
         RTC_DCHECK_RUN_ON(worker_thread_);
+
+        RTC_LOG(LS_INFO)
+            << "YASU E2E TRACE"
+            << " stage=T2_WORKER_ENTRY"
+            << " time_us=" << rtc::TimeMicros()
+            << " seq=" << packet.SequenceNumber()
+            << " ssrc=" << packet.Ssrc()
+            << " rtp_ts=" << packet.Timestamp();
+
         static bool yasu_worker_audio_priority_set = false;
         if (!yasu_worker_audio_priority_set) {
-yasu_worker_audio_priority_set = true;
-          RTC_LOG(LS_INFO) << "YASU RTP WORKER PRIORITY: set=" << (yasu_worker_audio_priority_set ? "SUCCESS" : "FAILED");
+          const bool yasu_priority_result =
+              rtc::PlatformThread::SetCurrentThreadPriority(
+                  rtc::ThreadPriority::kRealtime);
+
+          yasu_worker_audio_priority_set = yasu_priority_result;
+
+          RTC_LOG(LS_WARNING)
+              << "YASU RTP WORKER REALTIME PRIORITY "
+              << "result="
+              << (yasu_priority_result ? "SUCCESS" : "FAILED");
         }
 
         // TODO(bugs.webrtc.org/7135): extensions in `packet` is currently set
@@ -2613,6 +2645,14 @@ yasu_worker_audio_priority_set = true;
         if (!packet.arrival_time().IsFinite()) {
           packet.set_arrival_time(webrtc::Timestamp::Micros(rtc::TimeMicros()));
         }
+
+        RTC_LOG(LS_INFO)
+            << "YASU E2E TRACE"
+            << " stage=T3_CALL_RECEIVER"
+            << " time_us=" << rtc::TimeMicros()
+            << " seq=" << packet.SequenceNumber()
+            << " ssrc=" << packet.Ssrc()
+            << " rtp_ts=" << packet.Timestamp();
 
         call_->Receiver()->DeliverRtpPacket(
             webrtc::MediaType::AUDIO, std::move(packet),

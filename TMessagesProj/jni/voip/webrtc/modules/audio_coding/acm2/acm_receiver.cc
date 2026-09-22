@@ -105,6 +105,16 @@ int AcmReceiver::last_output_sample_rate_hz() const {
 
 int AcmReceiver::InsertPacket(const RTPHeader& rtp_header,
                               rtc::ArrayView<const uint8_t> incoming_payload) {
+  const int64_t yasu_t6_start_us = rtc::TimeMicros();
+
+  RTC_LOG(LS_INFO)
+      << "YASU E2E TRACE"
+      << " stage=T6_NETEQ_INSERT_START"
+      << " time_us=" << yasu_t6_start_us
+      << " seq=" << rtp_header.sequenceNumber
+      << " ssrc=" << rtp_header.ssrc
+      << " rtp_ts=" << rtp_header.timestamp
+      << " payload_bytes=" << incoming_payload.size();
   if (incoming_payload.empty()) {
     neteq_->InsertEmptyPacket(rtp_header);
     return 0;
@@ -139,7 +149,23 @@ int AcmReceiver::InsertPacket(const RTPHeader& rtp_header,
     }
   }  // `mutex_` is released.
 
-  if (neteq_->InsertPacket(rtp_header, incoming_payload) < 0) {
+  const int64_t yasu_t6_before_neteq_us = rtc::TimeMicros();
+  const int yasu_t6_result =
+      neteq_->InsertPacket(rtp_header, incoming_payload);
+  const int64_t yasu_t6_end_us = rtc::TimeMicros();
+
+  RTC_LOG(LS_INFO)
+      << "YASU E2E TRACE"
+      << " stage=T6_NETEQ_INSERT_END"
+      << " time_us=" << yasu_t6_end_us
+      << " cost_us=" << (yasu_t6_end_us - yasu_t6_before_neteq_us)
+      << " total_cost_us=" << (yasu_t6_end_us - yasu_t6_start_us)
+      << " seq=" << rtp_header.sequenceNumber
+      << " ssrc=" << rtp_header.ssrc
+      << " rtp_ts=" << rtp_header.timestamp
+      << " result=" << yasu_t6_result;
+
+  if (yasu_t6_result < 0) {
     RTC_LOG(LS_ERROR) << "AcmReceiver::InsertPacket "
                       << static_cast<int>(rtp_header.payloadType)
                       << " Failed to insert packet";
@@ -151,6 +177,20 @@ int AcmReceiver::InsertPacket(const RTPHeader& rtp_header,
 int AcmReceiver::GetAudio(int desired_freq_hz,
                           AudioFrame* audio_frame,
                           bool* muted) {
+  // YASU E2E TRACE T11 START
+  const int64_t yasu_t11_start_us = rtc::TimeMicros();
+  struct YasuT11TraceGuard {
+    int64_t start_us;
+    ~YasuT11TraceGuard() {
+      const int64_t end_us = rtc::TimeMicros();
+      RTC_LOG(LS_INFO)
+          << "YASU E2E TRACE"
+          << " stage=T11_END"
+          << " time_us=" << end_us
+          << " cost_us=" << (end_us - start_us);
+    }
+  } yasu_t11_trace_guard{yasu_t11_start_us};
+
   RTC_DCHECK(muted);
 
   int current_sample_rate_hz = 0;

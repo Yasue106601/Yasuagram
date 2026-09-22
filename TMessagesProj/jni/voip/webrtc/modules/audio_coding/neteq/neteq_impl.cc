@@ -723,14 +723,28 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
       buffer_flush_occured = true;
     }
     NetEqController::PacketArrivedInfo info = ToPacketArrivedInfo(packet);
+    const int64_t yasu_t7_start_us = rtc::TimeMicros();
+    const uint16_t yasu_t7_seq = packet.sequence_number();
+    const uint32_t yasu_t7_ssrc = packet.ssrc();
+    const uint32_t yasu_t7_rtp_ts = packet.timestamp();
+
     int return_val = packet_buffer_->InsertPacket(std::move(packet));
 
+    const int64_t yasu_t7_end_us = rtc::TimeMicros();
+
     RTC_LOG(LS_INFO)
-        << "YASU TRACE INSERT"
+        << "YASU E2E TRACE"
+        << " stage=T7_PACKET_BUFFER"
+        << " time_us=" << yasu_t7_end_us
+        << " cost_us=" << (yasu_t7_end_us - yasu_t7_start_us)
+        << " seq=" << yasu_t7_seq
+        << " ssrc=" << yasu_t7_ssrc
+        << " rtp_ts=" << yasu_t7_rtp_ts
         << " result=" << return_val
         << " packets=" << packet_buffer_->NumPacketsInBuffer()
-        << " span_samples="
-        << packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+        << " span_ms="
+        << (packet_buffer_->GetSpanSamples(0, fs_hz_, false) /
+            (fs_hz_ / 1000));
 
     if (return_val == PacketBuffer::kFlushed) {
       buffer_flush_occured = true;
@@ -1706,6 +1720,36 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
   // YASU: Measure how much audio NetEq decodes in one batch.
   const size_t yasu_decode_packets = packet_list->size();
   const int yasu_decode_start_samples = *decoded_length;
+  const int64_t yasu_t9_start_us = rtc::TimeMicros();
+
+  // YASU CORRELATION: identify the RTP packet range represented
+  // by this decode batch using sequence, RTP timestamp and SSRC.
+  uint16_t yasu_corr_first_seq = 0;
+  uint16_t yasu_corr_last_seq = 0;
+  uint32_t yasu_corr_first_rtp_ts = 0;
+  uint32_t yasu_corr_last_rtp_ts = 0;
+  uint32_t yasu_corr_ssrc = 0;
+
+  if (!packet_list->empty()) {
+    yasu_corr_first_seq = packet_list->front().sequence_number();
+    yasu_corr_last_seq = packet_list->back().sequence_number();
+    yasu_corr_first_rtp_ts = packet_list->front().timestamp();
+    yasu_corr_last_rtp_ts = packet_list->back().timestamp();
+    yasu_corr_ssrc = packet_list->front().ssrc();
+  }
+
+  RTC_LOG(LS_INFO)
+      << "YASU E2E TRACE"
+      << " stage=T9_DECODE_START"
+      << " time_us=" << yasu_t9_start_us
+      << " packets=" << yasu_decode_packets
+      << " decoded_start_samples=" << yasu_decode_start_samples
+      << " op=" << static_cast<int>(operation)
+      << " first_seq=" << yasu_corr_first_seq
+      << " last_seq=" << yasu_corr_last_seq
+      << " first_rtp_ts=" << yasu_corr_first_rtp_ts
+      << " last_rtp_ts=" << yasu_corr_last_rtp_ts
+      << " ssrc=" << yasu_corr_ssrc;
 
   // Do decoding.
   RTC_LOG(LS_INFO)
@@ -1796,6 +1840,25 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
           << " max_packets=" << yasu_decode_max_packets;
     }
   }
+
+  const int64_t yasu_t10_end_us = rtc::TimeMicros();
+
+  RTC_LOG(LS_INFO)
+      << "YASU E2E TRACE"
+      << " stage=T10_DECODE_END"
+      << " time_us=" << yasu_t10_end_us
+      << " cost_us=" << (yasu_t10_end_us - yasu_t9_start_us)
+      << " packets=" << yasu_decode_packets
+      << " decoded_samples="
+      << (*decoded_length >= yasu_decode_start_samples
+              ? *decoded_length - yasu_decode_start_samples
+              : 0)
+      << " decoded_length=" << *decoded_length
+      << " first_seq=" << yasu_corr_first_seq
+      << " last_seq=" << yasu_corr_last_seq
+      << " first_rtp_ts=" << yasu_corr_first_rtp_ts
+      << " last_rtp_ts=" << yasu_corr_last_rtp_ts
+      << " ssrc=" << yasu_corr_ssrc;
 
   // If the list is not empty at this point, either a decoding error terminated
   // the while-loop, or list must hold exactly one CNG packet.
@@ -2315,6 +2378,7 @@ int NetEqImpl::DtmfOverdub(const DtmfEvent& dtmf_event,
 
 int NetEqImpl::ExtractPackets(size_t required_samples,
                               PacketList* packet_list) {
+  const int64_t yasu_t8_start_us = rtc::TimeMicros();
   bool first_packet = true;
   bool next_packet_available = false;
 
@@ -2418,6 +2482,17 @@ int NetEqImpl::ExtractPackets(size_t required_samples,
     // never be flooded and flushed.
     packet_buffer_->DiscardAllOldPackets(timestamp_);
   }
+
+  const int64_t yasu_t8_end_us = rtc::TimeMicros();
+
+  RTC_LOG(LS_INFO)
+      << "YASU E2E TRACE"
+      << " stage=T8_NETEQ_EXTRACT_END"
+      << " time_us=" << yasu_t8_end_us
+      << " cost_us=" << (yasu_t8_end_us - yasu_t8_start_us)
+      << " extracted_samples=" << extracted_samples
+      << " required_samples=" << required_samples
+      << " packets=" << packet_list->size();
 
   return rtc::dchecked_cast<int>(extracted_samples);
 }

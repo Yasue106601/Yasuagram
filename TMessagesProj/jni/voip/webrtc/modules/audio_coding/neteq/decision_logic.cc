@@ -178,8 +178,8 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
   // 20ms is intentionally removed as an acceleration threshold.
   // These checks run BEFORE PostponeDecode(), so stale queued audio
   // cannot indefinitely postpone backlog reduction.
-  constexpr size_t kYasuAccelerateMs = 50;
-  constexpr size_t kYasuFastAccelerateMs = 70;
+  constexpr size_t kYasuAccelerateMs = 40;
+  constexpr size_t kYasuFastAccelerateMs = 60;
 
   const size_t yasu_sync_buffer_ms =
       status.sync_buffer_samples / sample_rate_khz_;
@@ -371,8 +371,8 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
       // <50ms -> normal
       // 50-69ms -> Accelerate
       // >=70ms -> FastAccelerate
-      constexpr int kYasuAccelerateLimitMs = 50;
-      constexpr int kYasuFastAccelerateLimitMs = 70;
+      constexpr int kYasuAccelerateLimitMs = 40;
+      constexpr int kYasuFastAccelerateLimitMs = 60;
 
       RTC_LOG(LS_WARNING)
           << "YASU DELAY DECISION"
@@ -466,8 +466,8 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
     // without dropping the packet.
     // YASU: Future-packet waiting follows the same global
     // 50ms / 70ms acceleration policy.
-    constexpr int kYasuAcceleratePacketWaitMs = 50;
-    constexpr int kYasuFastAcceleratePacketWaitMs = 70;
+    constexpr int kYasuAcceleratePacketWaitMs = 40;
+    constexpr int kYasuFastAcceleratePacketWaitMs = 60;
 
     const size_t yasu_packet_wait_ms =
         status.packet_buffer_info.span_samples_wait_time /
