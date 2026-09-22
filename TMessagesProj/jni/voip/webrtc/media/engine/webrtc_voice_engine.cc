@@ -1235,7 +1235,6 @@ WebRtcVoiceSendChannel::~WebRtcVoiceSendChannel() {
               << "result="
               << (yasu_priority_result ? "SUCCESS" : "FAILED");
         }
-        }
   RTC_DLOG(LS_VERBOSE) << "WebRtcVoiceSendChannel::~WebRtcVoiceSendChannel";
   // TODO(solenberg): Should be able to delete the streams directly, without
   //                  going through RemoveNnStream(), once stream objects handle
@@ -1246,18 +1245,20 @@ WebRtcVoiceSendChannel::~WebRtcVoiceSendChannel() {
 }
 
 bool WebRtcVoiceSendChannel::SetOptions(const AudioOptions& options) {
-  RTC_DCHECK_RUN_ON(worker_thread_);\1
-          const bool yasu_priority_result =
-              rtc::PlatformThread::SetCurrentThreadPriority(
-                  rtc::ThreadPriority::kRealtime);
+  RTC_DCHECK_RUN_ON(worker_thread_);
+  static bool yasu_worker_audio_priority_set = false;
+  if (!yasu_worker_audio_priority_set) {
+    const bool yasu_priority_result =
+        rtc::PlatformThread::SetCurrentThreadPriority(
+            rtc::ThreadPriority::kRealtime);
 
-          yasu_worker_audio_priority_set = yasu_priority_result;
+    yasu_worker_audio_priority_set = yasu_priority_result;
 
-          RTC_LOG(LS_WARNING)
-              << "YASU RTP WORKER REALTIME PRIORITY "
-              << "result="
-              << (yasu_priority_result ? "SUCCESS" : "FAILED");
-\2
+    RTC_LOG(LS_WARNING)
+        << "YASU RTP WORKER REALTIME PRIORITY "
+        << "result="
+        << (yasu_priority_result ? "SUCCESS" : "FAILED");
+  }
   RTC_LOG(LS_INFO) << "Setting voice channel options: " << options.ToString();
 
   // We retain all of the existing options, and apply the given ones
