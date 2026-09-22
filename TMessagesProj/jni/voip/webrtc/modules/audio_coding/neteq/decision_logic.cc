@@ -382,60 +382,97 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
       const int sync_buffer_ms = static_cast<int>(status.sync_buffer_samples / sample_rate_khz_);
       const int64_t low_limit = TargetLevelMs();
 
-      // YASU: Stable-delay mode follows the global backlog policy:
-      // <30ms -> normal
-      // 30-49ms -> Accelerate
-      // >=50ms -> FastAccelerate
-      constexpr int kYasuAccelerateLimitMs = 30;
-      constexpr int kYasuFastAccelerateLimitMs = 50;
+      // YASU: Multi-level backlog policy.
+    //
+    // <30ms       -> normal
+    // 30-50ms     -> normal acceleration
+    // 50-80ms     -> fast acceleration
+    // 80-100ms    -> aggressive acceleration
+    // 100-150ms   -> very aggressive acceleration
+    // 150-200ms   -> maximum acceleration
+    // >200ms      -> emergency handling in NetEqImpl.
+    constexpr int kYasuAccelerateLimitMs = 30;
+    constexpr int kYasuFastAccelerateLimitMs = 50;
+    constexpr int kYasuAggressiveLimitMs = 80;
+    constexpr int kYasuVeryAggressiveLimitMs = 100;
+    constexpr int kYasuMaximumLimitMs = 150;
+    constexpr int kYasuHardCeilingMs = 200;
 
-      RTC_LOG(LS_WARNING)
-          << "YASU DELAY DECISION"
-          << " target_ms=" << low_limit
-          << " sync_buffer_ms=" << sync_buffer_ms
-          << " playout_delay_ms=" << playout_delay_ms
-          << " accel_limit_ms=" << kYasuAccelerateLimitMs
-          << " fast_limit_ms=" << kYasuFastAccelerateLimitMs;
+    RTC_LOG(LS_WARNING)
+        << "YASU DELAY DECISION"
+        << " target_ms=" << low_limit
+        << " sync_buffer_ms=" << sync_buffer_ms
+        << " accel_30=" << kYasuAccelerateLimitMs
+        << " fast_50=" << kYasuFastAccelerateLimitMs
+        << " aggressive_80=" << kYasuAggressiveLimitMs
+        << " very_aggressive_100=" << kYasuVeryAggressiveLimitMs
+        << " maximum_150=" << kYasuMaximumLimitMs
+        << " ceiling_200=" << kYasuHardCeilingMs;
 
-      if (sync_buffer_ms >= kYasuFastAccelerateLimitMs) {
-        return NetEq::Operation::kFastAccelerate;
+    // NetEq exposes only two acceleration operations.
+    // Stronger 80/100/150ms stages are implemented later in
+    // NetEqImpl rather than pretending they are new operations.
+    if (sync_buffer_ms >= kYasuFastAccelerateLimitMs) {
+      return NetEq::Operation::kFastAccelerate;
+    }
+
+    if (TimescaleAllowed()) {
+      if (sync_buffer_ms >= kYasuAccelerateLimitMs) {
+        return NetEq::Operation::kAccelerate;
       }
 
-      if (TimescaleAllowed()) {
-        if (sync_buffer_ms >= kYasuAccelerateLimitMs) {
-          return NetEq::Operation::kAccelerate;
-        }
-        if (sync_buffer_ms < low_limit && playout_delay_ms < low_limit) {
-          return NetEq::Operation::kPreemptiveExpand;
-        }
+      if (sync_buffer_ms < low_limit &&
+          playout_delay_ms < low_limit) {
+        return NetEq::Operation::kPreemptiveExpand;
       }
-    } else {
-      const int target_level_samples = TargetLevelMs() * sample_rate_khz_;
-      const int low_limit = std::max(
-          target_level_samples * 3 / 4,
-          target_level_samples -
-              config_.deceleration_target_level_offset_ms * sample_rate_khz_);
+    }
+  } else {
+    const int target_level_samples =
+        TargetLevelMs() * sample_rate_khz_;
 
-      const int yasu_accelerate_limit =
-          30 * sample_rate_khz_;
-      const int yasu_fast_accelerate_limit =
-          50 * sample_rate_khz_;
+    const int low_limit =
+        std::max(
+            target_level_samples * 3 / 4,
+            target_level_samples -
+                config_.deceleration_target_level_offset_ms *
+                    sample_rate_khz_);
 
-      const int buffer_level_samples =
-          buffer_level_filter_->filtered_current_level();
+    constexpr int kYasuAccelerateLimitMs = 30;
+    constexpr int kYasuFastAccelerateLimitMs = 50;
+    constexpr int kYasuAggressiveLimitMs = 80;
+    constexpr int kYasuVeryAggressiveLimitMs = 100;
+    constexpr int kYasuMaximumLimitMs = 150;
+    constexpr int kYasuHardCeilingMs = 200;
 
-      // YASU: All acceleration paths use the same absolute
-      // 30ms / 50ms backlog policy.
-      if (buffer_level_samples >= yasu_fast_accelerate_limit)
-        return NetEq::Operation::kFastAccelerate;
+    const int yasu_accelerate_limit =
+        kYasuAccelerateLimitMs * sample_rate_khz_;
+    const int yasu_fast_accelerate_limit =
+        kYasuFastAccelerateLimitMs * sample_rate_khz_;
+    const int yasu_aggressive_limit =
+        kYasuAggressiveLimitMs * sample_rate_khz_;
+    const int yasu_very_aggressive_limit =
+        kYasuVeryAggressiveLimitMs * sample_rate_khz_;
+    const int yasu_maximum_limit =
+        kYasuMaximumLimitMs * sample_rate_khz_;
 
-      if (TimescaleAllowed()) {
-        if (buffer_level_samples >= yasu_accelerate_limit)
-          return NetEq::Operation::kAccelerate;
+    const int buffer_level_samples =
+        buffer_level_filter_->filtered_current_level();
 
-        if (buffer_level_samples < low_limit)
-          return NetEq::Operation::kPreemptiveExpand;
-      }
+    // YASU: 30-50ms.
+    if (buffer_level_samples >= yasu_accelerate_limit &&
+        buffer_level_samples < yasu_fast_accelerate_limit) {
+      return NetEq::Operation::kAccelerate;
+    }
+
+    // YASU: 50ms and above.
+    // The stronger 80/100/150ms stages are handled in NetEqImpl.
+    if (buffer_level_samples >= yasu_fast_accelerate_limit) {
+      return NetEq::Operation::kFastAccelerate;
+    }
+
+    if (TimescaleAllowed() &&
+        buffer_level_samples < low_limit) {
+      return NetEq::Operation::kPreemptiveExpand;
     }
   }
   return NetEq::Operation::kNormal;
