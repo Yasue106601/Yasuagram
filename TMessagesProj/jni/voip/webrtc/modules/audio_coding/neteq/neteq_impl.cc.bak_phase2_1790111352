@@ -753,32 +753,54 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
       return kOtherError;
     }
 
-    // YASU: Hard 200ms packet backlog ceiling.
+    // YASU: Unified 100ms backlog ceiling.
     //
-    // No packet deletion at or below 200ms.
-    // Above 200ms, discard only enough packets to return
-    // the PacketBuffer backlog to 200ms or less.
-    constexpr size_t kYasuHardBacklogMs = 200;
-    const size_t yasu_ms = fs_hz_ / 1000;
-    const size_t yasu_hard_backlog_samples =
-        kYasuHardBacklogMs * yasu_ms;
+    // 20ms / 50ms thresholds are handled by DecisionLogic as
+    // FastAccelerate only. No packet deletion happens there.
+    //
+    // Actual packet deletion starts only when the combined
+    // PacketBuffer + SyncBuffer backlog exceeds 100ms.
+    constexpr size_t kYasuEmergencyBacklogMs = 100;
 
-    const size_t yasu_sync_samples =
+    const size_t yasu_emergency_samples =
+        kYasuEmergencyBacklogMs * (fs_hz_ / 1000);
+
+    const size_t yasu_total_backlog_samples =
+        packet_buffer_->NumSamplesInBuffer(decoder_frame_length_) +
         sync_buffer_->FutureLength();
 
-    if (yasu_sync_samples < yasu_hard_backlog_samples) {
+    if (yasu_total_backlog_samples >= yasu_emergency_samples) {
+      size_t yasu_dropped_packets = 0;
+
       while (!packet_buffer_->Empty()) {
-        const size_t yasu_packet_span_samples =
-            packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+        const size_t yasu_packet_samples =
+            packet_buffer_->NumSamplesInBuffer(decoder_frame_length_);
 
         const size_t yasu_total_samples =
-            yasu_sync_samples + yasu_packet_span_samples;
+            yasu_packet_samples + sync_buffer_->FutureLength();
 
-        if (yasu_total_samples <= yasu_hard_backlog_samples) {
+        if (yasu_total_samples < yasu_emergency_samples) {
           break;
         }
 
+        const size_t yasu_before_packets =
+            packet_buffer_->NumPacketsInBuffer();
+
         packet_buffer_->DiscardNextPacket();
+
+        ++yasu_dropped_packets;
+
+        RTC_LOG(LS_WARNING)
+            << "YASU EMERGENCY_DROP_100MS"
+            << " packets_before=" << yasu_before_packets
+            << " packets_dropped=" << yasu_dropped_packets
+            << " backlog_before_ms="
+            << (yasu_total_samples / (fs_hz_ / 1000))
+            << " backlog_after_ms="
+            << ((packet_buffer_->NumSamplesInBuffer(
+                     decoder_frame_length_) +
+                 sync_buffer_->FutureLength()) /
+                (fs_hz_ / 1000));
       }
     }
 
@@ -1009,30 +1031,11 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
       int yasu_max_accelerate_passes = 1;
 
       if (fast_accelerate) {
-        const size_t yasu_ms = fs_hz_ / 1000;
-        // YASU: NetEq delay accounting.
-        // Do not count AlgorithmBuffer as an independent backlog stage.
-        // The actual future playout delay is PacketBuffer + SyncBuffer.
-        const size_t yasu_packet_samples =
+        const size_t yasu_packet_span_samples =
             packet_buffer_->GetSpanSamples(0, fs_hz_, false);
-        const size_t yasu_sync_samples =
-            sync_buffer_->FutureLength();
-
-        const size_t yasu_total_backlog_samples =
-            yasu_packet_samples +
-            yasu_sync_samples;
-
         const size_t yasu_backlog_ms =
-            yasu_total_backlog_samples / yasu_ms;
+            yasu_packet_span_samples / (fs_hz_ / 1000);
 
-        // YASU multi-level FastAccelerate policy.
-        // <30ms       -> normal
-        // 30-50ms     -> 2 passes
-        // 50-80ms     -> 3 passes
-        // 80-100ms    -> 4 passes
-        // 100-150ms   -> 6 passes
-        // 150-200ms   -> 8 passes
-        // >200ms      -> 8 passes; packet trimming is handled separately.
         if (yasu_backlog_ms >= 150) {
           yasu_max_accelerate_passes = 8;
         } else if (yasu_backlog_ms >= 100) {
@@ -1040,17 +1043,8 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
         } else if (yasu_backlog_ms >= 80) {
           yasu_max_accelerate_passes = 4;
         } else if (yasu_backlog_ms >= 50) {
-          yasu_max_accelerate_passes = 3;
-        } else if (yasu_backlog_ms >= 30) {
           yasu_max_accelerate_passes = 2;
         }
-
-        RTC_LOG(LS_WARNING)
-            << "YASU ACCELERATION PLAN"
-            << " packet_ms=" << (yasu_packet_samples / yasu_ms)
-            << " sync_ms=" << (yasu_sync_samples / yasu_ms)
-            << " total_ms=" << yasu_backlog_ms
-            << " max_passes=" << yasu_max_accelerate_passes;
       }
 
       return_value = DoAccelerate(
@@ -1589,36 +1583,33 @@ int NetEqImpl::GetDecision(Operation* operation,
   // This is sample/time based, NOT a 100-packet ceiling.
   // More packets are handled by subsequent audio cycles.
   if (packet && !packet_buffer_->Empty()) {
-    // YASU: Tiered drain.
-    // 50-80ms    -> up to 80ms
-    // 80-100ms   -> up to 100ms
-    // 100-150ms  -> up to 150ms
-    // 150ms+     -> up to 200ms
-    const size_t yasu_ms = fs_hz_ / 1000;
+    constexpr size_t kYasuDrainBatchMs = 120;
+    const size_t yasu_drain_batch_samples =
+        kYasuDrainBatchMs * (fs_hz_ / 1000);
+
     const size_t yasu_packet_span_samples =
         packet_buffer_->GetSpanSamples(0, fs_hz_, false);
-    const size_t yasu_backlog_ms =
-        yasu_packet_span_samples / yasu_ms;
 
-    size_t yasu_drain_batch_ms = 0;
+    const size_t yasu_backlog_threshold_samples =
+        50 * (fs_hz_ / 1000);
 
-    if (yasu_backlog_ms >= 150) {
-      yasu_drain_batch_ms = 200;
-    } else if (yasu_backlog_ms >= 100) {
-      yasu_drain_batch_ms = 150;
-    } else if (yasu_backlog_ms >= 80) {
-      yasu_drain_batch_ms = 100;
-    } else if (yasu_backlog_ms >= 50) {
-      yasu_drain_batch_ms = 80;
-    }
-
-    if (yasu_drain_batch_ms > 0) {
+    if (yasu_packet_span_samples >= yasu_backlog_threshold_samples) {
       const size_t yasu_requested_samples =
-          std::min(
-              yasu_packet_span_samples,
-              yasu_drain_batch_ms * yasu_ms);
+          std::min(yasu_packet_span_samples,
+                   yasu_drain_batch_samples);
 
       if (yasu_requested_samples > required_samples) {
+        RTC_LOG(LS_WARNING)
+            << "YASU LARGE_PACKET_DRAIN"
+            << " backlog_ms="
+            << (yasu_packet_span_samples / (fs_hz_ / 1000))
+            << " old_required_ms="
+            << (required_samples / (fs_hz_ / 1000))
+            << " new_required_ms="
+            << (yasu_requested_samples / (fs_hz_ / 1000))
+            << " packets="
+            << packet_buffer_->NumPacketsInBuffer();
+
         required_samples = yasu_requested_samples;
       }
     }
@@ -2144,57 +2135,12 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
   // YASU: Adaptive FastAccelerate drain.
 // Continue while each pass is actually removing audio, but keep
 // a hard per-GetAudio safety cap to avoid unbounded processing.
-  // YASU: Adaptive real-backlog acceleration.
-  //
-  // Do not decide the number of passes from PacketBuffer alone.
-  // At this point audio may already have moved into AlgorithmBuffer
-  // and SyncBuffer, so the real pending playout backlog is the sum
-  // of all three stages.
-  //
-  // Goal:
-  //   <30ms       -> stop
-  //   30-50ms     -> normal acceleration
-  //   50-80ms     -> stronger acceleration
-  //   80-100ms    -> aggressive acceleration
-  //   100-150ms   -> very aggressive acceleration
-  //   150-200ms   -> maximum available acceleration
-  //   >200ms      -> maximum acceleration; packet deletion is handled
-  //                  separately by the hard 200ms ceiling.
   const int max_passes =
       fast_accelerate ? std::max(1, max_accelerate_passes) : 1;
 
   std::vector<int16_t> yasu_interleaved_buffer;
 
   for (int pass = 0; pass < max_passes; ++pass) {
-    if (fast_accelerate && pass > 0) {
-      const size_t yasu_ms = fs_hz_ / 1000;
-      // YASU: Re-check actual NetEq future delay between passes.
-      // AlgorithmBuffer is processing state, not an independent network
-      // delay component. Use PacketBuffer + SyncBuffer future audio.
-      const size_t yasu_packet_samples =
-          packet_buffer_->GetSpanSamples(0, fs_hz_, false);
-      const size_t yasu_sync_samples =
-          sync_buffer_->FutureLength();
-
-      const size_t yasu_total_backlog_samples =
-          yasu_packet_samples +
-          yasu_sync_samples;
-
-      const size_t yasu_total_backlog_ms =
-          yasu_total_backlog_samples / yasu_ms;
-
-      RTC_LOG(LS_WARNING)
-          << "YASU REAL BACKLOG"
-          << " pass=" << pass
-          << " packet_ms=" << (yasu_packet_samples / yasu_ms)
-          << " sync_ms=" << (yasu_sync_samples / yasu_ms)
-          << " total_ms=" << yasu_total_backlog_ms;
-
-      // Stop once the actual future playout delay is below 30ms.
-      if (yasu_total_backlog_ms < 30) {
-        break;
-      }
-    }
     const int16_t* input = decoded_buffer;
     size_t input_length = decoded_length;
 
