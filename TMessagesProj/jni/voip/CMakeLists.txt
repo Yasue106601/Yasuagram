@@ -2018,7 +2018,9 @@ set_source_files_properties(
         voip/webrtc/sdk/android/src/jni/audio_device/aaudio_player.cc
         voip/webrtc/sdk/android/src/jni/audio_device/aaudio_recorder.cc
         voip/webrtc/sdk/android/src/jni/audio_device/aaudio_wrapper.cc
-        PROPERTIES COMPILE_DEFINITIONS "__ANDROID_API__=26")
+        PROPERTIES
+        COMPILE_DEFINITIONS "__ANDROID_API__=26"
+        COMPILE_OPTIONS "-Wno-unguarded-availability")
 
 target_compile_options(voipandroid PUBLIC
         -Wall -finline-functions -ffast-math -fexceptions -O2)
