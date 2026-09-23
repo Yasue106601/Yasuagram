@@ -2014,13 +2014,29 @@ add_library(voipandroid STATIC
 )
 
 # YASU: SDK AAudio implementation requires Android 26 APIs.
+# Compile each ABI with its own Android 26 target.
 set_source_files_properties(
         voip/webrtc/sdk/android/src/jni/audio_device/aaudio_player.cc
         voip/webrtc/sdk/android/src/jni/audio_device/aaudio_recorder.cc
         voip/webrtc/sdk/android/src/jni/audio_device/aaudio_wrapper.cc
         PROPERTIES
-        COMPILE_DEFINITIONS "__ANDROID_API__=26"
-        COMPILE_OPTIONS "--target=aarch64-none-linux-android26")
+        COMPILE_DEFINITIONS "__ANDROID_API__=26")
+
+if(ANDROID_ABI STREQUAL "arm64-v8a")
+    set_property(SOURCE
+            voip/webrtc/sdk/android/src/jni/audio_device/aaudio_player.cc
+            voip/webrtc/sdk/android/src/jni/audio_device/aaudio_recorder.cc
+            voip/webrtc/sdk/android/src/jni/audio_device/aaudio_wrapper.cc
+            APPEND PROPERTY COMPILE_OPTIONS
+            "--target=aarch64-none-linux-android26")
+elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
+    set_property(SOURCE
+            voip/webrtc/sdk/android/src/jni/audio_device/aaudio_player.cc
+            voip/webrtc/sdk/android/src/jni/audio_device/aaudio_recorder.cc
+            voip/webrtc/sdk/android/src/jni/audio_device/aaudio_wrapper.cc
+            APPEND PROPERTY COMPILE_OPTIONS
+            "--target=armv7-none-linux-androideabi26")
+endif()
 
 target_compile_options(voipandroid PUBLIC
         -Wall -finline-functions -ffast-math -fexceptions -O2)
