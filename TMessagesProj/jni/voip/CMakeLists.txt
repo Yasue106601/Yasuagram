@@ -1985,6 +1985,9 @@ add_library(voipandroid STATIC
         voip/webrtc/sdk/android/src/jni/wrapped_native_i420_buffer.cc
         voip/webrtc/sdk/android/src/jni/builtin_audio_encoder_factory_factory.cc
         voip/webrtc/sdk/android/src/jni/audio_device/audio_device_module.cc
+        voip/webrtc/sdk/android/src/jni/audio_device/aaudio_player.cc
+        voip/webrtc/sdk/android/src/jni/audio_device/aaudio_recorder.cc
+        voip/webrtc/sdk/android/src/jni/audio_device/aaudio_wrapper.cc
         voip/webrtc/sdk/android/src/jni/audio_device/audio_record_jni.cc
         voip/webrtc/sdk/android/src/jni/audio_device/audio_track_jni.cc
         voip/webrtc/sdk/android/src/jni/audio_device/java_audio_device_module.cc
