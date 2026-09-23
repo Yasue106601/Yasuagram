@@ -1988,6 +1988,7 @@ add_library(voipandroid STATIC
         voip/webrtc/sdk/android/src/jni/audio_device/aaudio_player.cc
         voip/webrtc/sdk/android/src/jni/audio_device/aaudio_recorder.cc
         voip/webrtc/sdk/android/src/jni/audio_device/aaudio_wrapper.cc
+
         voip/webrtc/sdk/android/src/jni/audio_device/audio_record_jni.cc
         voip/webrtc/sdk/android/src/jni/audio_device/audio_track_jni.cc
         voip/webrtc/sdk/android/src/jni/audio_device/java_audio_device_module.cc
@@ -2011,6 +2012,14 @@ add_library(voipandroid STATIC
         voip/webrtc/sdk/android/src/jni/nv12_buffer.cc
         voip/org_telegram_messenger_voip_Instance.cpp
 )
+
+# YASU: SDK AAudio implementation requires Android 26 APIs.
+set_source_files_properties(
+        voip/webrtc/sdk/android/src/jni/audio_device/aaudio_player.cc
+        voip/webrtc/sdk/android/src/jni/audio_device/aaudio_recorder.cc
+        voip/webrtc/sdk/android/src/jni/audio_device/aaudio_wrapper.cc
+        PROPERTIES COMPILE_DEFINITIONS "__ANDROID_API__=26")
+
 target_compile_options(voipandroid PUBLIC
         -Wall -finline-functions -ffast-math -fexceptions -O2)
 set_target_properties(voipandroid PROPERTIES
