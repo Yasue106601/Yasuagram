@@ -2020,7 +2020,7 @@ set_source_files_properties(
         voip/webrtc/sdk/android/src/jni/audio_device/aaudio_wrapper.cc
         PROPERTIES
         COMPILE_DEFINITIONS "__ANDROID_API__=26"
-        COMPILE_OPTIONS "-Wno-unguarded-availability")
+        COMPILE_OPTIONS "--target=aarch64-none-linux-android26")
 
 target_compile_options(voipandroid PUBLIC
         -Wall -finline-functions -ffast-math -fexceptions -O2)
