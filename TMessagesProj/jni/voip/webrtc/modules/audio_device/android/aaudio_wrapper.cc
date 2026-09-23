@@ -939,6 +939,12 @@ bool AAudioWrapper::OptimizeBuffers() {
   RTC_LOG(LS_INFO) << "frames per burst for optimal performance: "
                    << frames_per_burst;
   frames_per_burst_ = frames_per_burst;
+
+  RTC_LOG(LS_WARNING)
+      << "YASU AAudio CONFIG"
+      << " sample_rate=" << sample_rate()
+      << " frames_per_burst=" << frames_per_burst
+      << " capacity=" << buffer_capacity_in_frames();
   if (direction() == AAUDIO_DIRECTION_INPUT) {
     // There is no point in calling setBufferSizeInFrames() for input streams
     // since it has no effect on the performance (latency in this case).
@@ -952,9 +958,11 @@ bool AAudioWrapper::OptimizeBuffers() {
       << frames_per_burst;
 
 
-  int32_t target_buffer = 64;
+  // YASU: Slightly smaller output buffer for lower playout latency.
+  // Android may clamp this to the device-supported minimum/burst size.
+  int32_t target_buffer = 48;
 
-  if (target_buffer < 64) {
+  if (target_buffer < 48) {
     target_buffer = frames_per_burst;
   }
 
@@ -969,13 +977,16 @@ bool AAudioWrapper::OptimizeBuffers() {
 
   int32_t buffer_size = AAudioStream_getBufferSizeInFrames(stream_);
 
-  RTC_LOG(LS_INFO)
-      << "YASU AAudio Buffer After Request: "
-      << buffer_size
-      << " frames ("
+  RTC_LOG(LS_WARNING)
+      << "YASU AAudio BUFFER FINAL"
+      << " sample_rate=" << sample_rate()
+      << " frames_per_burst=" << frames_per_burst
+      << " capacity=" << buffer_capacity_in_frames()
+      << " requested=" << target_buffer
+      << " actual=" << buffer_size
+      << " actual_ms="
       << (static_cast<double>(buffer_size) * 1000.0 /
-          static_cast<double>(sample_rate()))
-      << " ms)";
+          static_cast<double>(sample_rate()));
 
 
   RTC_LOG(LS_INFO)

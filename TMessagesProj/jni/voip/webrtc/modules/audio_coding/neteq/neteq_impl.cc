@@ -755,10 +755,10 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
 
     // YASU: Hard 200ms packet backlog ceiling.
     //
-    // No packet deletion at or below 200ms.
-    // Above 200ms, discard only enough packets to return
-    // the PacketBuffer backlog to 200ms or less.
-    constexpr size_t kYasuHardBacklogMs = 200;
+    // No packet deletion at or below 180ms.
+    // Above 180ms, discard only enough packets to return
+    // the PacketBuffer backlog to 180ms or less.
+    constexpr size_t kYasuHardBacklogMs = 180;
     const size_t yasu_ms = fs_hz_ / 1000;
     const size_t yasu_hard_backlog_samples =
         kYasuHardBacklogMs * yasu_ms;
@@ -1033,16 +1033,22 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
         // 100-150ms   -> 6 passes
         // 150-200ms   -> 8 passes
         // >200ms      -> 8 passes; packet trimming is handled separately.
+        // YASU: Faster backlog draining with gradual escalation.
+        // 30ms  -> 3 passes
+        // 50ms  -> 4 passes
+        // 80ms  -> 5 passes
+        // 100ms -> 7 passes
+        // 150ms+ -> 9 passes
         if (yasu_backlog_ms >= 150) {
-          yasu_max_accelerate_passes = 8;
+          yasu_max_accelerate_passes = 9;
         } else if (yasu_backlog_ms >= 100) {
-          yasu_max_accelerate_passes = 6;
+          yasu_max_accelerate_passes = 7;
         } else if (yasu_backlog_ms >= 80) {
-          yasu_max_accelerate_passes = 4;
+          yasu_max_accelerate_passes = 5;
         } else if (yasu_backlog_ms >= 50) {
-          yasu_max_accelerate_passes = 3;
+          yasu_max_accelerate_passes = 4;
         } else if (yasu_backlog_ms >= 30) {
-          yasu_max_accelerate_passes = 2;
+          yasu_max_accelerate_passes = 3;
         }
 
         RTC_LOG(LS_WARNING)
