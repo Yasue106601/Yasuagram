@@ -635,30 +635,33 @@ target_include_directories(${NATIVE_LIB} PUBLIC
         tde2e/include
 )
 
-# YASU: Select the AAudio system library for the current Android ABI.
+# YASU: Select the AAudio system library for supported Android ABIs.
+# AAudio is linked only for ARM ABIs. Other ABIs keep the normal backend.
+set(YASU_AAUDIO_LIB "")
+
 if(ANDROID_ABI STREQUAL "arm64-v8a")
     set(YASU_AAUDIO_LIB
         "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/26/libaaudio.so")
 elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
     set(YASU_AAUDIO_LIB
         "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/arm-linux-androideabi/26/libaaudio.so")
-else()
-    message(FATAL_ERROR "YASU AAudio: unsupported ABI: ${ANDROID_ABI}")
 endif()
 
-message(STATUS "YASU AAudio library: ${YASU_AAUDIO_LIB}")
+if(YASU_AAUDIO_LIB)
+    message(STATUS "YASU AAudio library: ${YASU_AAUDIO_LIB}")
 
-if(NOT EXISTS "${YASU_AAUDIO_LIB}")
-    message(FATAL_ERROR "YASU AAudio library NOT FOUND: ${YASU_AAUDIO_LIB}")
-else()
-    message(STATUS "YASU AAudio library FOUND: ${YASU_AAUDIO_LIB}")
+    if(NOT EXISTS "${YASU_AAUDIO_LIB}")
+        message(FATAL_ERROR "YASU AAudio library NOT FOUND: ${YASU_AAUDIO_LIB}")
+    else()
+        message(STATUS "YASU AAudio library FOUND: ${YASU_AAUDIO_LIB}")
+    endif()
 endif()
 
 target_link_options(${NATIVE_LIB} PRIVATE "-Wl,-z,max-page-size=16384")
 target_link_options(${NATIVE_LIB} PRIVATE "-Wl,-z,common-page-size=16384")
+
 target_link_libraries(${NATIVE_LIB}
         -Wl,--whole-archive rnnoise openh264 voipandroid -Wl,--no-whole-archive
-        ${YASU_AAUDIO_LIB}
         tgvoip
         tgcalls
         tgcalls_tp
@@ -688,6 +691,12 @@ target_link_libraries(${NATIVE_LIB}
         OpenSLES
         cpufeatures
         breakpad)
+
+if(YASU_AAUDIO_LIB)
+    target_link_libraries(${NATIVE_LIB}
+            ${YASU_AAUDIO_LIB})
+endif()
+
 
 #if (${ANDROID_ABI} STREQUAL "x86" OR ${ANDROID_ABI} STREQUAL "x86_64")
 #    target_link_libraries(${NATIVE_LIB}

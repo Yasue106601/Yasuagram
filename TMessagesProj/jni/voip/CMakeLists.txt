@@ -1985,9 +1985,6 @@ add_library(voipandroid STATIC
         voip/webrtc/sdk/android/src/jni/wrapped_native_i420_buffer.cc
         voip/webrtc/sdk/android/src/jni/builtin_audio_encoder_factory_factory.cc
         voip/webrtc/sdk/android/src/jni/audio_device/audio_device_module.cc
-        voip/webrtc/sdk/android/src/jni/audio_device/aaudio_player.cc
-        voip/webrtc/sdk/android/src/jni/audio_device/aaudio_recorder.cc
-        voip/webrtc/sdk/android/src/jni/audio_device/aaudio_wrapper.cc
 
         voip/webrtc/sdk/android/src/jni/audio_device/audio_record_jni.cc
         voip/webrtc/sdk/android/src/jni/audio_device/audio_track_jni.cc
@@ -2014,7 +2011,15 @@ add_library(voipandroid STATIC
 )
 
 # YASU: SDK AAudio implementation requires Android 26 APIs.
-# Compile each ABI with its own Android 26 target.
+# Include the SDK AAudio implementation only for ARM ABIs.
+if(ANDROID_ABI STREQUAL "arm64-v8a" OR ANDROID_ABI STREQUAL "armeabi-v7a")
+    target_sources(voipandroid PRIVATE
+            voip/webrtc/sdk/android/src/jni/audio_device/aaudio_player.cc
+            voip/webrtc/sdk/android/src/jni/audio_device/aaudio_recorder.cc
+            voip/webrtc/sdk/android/src/jni/audio_device/aaudio_wrapper.cc)
+endif()
+
+# YASU: Compile SDK AAudio sources with Android 26 for each ARM ABI.
 set_source_files_properties(
         voip/webrtc/sdk/android/src/jni/audio_device/aaudio_player.cc
         voip/webrtc/sdk/android/src/jni/audio_device/aaudio_recorder.cc
