@@ -178,7 +178,7 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
   // These checks run BEFORE PostponeDecode(), so stale queued audio
   // cannot indefinitely postpone backlog reduction.
   constexpr size_t kYasuAccelerateMs = 30;
-  constexpr size_t kYasuFastAccelerateMs = 50;
+  constexpr size_t kYasuFastAccelerateMs = 40;
 
   const size_t yasu_sync_buffer_ms =
       status.sync_buffer_samples / sample_rate_khz_;
@@ -392,7 +392,7 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
     // 150-200ms   -> maximum acceleration
     // >200ms      -> emergency handling in NetEqImpl.
     constexpr int kYasuAccelerateLimitMs = 30;
-    constexpr int kYasuFastAccelerateLimitMs = 50;
+    constexpr int kYasuFastAccelerateLimitMs = 40;
     constexpr int kYasuAggressiveLimitMs = 80;
     constexpr int kYasuVeryAggressiveLimitMs = 100;
     constexpr int kYasuMaximumLimitMs = 150;
@@ -403,7 +403,7 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
         << " target_ms=" << low_limit
         << " sync_buffer_ms=" << sync_buffer_ms
         << " accel_30=" << kYasuAccelerateLimitMs
-        << " fast_50=" << kYasuFastAccelerateLimitMs
+        << " fast_40=" << kYasuFastAccelerateLimitMs
         << " aggressive_80=" << kYasuAggressiveLimitMs
         << " very_aggressive_100=" << kYasuVeryAggressiveLimitMs
         << " maximum_150=" << kYasuMaximumLimitMs
@@ -438,7 +438,7 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
                     sample_rate_khz_);
 
     constexpr int kYasuAccelerateLimitMs = 30;
-    constexpr int kYasuFastAccelerateLimitMs = 50;
+    constexpr int kYasuFastAccelerateLimitMs = 40;
     constexpr int kYasuAggressiveLimitMs = 80;
     constexpr int kYasuVeryAggressiveLimitMs = 100;
     constexpr int kYasuMaximumLimitMs = 150;
@@ -520,7 +520,7 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
     // YASU: Future-packet waiting follows the same global
     // 30ms / 50ms acceleration policy.
     constexpr int kYasuAcceleratePacketWaitMs = 30;
-    constexpr int kYasuFastAcceleratePacketWaitMs = 50;
+    constexpr int kYasuFastAcceleratePacketWaitMs = 40;
 
     const size_t yasu_packet_wait_ms =
         status.packet_buffer_info.span_samples_wait_time /
