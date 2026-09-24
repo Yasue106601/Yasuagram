@@ -255,6 +255,10 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
                       << ", num_frames: " << num_frames;
   }
 
+  // YASU E2E callback sequence.
+  static uint64_t yasu_t13_callback_id = 0;
+  const uint64_t yasu_t13_id = ++yasu_t13_callback_id;
+
   // Read audio data from the WebRTC source using the FineAudioBuffer object
   // and write that data into `audio_data` to be played out by AAudio.
   // Prime output with zeros during a short initial phase to avoid distortion.
@@ -265,10 +269,29 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
         sizeof(int16_t) * aaudio_.samples_per_frame() * num_frames;
     memset(audio_data, 0, num_bytes);
   } else {
+    const int64_t yasu_fab_start_us = rtc::TimeMicros();
+
     fine_audio_buffer_->GetPlayoutData(
         rtc::MakeArrayView(static_cast<int16_t*>(audio_data),
                            aaudio_.samples_per_frame() * num_frames),
         static_cast<int>(latency_millis_ + 0.5));
+
+    const int64_t yasu_fab_end_us = rtc::TimeMicros();
+
+    RTC_LOG(LS_INFO)
+        << "YASU E2E FINE_BUFFER"
+        << " stage=FINE_AUDIO_BUFFER_PLAYOUT"
+        << " callback_id=" << yasu_t13_id
+        << " time_us=" << yasu_fab_end_us
+        << " start_us=" << yasu_fab_start_us
+        << " cost_us=" << (yasu_fab_end_us - yasu_fab_start_us)
+        << " callback_frames=" << num_frames
+        << " samples_per_frame=" << aaudio_.samples_per_frame()
+        << " sample_rate=" << aaudio_.sample_rate()
+        << " latency_hint_ms=" << latency_millis_
+        << " frames_written=" << aaudio_.frames_written()
+        << " frames_read=" << aaudio_.frames_read()
+        << " xrun_count=" << aaudio_.xrun_count();
   }
 
   // TODO(henrika): possibly add trace here to be included in systrace.

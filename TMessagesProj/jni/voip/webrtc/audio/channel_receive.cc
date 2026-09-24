@@ -684,6 +684,9 @@ void ChannelReceive::OnRtpPacket(const RtpPacketReceived& packet) {
   if ((++yasu_t1_count % 100) == 0) {
     RTC_LOG(LS_INFO)
         << "YASU FORENSIC T1 RTP_RX "
+        << "e2e_id=" << packet.Ssrc() << ":"
+        << packet.SequenceNumber() << ":"
+        << packet.Timestamp() << " "
         << "time_us=" << rtc::TimeMicros()
         << "ssrc=" << packet.Ssrc()
         << "seq=" << packet.SequenceNumber()

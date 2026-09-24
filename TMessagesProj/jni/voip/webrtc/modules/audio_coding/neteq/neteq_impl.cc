@@ -523,6 +523,8 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
   if ((++yasu_t2_count % 100) == 0) {
     RTC_LOG(LS_INFO)
         << "YASU FORENSIC T2 NETEQ_INSERT "
+        << "e2e_id=" << rtp_header.sequenceNumber << ":"
+        << rtp_header.timestamp << " "
         << "time_us=" << rtc::TimeMicros()
         << "seq=" << rtp_header.sequenceNumber
         << "rtp_ts=" << rtp_header.timestamp
@@ -945,7 +947,12 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
   if ((++yasu_t3_count % 100) == 0) {
     RTC_LOG(LS_INFO)
         << "YASU FORENSIC T3 NETEQ_DECISION "
-        << "duration_us="
+        << "e2e_id="
+        << (packet_list.empty()
+                ? std::string("NONE")
+                : std::to_string(packet_list.front().sequence_number) + ":"
+                  + std::to_string(packet_list.front().timestamp))
+        << " duration_us="
         << (yasu_t3_end_us - yasu_t3_start_us)
         << "operation=" << static_cast<int>(operation)
         << "packets=" << packet_list.size();
