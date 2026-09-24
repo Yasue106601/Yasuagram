@@ -1116,15 +1116,15 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
 
   sync_buffer_->PushBack(*algorithm_buffer_);
 
-  // YASU: 50 ms SyncBuffer backlog trigger.
+  // YASU: 40 ms SyncBuffer backlog trigger.
   // Do NOT discard decoded audio here. DecisionLogic handles backlog
   // reduction with FastAccelerate.
   const size_t yasu_sync_future_after_cap =
       sync_buffer_->FutureLength();
 
-  if (yasu_sync_future_after_cap > 50 * (fs_hz_ / 1000)) {
+  if (yasu_sync_future_after_cap > 40 * (fs_hz_ / 1000)) {
     RTC_LOG(LS_WARNING)
-        << "YASU SYNC BACKLOG_50MS"
+        << "YASU SYNC BACKLOG_40MS"
         << " future_ms="
         << (yasu_sync_future_after_cap * 1000 / fs_hz_);
   }
