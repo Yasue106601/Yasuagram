@@ -236,6 +236,19 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
   // the time that same frame is played out on the output audio device.
   latency_millis_ = aaudio_.EstimateLatencyMillis();
 
+  // YASU: Lightweight AAudio playout latency trace. Measurement only.
+  static uint32_t yasu_aaudio_callback_count = 0;
+  if (++yasu_aaudio_callback_count % 100 == 0) {
+  RTC_LOG(LS_WARNING)
+      << "YASU AAUDIO LIVE"
+      << " latency_ms=" << latency_millis_
+      << " buffer_frames=" << AAudioStream_getBufferSizeInFrames(aaudio_.stream())
+      << " burst_frames=" << aaudio_.frames_per_burst()
+      << " capacity_frames=" << aaudio_.buffer_capacity_in_frames()
+      << " written_frames=" << aaudio_.frames_written()
+      << " callback_frames=" << num_frames;
+  }
+
   // TODO(henrika): use for development only.
   if (aaudio_.frames_written() % (1000 * aaudio_.frames_per_burst()) == 0) {
     RTC_DLOG(LS_INFO) << "output latency: " << latency_millis_
