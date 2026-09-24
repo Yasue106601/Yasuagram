@@ -211,11 +211,9 @@ void NetworkManager::start() {
     // YASU FORENSIC T0
     static int yasu_t0_count = 0;
     if ((++yasu_t0_count % 100) == 0) {
-        RTC_LOG(LS_INFO)
+        RTC_LOG(LS_VERBOSE)
             << "YASU FORENSIC T0 UDP_RX "
-            << "time_us=" << rtc::TimeMicros()
-            << "transport_timestamp=" << timestamp
-            << "size=" << size;
+            << "time_us=" << rtc::TimeMicros();
     }
 
     _lastNetworkActivityMs = rtc::TimeMillis();
