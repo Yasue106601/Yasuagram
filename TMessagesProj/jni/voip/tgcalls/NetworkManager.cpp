@@ -97,7 +97,7 @@ _localIceParameters(rtc::CreateRandomString(cricket::ICE_UFRAG_LENGTH), rtc::Cre
 NetworkManager::~NetworkManager() {
 	assert(_thread->IsCurrent());
     
-    RTC_LOG(LS_INFO) << "NetworkManager::~NetworkManager()";
+    RTC_LOG(LS_VERBOSE) << "NetworkManager::~NetworkManager()";
 
 	_transportChannel.reset();
 	_asyncResolverFactory.reset();
@@ -208,6 +208,16 @@ void NetworkManager::start() {
 
     _transportChannel->SetRemoteIceMode(cricket::ICEMODE_FULL);
     
+    // YASU FORENSIC T0
+    static int yasu_t0_count = 0;
+    if ((++yasu_t0_count % 100) == 0) {
+        RTC_LOG(LS_INFO)
+            << "YASU FORENSIC T0 UDP_RX "
+            << "time_us=" << rtc::TimeMicros()
+            << "transport_timestamp=" << timestamp
+            << "size=" << size;
+    }
+
     _lastNetworkActivityMs = rtc::TimeMillis();
     
     checkConnectionTimeout();

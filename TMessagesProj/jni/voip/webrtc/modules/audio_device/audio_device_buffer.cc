@@ -63,7 +63,7 @@ AudioDeviceBuffer::AudioDeviceBuffer(TaskQueueFactory* task_queue_factory,
       play_start_time_(0),
       only_silence_recorded_(true),
       log_stats_(false) {
-  RTC_LOG(LS_INFO) << "AudioDeviceBuffer::ctor";
+  RTC_LOG(LS_VERBOSE) << "AudioDeviceBuffer::ctor";
 #ifdef AUDIO_DEVICE_PLAYS_SINUS_TONE
   phase_ = 0.0;
   RTC_LOG(LS_WARNING) << "AUDIO_DEVICE_PLAYS_SINUS_TONE is defined!";
@@ -77,7 +77,7 @@ AudioDeviceBuffer::~AudioDeviceBuffer() {
   RTC_DCHECK_RUN_ON(&main_thread_checker_);
   RTC_DCHECK(!playing_);
   RTC_DCHECK(!recording_);
-  RTC_LOG(LS_INFO) << "AudioDeviceBuffer::~dtor";
+  RTC_LOG(LS_VERBOSE) << "AudioDeviceBuffer::~dtor";
 }
 
 int32_t AudioDeviceBuffer::RegisterAudioCallback(
@@ -147,7 +147,7 @@ void AudioDeviceBuffer::StopPlayout() {
   if (!recording_) {
     StopPeriodicLogging();
   }
-  RTC_LOG(LS_INFO) << "total playout time: "
+  RTC_LOG(LS_VERBOSE) << "total playout time: "
                    << rtc::TimeSince(play_start_time_);
 }
 
@@ -176,20 +176,20 @@ void AudioDeviceBuffer::StopRecording() {
   if (time_since_start > kMinValidCallTimeTimeInMilliseconds) {
     const int only_zeros = static_cast<int>(only_silence_recorded_);
     RTC_HISTOGRAM_BOOLEAN("WebRTC.Audio.RecordedOnlyZeros", only_zeros);
-    RTC_LOG(LS_INFO) << "HISTOGRAM(WebRTC.Audio.RecordedOnlyZeros): "
+    RTC_LOG(LS_VERBOSE) << "HISTOGRAM(WebRTC.Audio.RecordedOnlyZeros): "
                      << only_zeros;
   }
-  RTC_LOG(LS_INFO) << "total recording time: " << time_since_start;
+  RTC_LOG(LS_VERBOSE) << "total recording time: " << time_since_start;
 }
 
 int32_t AudioDeviceBuffer::SetRecordingSampleRate(uint32_t fsHz) {
-  RTC_LOG(LS_INFO) << "SetRecordingSampleRate(" << fsHz << ")";
+  RTC_LOG(LS_VERBOSE) << "SetRecordingSampleRate(" << fsHz << ")";
   rec_sample_rate_ = fsHz;
   return 0;
 }
 
 int32_t AudioDeviceBuffer::SetPlayoutSampleRate(uint32_t fsHz) {
-  RTC_LOG(LS_INFO) << "SetPlayoutSampleRate(" << fsHz << ")";
+  RTC_LOG(LS_VERBOSE) << "SetPlayoutSampleRate(" << fsHz << ")";
   play_sample_rate_ = fsHz;
   return 0;
 }
@@ -203,13 +203,13 @@ uint32_t AudioDeviceBuffer::PlayoutSampleRate() const {
 }
 
 int32_t AudioDeviceBuffer::SetRecordingChannels(size_t channels) {
-  RTC_LOG(LS_INFO) << "SetRecordingChannels(" << channels << ")";
+  RTC_LOG(LS_VERBOSE) << "SetRecordingChannels(" << channels << ")";
   rec_channels_ = channels;
   return 0;
 }
 
 int32_t AudioDeviceBuffer::SetPlayoutChannels(size_t channels) {
-  RTC_LOG(LS_INFO) << "SetPlayoutChannels(" << channels << ")";
+  RTC_LOG(LS_VERBOSE) << "SetPlayoutChannels(" << channels << ")";
   play_channels_ = channels;
   return 0;
 }
@@ -248,7 +248,7 @@ int32_t AudioDeviceBuffer::SetRecordedBuffer(
   // Keep track of the size of the recording buffer. Only updated when the
   // size changes, which is a rare event.
   if (old_size != rec_buffer_.size()) {
-    RTC_LOG(LS_INFO) << "Size of recording buffer: " << rec_buffer_.size();
+    RTC_LOG(LS_VERBOSE) << "Size of recording buffer: " << rec_buffer_.size();
   }
 
   if (capture_timestamp_ns) {
@@ -324,9 +324,18 @@ int32_t AudioDeviceBuffer::RequestPlayoutData(size_t samples_per_channel) {
   // resize the buffer accordingly. Also takes place at the first call to this
   // method.
   const size_t total_samples = play_channels_ * samples_per_channel;
+
+  const size_t yasu_adb_before_samples = play_buffer_.size();
+  const double yasu_adb_before_ms =
+      (play_channels_ > 0 && play_sample_rate_ > 0)
+          ? static_cast<double>(yasu_adb_before_samples) /
+                static_cast<double>(play_channels_ * play_sample_rate_) *
+                1000.0
+          : 0.0;
+
   if (play_buffer_.size() != total_samples) {
     play_buffer_.SetSize(total_samples);
-    RTC_LOG(LS_INFO) << "Size of playout buffer: " << play_buffer_.size();
+    RTC_LOG(LS_VERBOSE) << "Size of playout buffer: " << play_buffer_.size();
   }
 
   size_t num_samples_out(0);
@@ -349,17 +358,29 @@ int32_t AudioDeviceBuffer::RequestPlayoutData(size_t samples_per_channel) {
 
   const int64_t yasu_t6_end_us = rtc::TimeMicros();
 
+  const size_t yasu_adb_after_samples = play_buffer_.size();
+  const double yasu_adb_after_ms =
+      (play_channels_ > 0 && play_sample_rate_ > 0)
+          ? static_cast<double>(yasu_adb_after_samples) /
+                static_cast<double>(play_channels_ * play_sample_rate_) *
+                1000.0
+          : 0.0;
+
   // YASU FORENSIC T6
   static int yasu_t6_count = 0;
   if ((++yasu_t6_count % 100) == 0) {
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU FORENSIC T6 PLAYOUT_REQUEST "
         << "duration_us="
         << (yasu_t6_end_us - yasu_t6_start_us)
         << "requested_frames=" << samples_per_channel
         << "channels=" << play_channels_
         << "rate=" << play_sample_rate_
-        << "produced_frames=" << num_samples_out;
+        << "produced_frames=" << num_samples_out
+        << "adb_before_samples=" << yasu_adb_before_samples
+        << "adb_before_ms=" << yasu_adb_before_ms
+        << "adb_after_samples=" << yasu_adb_after_samples
+        << "adb_after_ms=" << yasu_adb_after_ms;
   }
 
   if (res != 0) {
@@ -382,13 +403,17 @@ int32_t AudioDeviceBuffer::RequestPlayoutData(size_t samples_per_channel) {
   const int64_t yasu_t9_end_us = rtc::TimeMicros();
   static int yasu_t9_count = 0;
   if ((++yasu_t9_count % 100) == 0) {
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU FORENSIC T9 REQUEST_TOTAL "
         << "duration_us=" << (yasu_t9_end_us - yasu_t9_start_us)
         << "requested_frames=" << samples_per_channel
         << "channels=" << play_channels_
         << "rate=" << play_sample_rate_
-        << "produced_frames=" << num_samples_out;
+        << "produced_frames=" << num_samples_out
+        << "adb_before_samples=" << yasu_adb_before_samples
+        << "adb_before_ms=" << yasu_adb_before_ms
+        << "adb_after_samples=" << yasu_adb_after_samples
+        << "adb_after_ms=" << yasu_adb_after_ms;
   }
 
   return static_cast<int32_t>(num_samples_out / play_channels_);
@@ -423,7 +448,7 @@ int32_t AudioDeviceBuffer::GetPlayoutData(void* audio_buffer) {
 
   static int yasu_t10_count = 0;
   if ((++yasu_t10_count % 100) == 0) {
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU FORENSIC T10 PCM_COPY "
         << "duration_us=" << (yasu_t10_end_us - yasu_t10_start_us)
         << "frames=" << yasu_t10_frames
@@ -496,7 +521,7 @@ void AudioDeviceBuffer::LogStats(LogState state) {
           ((100.0f * std::abs(rate - rec_sample_rate)) / rec_sample_rate));
       RTC_HISTOGRAM_PERCENTAGE("WebRTC.Audio.RecordSampleRateOffsetInPercent",
                                abs_diff_rate_in_percent);
-      RTC_LOG(LS_INFO) << "[REC : " << time_since_last << "msec, "
+      RTC_LOG(LS_VERBOSE) << "[REC : " << time_since_last << "msec, "
                        << rec_sample_rate / 1000 << "kHz] callbacks: "
                        << stats.rec_callbacks - last_stats_.rec_callbacks
                        << ", "
@@ -522,7 +547,7 @@ void AudioDeviceBuffer::LogStats(LogState state) {
           ((100.0f * std::abs(rate - play_sample_rate)) / play_sample_rate));
       RTC_HISTOGRAM_PERCENTAGE("WebRTC.Audio.PlayoutSampleRateOffsetInPercent",
                                abs_diff_rate_in_percent);
-      RTC_LOG(LS_INFO) << "[PLAY: " << time_since_last << "msec, "
+      RTC_LOG(LS_VERBOSE) << "[PLAY: " << time_since_last << "msec, "
                        << play_sample_rate / 1000 << "kHz] callbacks: "
                        << stats.play_callbacks - last_stats_.play_callbacks
                        << ", "

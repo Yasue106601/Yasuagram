@@ -25,19 +25,19 @@ namespace jni {
 AAudioPlayer::AAudioPlayer(const AudioParameters& audio_parameters)
     : main_thread_(TaskQueueBase::Current()),
       aaudio_(audio_parameters, AAUDIO_DIRECTION_OUTPUT, this) {
-  RTC_LOG(LS_INFO) << "ctor";
+  RTC_LOG(LS_VERBOSE) << "ctor";
   thread_checker_aaudio_.Detach();
 }
 
 AAudioPlayer::~AAudioPlayer() {
-  RTC_LOG(LS_INFO) << "dtor";
+  RTC_LOG(LS_VERBOSE) << "dtor";
   RTC_DCHECK_RUN_ON(&main_thread_checker_);
   Terminate();
-  RTC_LOG(LS_INFO) << "#detected underruns: " << underrun_count_;
+  RTC_LOG(LS_VERBOSE) << "#detected underruns: " << underrun_count_;
 }
 
 int AAudioPlayer::Init() {
-  RTC_LOG(LS_INFO) << "Init";
+  RTC_LOG(LS_VERBOSE) << "Init";
   RTC_DCHECK_RUN_ON(&main_thread_checker_);
   if (aaudio_.audio_parameters().channels() == 2) {
     RTC_DLOG(LS_WARNING) << "Stereo mode is enabled";
@@ -46,14 +46,14 @@ int AAudioPlayer::Init() {
 }
 
 int AAudioPlayer::Terminate() {
-  RTC_LOG(LS_INFO) << "Terminate";
+  RTC_LOG(LS_VERBOSE) << "Terminate";
   RTC_DCHECK_RUN_ON(&main_thread_checker_);
   StopPlayout();
   return 0;
 }
 
 int AAudioPlayer::InitPlayout() {
-  RTC_LOG(LS_INFO) << "InitPlayout";
+  RTC_LOG(LS_VERBOSE) << "InitPlayout";
   RTC_DCHECK_RUN_ON(&main_thread_checker_);
   RTC_DCHECK(!initialized_);
   RTC_DCHECK(!playing_);
@@ -70,7 +70,7 @@ bool AAudioPlayer::PlayoutIsInitialized() const {
 }
 
 int AAudioPlayer::StartPlayout() {
-  RTC_LOG(LS_INFO) << "StartPlayout";
+  RTC_LOG(LS_VERBOSE) << "StartPlayout";
   RTC_DCHECK_RUN_ON(&main_thread_checker_);
   RTC_DCHECK(!playing_);
   if (!initialized_) {
@@ -91,7 +91,7 @@ int AAudioPlayer::StartPlayout() {
 }
 
 int AAudioPlayer::StopPlayout() {
-  RTC_LOG(LS_INFO) << "StopPlayout";
+  RTC_LOG(LS_VERBOSE) << "StopPlayout";
   RTC_DCHECK_RUN_ON(&main_thread_checker_);
   if (!initialized_ || !playing_) {
     return 0;
@@ -167,10 +167,32 @@ void AAudioPlayer::OnErrorCallback(aaudio_result_t error) {
 aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
                                                            int32_t num_frames) {
   RTC_DCHECK_RUN_ON(&thread_checker_aaudio_);
+
+  const int64_t yasu_t7_start_us = rtc::TimeMicros();
+  const int64_t yasu_frames_written = aaudio_.frames_written();
+  const int64_t yasu_frames_read = aaudio_.frames_read();
+  const int32_t yasu_xruns = aaudio_.xrun_count();
+  const int32_t yasu_buffer_size =
+      AAudioStream_getBufferSizeInFrames(aaudio_.stream());
+
+  static int yasu_t7_count = 0;
+  if ((++yasu_t7_count % 100) == 0) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU FORENSIC T7 AAUDIO_CALLBACK "
+        << "time_us=" << yasu_t7_start_us
+        << "frames=" << num_frames
+        << "frames_written=" << yasu_frames_written
+        << "frames_read=" << yasu_frames_read
+        << "buffer=" << yasu_buffer_size
+        << "burst=" << aaudio_.frames_per_burst()
+        << "xruns=" << yasu_xruns
+        << "rate=" << aaudio_.sample_rate()
+        << "channels=" << aaudio_.channel_count();
+  }
   // Log device id in first data callback to ensure that a valid device is
   // utilized.
   if (first_data_callback_) {
-    RTC_LOG(LS_INFO) << "--- First output data callback: "
+    RTC_LOG(LS_VERBOSE) << "--- First output data callback: "
                         "device id="
                      << aaudio_.device_id();
     first_data_callback_ = false;
@@ -190,6 +212,71 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
   // Estimate latency between writing an audio frame to the output stream and
   // the time that same frame is played out on the output audio device.
   latency_millis_ = aaudio_.EstimateLatencyMillis();
+
+  // YASU FORENSIC: hardware presentation timeline.
+  // AAudio exposes the hardware frame position and its CLOCK_MONOTONIC
+  // presentation timestamp. This gives us an estimated device timeline,
+  // not an acoustic speaker/air measurement.
+  static uint64_t yasu_hw_trace_count = 0;
+  if ((++yasu_hw_trace_count % 100) == 0) {
+    int64_t yasu_hw_frame_position = 0;
+    int64_t yasu_hw_time_ns = 0;
+
+    const aaudio_result_t yasu_hw_result = AAudioStream_getTimestamp(
+        aaudio_.stream(), CLOCK_MONOTONIC,
+        &yasu_hw_frame_position, &yasu_hw_time_ns);
+
+    const int64_t yasu_hw_written = aaudio_.frames_written();
+    const int64_t yasu_hw_read = aaudio_.frames_read();
+
+    if (yasu_hw_result == AAUDIO_OK && aaudio_.sample_rate() > 0) {
+      const int64_t yasu_hw_queued_frames =
+          std::max<int64_t>(0, yasu_hw_written - yasu_hw_frame_position);
+
+      const int64_t yasu_hw_queue_us =
+          (yasu_hw_queued_frames * 1000000LL) /
+          static_cast<int64_t>(aaudio_.sample_rate());
+
+      const int64_t yasu_hw_now_ns = rtc::TimeNanos();
+
+      const int64_t yasu_hw_estimated_presentation_ns =
+          yasu_hw_time_ns +
+          ((yasu_hw_written - yasu_hw_frame_position) *
+           rtc::kNumNanosecsPerSec) /
+              static_cast<int64_t>(aaudio_.sample_rate());
+
+      const int64_t yasu_hw_presentation_from_now_us =
+          (yasu_hw_estimated_presentation_ns - yasu_hw_now_ns) /
+          rtc::kNumNanosecsPerMicrosec;
+
+      RTC_LOG(LS_VERBOSE)
+          << "YASU FORENSIC AAUDIO_HW"
+          << " time_us=" << rtc::TimeMicros()
+          << " timestamp_result=" << static_cast<int>(yasu_hw_result)
+          << " hw_frame_position=" << yasu_hw_frame_position
+          << " frames_written=" << yasu_hw_written
+          << " frames_read=" << yasu_hw_read
+          << " queued_frames=" << yasu_hw_queued_frames
+          << " queue_ms=" << (yasu_hw_queue_us / 1000.0)
+          << " presentation_from_now_us="
+          << yasu_hw_presentation_from_now_us
+          << " buffer_frames="
+          << AAudioStream_getBufferSizeInFrames(aaudio_.stream())
+          << " burst=" << aaudio_.frames_per_burst()
+          << " xruns=" << aaudio_.xrun_count()
+          << " sample_rate=" << aaudio_.sample_rate()
+          << " channels=" << aaudio_.channel_count();
+    } else {
+      RTC_LOG(LS_WARNING)
+          << "YASU FORENSIC AAUDIO_HW"
+          << " time_us=" << rtc::TimeMicros()
+          << " timestamp_result=" << static_cast<int>(yasu_hw_result)
+          << " timestamp_available=0"
+          << " frames_written=" << yasu_hw_written
+          << " frames_read=" << yasu_hw_read
+          << " xruns=" << aaudio_.xrun_count();
+    }
+  }
   // TODO(henrika): use for development only.
   if (aaudio_.frames_written() % (1000 * aaudio_.frames_per_burst()) == 0) {
     RTC_DLOG(LS_INFO) << "output latency: " << latency_millis_
@@ -210,6 +297,18 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
         rtc::MakeArrayView(static_cast<int16_t*>(audio_data),
                            aaudio_.samples_per_frame() * num_frames),
         static_cast<int>(latency_millis_ + 0.5));
+  }
+
+  const int64_t yasu_t7_end_us = rtc::TimeMicros();
+  if ((yasu_t7_count % 100) == 0) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU FORENSIC T7 AAUDIO_DONE "
+        << "time_us=" << yasu_t7_end_us
+        << "cost_us=" << (yasu_t7_end_us - yasu_t7_start_us)
+        << "frames_written=" << aaudio_.frames_written()
+        << "frames_read=" << aaudio_.frames_read()
+        << "xruns=" << aaudio_.xrun_count()
+        << "latency_ms=" << latency_millis_;
   }
 
   // TODO(henrika): possibly add trace here to be included in systrace.

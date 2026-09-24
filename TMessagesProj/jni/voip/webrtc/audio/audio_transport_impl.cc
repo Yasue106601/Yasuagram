@@ -264,18 +264,26 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
                                              int64_t* elapsed_time_ms,
                                              int64_t* ntp_time_ms) {
   // YASU E2E TRACE T12 START
-  const int64_t yasu_t12_start_us = rtc::TimeMicros();
+  static int yasu_t12_count = 0;
+  const bool yasu_t12_log = (++yasu_t12_count % 100) == 0;
+  const int64_t yasu_t12_start_us =
+      yasu_t12_log ? rtc::TimeMicros() : 0;
+
   struct YasuT12TraceGuard {
     int64_t start_us;
+    bool log;
     ~YasuT12TraceGuard() {
+      if (!log) {
+        return;
+      }
       const int64_t end_us = rtc::TimeMicros();
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "YASU E2E TRACE"
           << " stage=T12_END"
           << " time_us=" << end_us
           << " cost_us=" << (end_us - start_us);
     }
-  } yasu_t12_trace_guard{yasu_t12_start_us};
+  } yasu_t12_trace_guard{yasu_t12_start_us, yasu_t12_log};
 
   static int64_t playback_callback_count = 0;
   static int64_t playback_total_time = 0;
@@ -303,6 +311,50 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
   mixer_->Mix(nChannels, &mixed_frame_);
   const int64_t yasu_mix_us = rtc::TimeMicros() - yasu_mix_start_us;
 
+  // YASU E2E: correlate T12 mixed frame with T11 RTP contributors.
+  // Diagnostic only: does not modify PCM, timing, or buffer behavior.
+  static int yasu_packet_trace_count = 0;
+  if ((++yasu_packet_trace_count % 100) == 0) {
+    const int64_t yasu_t12_meta_us = rtc::TimeMicros();
+
+    RTC_LOG(LS_VERBOSE)
+        << "YASU E2E CORRELATION"
+        << " stage=T12_MIX"
+        << " time_us=" << yasu_t12_meta_us
+        << " frame_timestamp=" << mixed_frame_.timestamp_
+        << " samples=" << mixed_frame_.samples_per_channel_
+        << " rate=" << mixed_frame_.sample_rate_hz_
+        << " channels=" << mixed_frame_.num_channels_
+        << " packet_infos=" << mixed_frame_.packet_infos_.size();
+
+    size_t yasu_meta_index = 0;
+    for (const auto& packet_info : mixed_frame_.packet_infos_) {
+      if (yasu_meta_index++ >= 8) {
+        RTC_LOG(LS_VERBOSE)
+            << "YASU E2E CORRELATION_MORE"
+            << " stage=T12_MIX"
+            << " time_us=" << yasu_t12_meta_us
+            << " total_packet_infos="
+            << mixed_frame_.packet_infos_.size();
+        break;
+      }
+
+      const int64_t yasu_receive_us =
+          packet_info.receive_time().us();
+
+      RTC_LOG(LS_VERBOSE)
+          << "YASU E2E CORRELATION_PACKET"
+          << " stage=T11_TO_T12"
+          << " time_us=" << yasu_t12_meta_us
+          << " index=" << (yasu_meta_index - 1)
+          << " ssrc=" << packet_info.ssrc()
+          << " rtp_ts=" << packet_info.rtp_timestamp()
+          << " receive_us=" << yasu_receive_us
+          << " rx_to_mix_us="
+          << (yasu_t12_meta_us - yasu_receive_us);
+    }
+  }
+
   *elapsed_time_ms = mixed_frame_.elapsed_time_ms_;
   *ntp_time_ms = mixed_frame_.ntp_time_ms_;
 
@@ -310,7 +362,7 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
   int64_t yasu_apm_us = 0;
   if (audio_processing_) {
     if ((++yasu_apm_count % 100) == 0) {
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "YASU APM RENDER ACTIVE"
           << " sample_rate=" << mixed_frame_.sample_rate_hz_
           << " channels=" << mixed_frame_.num_channels_
@@ -323,16 +375,19 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
     RTC_DCHECK_EQ(error, AudioProcessing::kNoError);
   } else {
     if ((++yasu_apm_count % 100) == 0) {
-      RTC_LOG(LS_INFO) << "YASU APM RENDER NULL";
+      RTC_LOG(LS_VERBOSE) << "YASU APM RENDER NULL";
     }
   }
 
-  RTC_LOG(LS_INFO)
-      << "YASU RESAMPLE PATH"
-      << " frame_rate=" << mixed_frame_.sample_rate_hz_
-      << " output_rate=" << samplesPerSec
-      << " frame_samples=" << mixed_frame_.samples_per_channel_
-      << " channels=" << mixed_frame_.num_channels_;
+  static int yasu_resample_log_count = 0;
+  if ((++yasu_resample_log_count % 100) == 0) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU RESAMPLE PATH"
+        << " frame_rate=" << mixed_frame_.sample_rate_hz_
+        << " output_rate=" << samplesPerSec
+        << " frame_samples=" << mixed_frame_.samples_per_channel_
+        << " channels=" << mixed_frame_.num_channels_;
+  }
 
   const int64_t yasu_resample_start_us = rtc::TimeMicros();
   nSamplesOut = Resample(mixed_frame_, samplesPerSec, &render_resampler_,
@@ -386,10 +441,10 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
 
 
   // YASU E2E: detailed T12 output-frame telemetry.
-  {
+  if (yasu_t12_log) {
     const int64_t yasu_t12_end_us = rtc::TimeMicros();
 
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU E2E PLAYOUT"
         << " stage=T12_PLAYOUT_FRAME"
         << " frame_id=" << mixed_frame_.timestamp_ << ":"

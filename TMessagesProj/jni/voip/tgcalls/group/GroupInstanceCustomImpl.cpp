@@ -4262,7 +4262,7 @@ private:
 #ifdef WEBRTC_ANDROID
         // YASU FORCE JAVA AUDIO ONLY:
         // Never allow Group Call to select or inject another ADM backend.
-        return check(create(webrtc::AudioDeviceModule::kAndroidJavaAudio));
+        return check(create(webrtc::AudioDeviceModule::kAndroidAAudioAudio));
 #else
         if (_createAudioDeviceModule) {
             if (const auto result = check(_createAudioDeviceModule(&_webrtcEnvironment.task_queue_factory()))) {

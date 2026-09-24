@@ -173,7 +173,7 @@ NetEqImpl::NetEqImpl(const NetEq::Config& config,
                                 10,  // Report once every 10 s.
                                 tick_timer_.get()),
       no_time_stretching_(config.for_test_no_time_stretching) {
-  RTC_LOG(LS_INFO) << "NetEq config: " << config.ToString();
+  RTC_LOG(LS_VERBOSE) << "NetEq config: " << config.ToString();
   int fs = config.sample_rate_hz;
   if (fs != 8000 && fs != 16000 && fs != 32000 && fs != 48000) {
     RTC_LOG(LS_ERROR) << "Sample rate " << fs
@@ -341,7 +341,7 @@ int NetEqImpl::FilteredCurrentDelayMs() const {
 
   static int yasu_delay_measure_count = 0;
   if (++yasu_delay_measure_count <= 300) {
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU DELAY COMPONENTS"
         << " filtered_buffer_ms="
         << (filtered_buffer_samples * 1000 / fs_hz_)
@@ -379,7 +379,7 @@ NetEqNetworkStatistics NetEqImpl::CurrentNetworkStatisticsInternal() const {
   const size_t total_samples_in_buffers =
       packet_buffer_samples + sync_future_samples;
 
-  RTC_LOG(LS_INFO)
+  RTC_LOG(LS_VERBOSE)
       << "YASU BUFFER COMPONENTS"
       << " PacketBuffer="
       << (packet_buffer_samples * 1000 / fs_hz_)
@@ -521,11 +521,13 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
   // YASU FORENSIC T2
   static int yasu_t2_count = 0;
   if ((++yasu_t2_count % 100) == 0) {
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU FORENSIC T2 NETEQ_INSERT "
-        << "e2e_id=" << rtp_header.sequenceNumber << ":"
+        << "e2e_id=" << rtp_header.ssrc << ":"
+        << rtp_header.sequenceNumber << ":"
         << rtp_header.timestamp << " "
         << "time_us=" << rtc::TimeMicros()
+        << "ssrc=" << rtp_header.ssrc
         << "seq=" << rtp_header.sequenceNumber
         << "rtp_ts=" << rtp_header.timestamp
         << "payload=" << payload.size();
@@ -680,12 +682,15 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
           info->GetDecoder()->ParsePayload(std::move(packet.payload),
                                            packet.timestamp);
 
-      RTC_LOG(LS_INFO)
-          << "YASU TRACE PARSE"
-          << " seq=" << packet.sequence_number
-          << " ts=" << packet.timestamp
-          << " payload_type=" << static_cast<int>(packet.payload_type)
-          << " results=" << results.size();
+      static int yasu_parse_log_count = 0;
+      if ((++yasu_parse_log_count % 100) == 0) {
+        RTC_LOG(LS_VERBOSE)
+            << "YASU TRACE PARSE"
+            << " seq=" << packet.sequence_number
+            << " ts=" << packet.timestamp
+            << " payload_type=" << static_cast<int>(packet.payload_type)
+            << " results=" << results.size();
+      }
 
       if (results.empty()) {
         packet_list.pop_front();
@@ -727,14 +732,14 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     NetEqController::PacketArrivedInfo info = ToPacketArrivedInfo(packet);
     const int64_t yasu_t7_start_us = rtc::TimeMicros();
     const uint16_t yasu_t7_seq = packet.sequence_number;
-    const uint32_t yasu_t7_ssrc = 0;
+    const uint32_t yasu_t7_ssrc = rtp_header.ssrc;
     const uint32_t yasu_t7_rtp_ts = packet.timestamp;
 
     int return_val = packet_buffer_->InsertPacket(std::move(packet));
 
     const int64_t yasu_t7_end_us = rtc::TimeMicros();
 
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU E2E TRACE"
         << " stage=T7_PACKET_BUFFER"
         << " time_us=" << yasu_t7_end_us
@@ -945,7 +950,7 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
   // YASU FORENSIC T3
   static int yasu_t3_count = 0;
   if ((++yasu_t3_count % 100) == 0) {
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU FORENSIC T3 NETEQ_DECISION "
         << "e2e_id="
         << (packet_list.empty()
@@ -963,6 +968,45 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
     return return_value;
   }
 
+  // YASU FORENSIC: capture the actual NetEq decision and PacketBuffer
+  // state immediately after GetDecision(). This is diagnostic only.
+  static uint64_t yasu_neteq_state_count = 0;
+  if ((++yasu_neteq_state_count % 100) == 0) {
+    const size_t yasu_pb_packets = packet_buffer_->NumPacketsInBuffer();
+    const size_t yasu_pb_span_samples =
+        packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+    const int64_t yasu_pb_span_ms =
+        static_cast<int64_t>(yasu_pb_span_samples * 1000 / fs_hz_);
+
+    const Packet* yasu_oldest_packet = packet_buffer_->PeekNextPacket();
+
+    RTC_LOG(LS_VERBOSE)
+        << "YASU FORENSIC NETEQ_STATE"
+        << " time_us=" << rtc::TimeMicros()
+        << " operation=" << static_cast<int>(operation)
+        << " packet_list=" << packet_list.size()
+        << " packet_buffer_packets=" << yasu_pb_packets
+        << " packet_buffer_span_ms=" << yasu_pb_span_ms
+        << " sync_future_ms="
+        << (sync_buffer_->FutureLength() * 1000 / fs_hz_)
+        << " total_future_ms="
+        << ((yasu_pb_span_samples + sync_buffer_->FutureLength()) *
+            1000 / fs_hz_);
+
+    if (yasu_oldest_packet) {
+      RTC_LOG(LS_VERBOSE)
+          << "YASU FORENSIC NETEQ_OLDEST"
+          << " seq=" << yasu_oldest_packet->sequence_number
+          << " rtp_ts=" << yasu_oldest_packet->timestamp
+          << " payload_type="
+          << static_cast<int>(yasu_oldest_packet->payload_type);
+    } else {
+      RTC_LOG(LS_VERBOSE)
+          << "YASU FORENSIC NETEQ_OLDEST"
+          << " empty=1";
+    }
+  }
+
   AudioDecoder::SpeechType speech_type;
   int length = 0;
   const size_t start_num_packets = packet_list.size();
@@ -970,6 +1014,18 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
       Decode(&packet_list, &operation, &length, &speech_type);
   if (length > 0) {
     last_decoded_type_ = speech_type;
+  }
+
+  // YASU FORENSIC: identify what actually came out of Decode().
+  static uint64_t yasu_decode_reason_count = 0;
+  if ((++yasu_decode_reason_count % 100) == 0) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU FORENSIC NETEQ_OUTPUT_REASON"
+        << " time_us=" << rtc::TimeMicros()
+        << " operation=" << static_cast<int>(operation)
+        << " speech_type=" << static_cast<int>(speech_type)
+        << " decoded_length=" << length
+        << " packets_after_decode=" << packet_list.size();
   }
 
   bool sid_frame_available =
@@ -1034,36 +1090,58 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
 
         // YASU multi-level FastAccelerate policy.
         // <30ms       -> normal
-        // 30-50ms     -> 2 passes
-        // 50-80ms     -> 3 passes
-        // 80-100ms    -> 4 passes
-        // 100-150ms   -> 6 passes
-        // 150-200ms   -> 8 passes
-        // >200ms      -> 8 passes; packet trimming is handled separately.
+        // 30-50ms     -> 4 passes
+        // 50-80ms     -> 5 passes
+        // 80-100ms    -> 6 passes
+        // 100-150ms   -> 8 passes
+        // 150ms+      -> 10 passes.
         // YASU: Faster backlog draining with gradual escalation.
-        // 30ms  -> 3 passes
-        // 50ms  -> 4 passes
-        // 80ms  -> 5 passes
-        // 100ms -> 7 passes
-        // 150ms+ -> 9 passes
+        // 30ms  -> 4 passes
+        // 50ms  -> 5 passes
+        // 80ms  -> 6 passes
+        // 100ms -> 8 passes
+        // 150ms+ -> 10 passes
         if (yasu_backlog_ms >= 150) {
-          yasu_max_accelerate_passes = 9;
+          yasu_max_accelerate_passes = 10;
         } else if (yasu_backlog_ms >= 100) {
-          yasu_max_accelerate_passes = 7;
+          yasu_max_accelerate_passes = 8;
         } else if (yasu_backlog_ms >= 80) {
-          yasu_max_accelerate_passes = 5;
+          yasu_max_accelerate_passes = 6;
         } else if (yasu_backlog_ms >= 50) {
-          yasu_max_accelerate_passes = 4;
+          yasu_max_accelerate_passes = 5;
         } else if (yasu_backlog_ms >= 30) {
-          yasu_max_accelerate_passes = 3;
+          yasu_max_accelerate_passes = 4;
         }
 
-        RTC_LOG(LS_WARNING)
+        RTC_LOG(LS_VERBOSE)
             << "YASU ACCELERATION PLAN"
             << " packet_ms=" << (yasu_packet_samples / yasu_ms)
             << " sync_ms=" << (yasu_sync_samples / yasu_ms)
             << " total_ms=" << yasu_backlog_ms
             << " max_passes=" << yasu_max_accelerate_passes;
+      }
+
+      // YASU: Correlate FastAccelerate execution with actual backlog.
+      if (fast_accelerate) {
+        static int yasu_fast_accel_trace_count = 0;
+        if ((++yasu_fast_accel_trace_count % 20) == 0) {
+          const size_t yasu_ms = fs_hz_ / 1000;
+          const size_t yasu_packet_samples =
+              packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+          const size_t yasu_sync_samples =
+              sync_buffer_->FutureLength();
+
+          RTC_LOG(LS_VERBOSE)
+              << "YASU FAST_ACCEL TRACE"
+              << " time_us=" << rtc::TimeMicros()
+              << " packet_ms=" << (yasu_packet_samples / yasu_ms)
+              << " sync_ms=" << (yasu_sync_samples / yasu_ms)
+              << " backlog_ms="
+              << ((yasu_packet_samples + yasu_sync_samples) / yasu_ms)
+              << " max_passes=" << yasu_max_accelerate_passes
+              << " decoded_length=" << length
+              << " return_before=" << return_value;
+        }
       }
 
       return_value = DoAccelerate(
@@ -1130,7 +1208,7 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
       sync_buffer_->FutureLength();
 
   if (yasu_sync_future_after_cap > 40 * (fs_hz_ / 1000)) {
-    RTC_LOG(LS_WARNING)
+    RTC_LOG(LS_VERBOSE)
         << "YASU SYNC BACKLOG_40MS"
         << " future_ms="
         << (yasu_sync_future_after_cap * 1000 / fs_hz_);
@@ -1196,7 +1274,7 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
       std::max(yasu_sync_max_push, yasu_sync_pushed);
 
   if ((yasu_sync_measure_count % 100) == 0) {
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU SYNC BUFFER"
         << " n=" << yasu_sync_measure_count
         << " future_before_ms="
@@ -1409,7 +1487,7 @@ int NetEqImpl::GetDecision(Operation* operation,
   if (yasu_hard_drain_ms >= kYasuHardDrainMs &&
       !status.packet_buffer_info.dtx_or_cng &&
       !status.play_dtmf) {
-    RTC_LOG(LS_WARNING)
+    RTC_LOG(LS_VERBOSE)
         << "YASU HARD_DRAIN_80MS"
         << " span_ms=" << yasu_hard_drain_ms
         << " packets=" << status.packet_buffer_info.num_packets
@@ -1419,7 +1497,7 @@ int NetEqImpl::GetDecision(Operation* operation,
     *operation = Operation::kFastAccelerate;
   }
 
-  RTC_LOG(LS_INFO)
+  RTC_LOG(LS_VERBOSE)
       << "YASU TRACE DECISION"
       << " op=" << static_cast<int>(*operation)
       << " packets=" << status.packet_buffer_info.num_packets
@@ -1530,7 +1608,9 @@ int NetEqImpl::GetDecision(Operation* operation,
       // YASU: When actively draining a backlog, extract a larger contiguous
       // audio block so FastAccelerate has enough material to remove delay.
       if (*operation == Operation::kFastAccelerate) {
-        required_samples = std::max(required_samples, 6 * samples_10_ms);
+        // YASU: Give FastAccelerate a larger contiguous block.
+        // 60ms -> 80ms, allowing stronger backlog reduction per pass.
+        required_samples = std::max(required_samples, 8 * samples_10_ms);
       }
 
       // In order to do an accelerate we need at least 30 ms of audio data.
@@ -1643,7 +1723,7 @@ int NetEqImpl::GetDecision(Operation* operation,
     sync_buffer_->IncreaseEndTimestamp(packet->timestamp - end_timestamp);
     extracted_samples = ExtractPackets(required_samples, packet_list);
 
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU TRACE EXTRACT"
         << " extracted_samples=" << extracted_samples
         << " packet_list_size=" << packet_list->size()
@@ -1843,7 +1923,7 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
     yasu_corr_ssrc = 0;
   }
 
-  RTC_LOG(LS_INFO)
+  RTC_LOG(LS_VERBOSE)
       << "YASU E2E TRACE"
       << " stage=T9_DECODE_START"
       << " time_us=" << yasu_t9_start_us
@@ -1857,7 +1937,7 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
       << " ssrc=" << yasu_corr_ssrc;
 
   // Do decoding.
-  RTC_LOG(LS_INFO)
+  RTC_LOG(LS_VERBOSE)
       << "YASU TRACE DECODE_IN"
       << " packets=" << packet_list->size()
       << " op=" << static_cast<int>(operation)
@@ -1886,7 +1966,7 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
     if (opt_result) {
       const auto& result = *opt_result;
 
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "YASU TRACE OPUS_DECODE"
           << " samples=" << result.num_decoded_samples
           << " channels=" << decoder->Channels()
@@ -1935,7 +2015,7 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
         std::max(yasu_decode_max_packets, yasu_decode_packets);
 
     if ((yasu_decode_batches % 100) == 0) {
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "YASU DECODE BATCH"
           << " batches=" << yasu_decode_batches
           << " packets=" << yasu_decode_packets
@@ -1948,7 +2028,7 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
 
   const int64_t yasu_t10_end_us = rtc::TimeMicros();
 
-  RTC_LOG(LS_INFO)
+  RTC_LOG(LS_VERBOSE)
       << "YASU E2E TRACE"
       << " stage=T10_DECODE_END"
       << " time_us=" << yasu_t10_end_us
@@ -2196,7 +2276,7 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
       const size_t yasu_total_backlog_ms =
           yasu_total_backlog_samples / yasu_ms;
 
-      RTC_LOG(LS_WARNING)
+      RTC_LOG(LS_VERBOSE)
           << "YASU REAL BACKLOG"
           << " pass=" << pass
           << " packet_ms=" << (yasu_packet_samples / yasu_ms)
@@ -2242,7 +2322,7 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
       input_length =
           yasu_process_samples * num_channels;
 
-      RTC_LOG(LS_WARNING)
+      RTC_LOG(LS_VERBOSE)
           << "YASU ALGORITHM CEILING"
           << " buffer_ms="
           << (input_samples_per_channel * 1000 / fs_hz_)
@@ -2265,7 +2345,7 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
 
     total_samples_removed += samples_removed;
 
-    RTC_LOG(LS_WARNING)
+    RTC_LOG(LS_VERBOSE)
         << "YASU ACCELERATE PASS"
         << " pass=" << pass
         << " input_ms="
@@ -2599,7 +2679,7 @@ int NetEqImpl::ExtractPackets(size_t required_samples,
     // YASU FORENSIC T8 - actual NetEq packet waiting time.
     static int yasu_t8_count = 0;
     if ((++yasu_t8_count % 100) == 0) {
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "YASU FORENSIC T8 NETEQ_WAIT "
           << "time_us=" << rtc::TimeMicros()
           << "seq=" << packet->sequence_number
@@ -2670,7 +2750,7 @@ int NetEqImpl::ExtractPackets(size_t required_samples,
 
   const int64_t yasu_t8_end_us = rtc::TimeMicros();
 
-  RTC_LOG(LS_INFO)
+  RTC_LOG(LS_VERBOSE)
       << "YASU E2E TRACE"
       << " stage=T8_NETEQ_EXTRACT_END"
       << " time_us=" << yasu_t8_end_us

@@ -66,6 +66,16 @@ bool FineAudioBuffer::IsReadyForRecord() const {
 void FineAudioBuffer::GetPlayoutData(rtc::ArrayView<int16_t> audio_buffer,
                                      int playout_delay_ms) {
   RTC_DCHECK(IsReadyForPlayout());
+
+  const int64_t yasu_fab_start_us = rtc::TimeMicros();
+  const size_t yasu_fab_before_samples = playout_buffer_.size();
+  const double yasu_fab_before_ms =
+      (playout_channels_ > 0 && playout_samples_per_channel_10ms_ > 0)
+          ? static_cast<double>(yasu_fab_before_samples) /
+                static_cast<double>(playout_channels_ *
+                                    playout_samples_per_channel_10ms_) *
+                10.0
+          : 0.0;
   // Ask WebRTC for new data in chunks of 10ms until we have enough to
   // fulfill the request. It is possible that the buffer already contains
   // enough samples from the last round.
@@ -104,6 +114,40 @@ void FineAudioBuffer::GetPlayoutData(rtc::ArrayView<int16_t> audio_buffer,
   playout_buffer_.SetSize(playout_buffer_.size() - audio_buffer.size());
   // Cache playout latency for usage in DeliverRecordedData();
   playout_delay_ms_ = playout_delay_ms;
+
+  const size_t yasu_fab_after_samples = playout_buffer_.size();
+  const double yasu_fab_after_ms =
+      (playout_channels_ > 0 && playout_samples_per_channel_10ms_ > 0)
+          ? static_cast<double>(yasu_fab_after_samples) /
+                static_cast<double>(playout_channels_ *
+                                    playout_samples_per_channel_10ms_) *
+                10.0
+          : 0.0;
+
+  const int64_t yasu_fab_end_us = rtc::TimeMicros();
+
+  static int yasu_fab_count = 0;
+  if ((++yasu_fab_count % 100) == 0) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU E2E FINE_BUFFER_QUEUE"
+        << " time_us=" << yasu_fab_end_us
+        << " duration_us=" << (yasu_fab_end_us - yasu_fab_start_us)
+        << " request_samples=" << audio_buffer.size()
+        << " request_frames="
+        << (playout_channels_ > 0
+                ? audio_buffer.size() / playout_channels_
+                : 0)
+        << " before_samples=" << yasu_fab_before_samples
+        << " before_ms=" << yasu_fab_before_ms
+        << " after_samples=" << yasu_fab_after_samples
+        << " after_ms=" << yasu_fab_after_ms
+        << " queue_delta_samples="
+        << static_cast<int64_t>(yasu_fab_before_samples) -
+               static_cast<int64_t>(yasu_fab_after_samples)
+        << " playout_delay_ms=" << playout_delay_ms_
+        << " channels=" << playout_channels_
+        << " rate=" << (playout_samples_per_channel_10ms_ * 100);
+  }
 }
 
 void FineAudioBuffer::DeliverRecordedData(
