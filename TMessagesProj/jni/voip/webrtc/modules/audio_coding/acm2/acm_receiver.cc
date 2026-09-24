@@ -107,15 +107,20 @@ int AcmReceiver::last_output_sample_rate_hz() const {
 int AcmReceiver::InsertPacket(const RTPHeader& rtp_header,
                               rtc::ArrayView<const uint8_t> incoming_payload) {
   const int64_t yasu_t6_start_us = rtc::TimeMicros();
+  static int yasu_t6_count = 0;
+  const bool yasu_t6_log = (++yasu_t6_count % 100) == 0;
 
-  RTC_LOG(LS_INFO)
-      << "YASU E2E TRACE"
-      << " stage=T6_NETEQ_INSERT_START"
-      << " time_us=" << yasu_t6_start_us
-      << " seq=" << rtp_header.sequenceNumber
-      << " ssrc=" << rtp_header.ssrc
-      << " rtp_ts=" << rtp_header.timestamp
-      << " payload_bytes=" << incoming_payload.size();
+  if (yasu_t6_log) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU E2E TRACE"
+        << " stage=T6_NETEQ_INSERT_START"
+        << " time_us=" << yasu_t6_start_us
+        << " seq=" << rtp_header.sequenceNumber
+        << " ssrc=" << rtp_header.ssrc
+        << " rtp_ts=" << rtp_header.timestamp
+        << " payload_bytes=" << incoming_payload.size();
+  }
+
   if (incoming_payload.empty()) {
     neteq_->InsertEmptyPacket(rtp_header);
     return 0;
@@ -155,16 +160,18 @@ int AcmReceiver::InsertPacket(const RTPHeader& rtp_header,
       neteq_->InsertPacket(rtp_header, incoming_payload);
   const int64_t yasu_t6_end_us = rtc::TimeMicros();
 
-  RTC_LOG(LS_INFO)
-      << "YASU E2E TRACE"
-      << " stage=T6_NETEQ_INSERT_END"
-      << " time_us=" << yasu_t6_end_us
-      << " cost_us=" << (yasu_t6_end_us - yasu_t6_before_neteq_us)
-      << " total_cost_us=" << (yasu_t6_end_us - yasu_t6_start_us)
-      << " seq=" << rtp_header.sequenceNumber
-      << " ssrc=" << rtp_header.ssrc
-      << " rtp_ts=" << rtp_header.timestamp
-      << " result=" << yasu_t6_result;
+  if (yasu_t6_log) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU E2E TRACE"
+        << " stage=T6_NETEQ_INSERT_END"
+        << " time_us=" << yasu_t6_end_us
+        << " cost_us=" << (yasu_t6_end_us - yasu_t6_before_neteq_us)
+        << " total_cost_us=" << (yasu_t6_end_us - yasu_t6_start_us)
+        << " seq=" << rtp_header.sequenceNumber
+        << " ssrc=" << rtp_header.ssrc
+        << " rtp_ts=" << rtp_header.timestamp
+        << " result=" << yasu_t6_result;
+  }
 
   if (yasu_t6_result < 0) {
     RTC_LOG(LS_ERROR) << "AcmReceiver::InsertPacket "
@@ -180,17 +187,23 @@ int AcmReceiver::GetAudio(int desired_freq_hz,
                           bool* muted) {
   // YASU E2E TRACE T11 START
   const int64_t yasu_t11_start_us = rtc::TimeMicros();
+  static int yasu_t11_count = 0;
+  const bool yasu_t11_log = (++yasu_t11_count % 100) == 0;
   struct YasuT11TraceGuard {
     int64_t start_us;
+    bool log;
     ~YasuT11TraceGuard() {
+      if (!log) {
+        return;
+      }
       const int64_t end_us = rtc::TimeMicros();
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "YASU E2E TRACE"
           << " stage=T11_END"
           << " time_us=" << end_us
           << " cost_us=" << (end_us - start_us);
     }
-  } yasu_t11_trace_guard{yasu_t11_start_us};
+  } yasu_t11_trace_guard{yasu_t11_start_us, yasu_t11_log};
 
   RTC_DCHECK(muted);
 
@@ -209,26 +222,28 @@ int AcmReceiver::GetAudio(int desired_freq_hz,
     const int64_t first_receive_us = first_info.receive_time().us();
     const int64_t last_receive_us = last_info.receive_time().us();
 
-    RTC_LOG(LS_INFO)
-        << "YASU E2E FRAME"
-        << " stage=T11_NETEQ_OUTPUT"
-        << " time_us=" << now_us
-        << " result=" << static_cast<int>(yasu_neteq_result)
-        << " samples_per_channel=" << audio_frame->samples_per_channel_
-        << " channels=" << audio_frame->num_channels_
-        << " sample_rate=" << current_sample_rate_hz
-        << " muted=" << (*muted ? 1 : 0)
-        << " packet_infos=" << audio_frame->packet_infos_.size()
-        << " first_ssrc=" << first_info.ssrc()
-        << " first_rtp_ts=" << first_info.rtp_timestamp()
-        << " first_receive_us=" << first_receive_us
-        << " first_age_us=" << (now_us - first_receive_us)
-        << " last_ssrc=" << last_info.ssrc()
-        << " last_rtp_ts=" << last_info.rtp_timestamp()
-        << " last_receive_us=" << last_receive_us
-        << " last_age_us=" << (now_us - last_receive_us);
-  } else {
-    RTC_LOG(LS_INFO)
+    if (yasu_t11_log) {
+      RTC_LOG(LS_VERBOSE)
+          << "YASU E2E FRAME"
+          << " stage=T11_NETEQ_OUTPUT"
+          << " time_us=" << now_us
+          << " result=" << static_cast<int>(yasu_neteq_result)
+          << " samples_per_channel=" << audio_frame->samples_per_channel_
+          << " channels=" << audio_frame->num_channels_
+          << " sample_rate=" << current_sample_rate_hz
+          << " muted=" << (*muted ? 1 : 0)
+          << " packet_infos=" << audio_frame->packet_infos_.size()
+          << " first_ssrc=" << first_info.ssrc()
+          << " first_rtp_ts=" << first_info.rtp_timestamp()
+          << " first_receive_us=" << first_receive_us
+          << " first_age_us=" << (now_us - first_receive_us)
+          << " last_ssrc=" << last_info.ssrc()
+          << " last_rtp_ts=" << last_info.rtp_timestamp()
+          << " last_receive_us=" << last_receive_us
+          << " last_age_us=" << (now_us - last_receive_us);
+    }
+  } else if (yasu_t11_log) {
+    RTC_LOG(LS_VERBOSE)
         << "YASU E2E FRAME"
         << " stage=T11_NETEQ_OUTPUT"
         << " time_us=" << rtc::TimeMicros()
@@ -299,7 +314,7 @@ int AcmReceiver::GetAudio(int desired_freq_hz,
              audio_frame->num_channels_);
 
   // YASU E2E: final T11 frame state after any resampling.
-  {
+  if (yasu_t11_log) {
     const int64_t yasu_t11_final_us = rtc::TimeMicros();
 
     if (!audio_frame->packet_infos_.empty()) {
@@ -309,7 +324,7 @@ int AcmReceiver::GetAudio(int desired_freq_hz,
       const int64_t first_receive_us = first_info.receive_time().us();
       const int64_t last_receive_us = last_info.receive_time().us();
 
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "YASU E2E FRAME FINAL"
           << " stage=T11_FRAME_FINAL"
           << " time_us=" << yasu_t11_final_us
@@ -329,7 +344,7 @@ int AcmReceiver::GetAudio(int desired_freq_hz,
           << " last_age_us=" << (yasu_t11_final_us - last_receive_us)
           << " resampled=" << (need_resampling ? 1 : 0);
     } else {
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "YASU E2E FRAME FINAL"
           << " stage=T11_FRAME_FINAL"
           << " time_us=" << yasu_t11_final_us

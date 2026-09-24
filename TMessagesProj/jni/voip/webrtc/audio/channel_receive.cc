@@ -398,8 +398,11 @@ AudioMixer::Source::AudioFrameInfo ChannelReceive::GetAudioFrameWithInfo(
 
   // Get 10ms raw PCM data from the ACM (mixer limits output frequency)
   bool muted;
-  if (acm_receiver_.GetAudio(audio_frame->sample_rate_hz_, audio_frame,
-                             &muted) == -1) {
+  const int yasu_t11_result =
+      acm_receiver_.GetAudio(audio_frame->sample_rate_hz_, audio_frame,
+                             &muted);
+
+  if (yasu_t11_result == -1) {
     RTC_DLOG(LS_ERROR)
         << "ChannelReceive::GetAudioFrame() PlayoutData10Ms() failed!";
     // In all likelihood, the audio in this frame is garbage. We return an
@@ -517,7 +520,7 @@ AudioMixer::Source::AudioFrameInfo ChannelReceive::GetAudioFrameWithInfo(
       const int total_receiver_delay =
           jitter_buffer_delay + playout_delay_ms_;
 
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "YASU NETEQ LIVE "
           << "Target=" << target_delay << "ms "
           << "Current=" << jitter_buffer_delay << "ms "
@@ -665,15 +668,18 @@ void ChannelReceive::SetReceiveCodecs(
 }
 
 void ChannelReceive::OnRtpPacket(const RtpPacketReceived& packet) {
-  RTC_LOG(LS_INFO)
-      << "YASU E2E TRACE"
-      << " stage=T4_CHANNEL_RECEIVE"
-      << " time_us=" << rtc::TimeMicros()
-      << " seq=" << packet.SequenceNumber()
-      << " ssrc=" << packet.Ssrc()
-      << " rtp_ts=" << packet.Timestamp();
-
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);
+
+  static int yasu_channel_receive_count = 0;
+  if ((++yasu_channel_receive_count % 100) == 0) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU E2E TRACE"
+        << " stage=T4_CHANNEL_RECEIVE"
+        << " time_us=" << rtc::TimeMicros()
+        << " seq=" << packet.SequenceNumber()
+        << " ssrc=" << packet.Ssrc()
+        << " rtp_ts=" << packet.Timestamp();
+  }
   // TODO(bugs.webrtc.org/11993): Expect to be called exclusively on the
   // network thread. Once that's done, the same applies to
   // UpdatePlayoutTimestamp and
@@ -682,7 +688,7 @@ void ChannelReceive::OnRtpPacket(const RtpPacketReceived& packet) {
   // YASU FORENSIC T1
   static int yasu_t1_count = 0;
   if ((++yasu_t1_count % 100) == 0) {
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU FORENSIC T1 RTP_RX "
         << "e2e_id=" << packet.Ssrc() << ":"
         << packet.SequenceNumber() << ":"
@@ -1029,7 +1035,7 @@ NetworkStatistics ChannelReceive::GetNetworkStatistics(
   {
     CallReceiveStatistics rtcp_stats = GetRTCPStatistics();
 
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU RTT REPORT\n"
         << "RTTMs="
         << (rtcp_stats.round_trip_time.has_value()
@@ -1042,7 +1048,7 @@ NetworkStatistics ChannelReceive::GetNetworkStatistics(
         << "\n";
   }
 
-  RTC_LOG(LS_INFO)
+  RTC_LOG(LS_VERBOSE)
       << "YASU PACKET ARRIVAL REPORT\n"
       << "TotalSamplesReceived="
       << stats.totalSamplesReceived
@@ -1054,7 +1060,7 @@ NetworkStatistics ChannelReceive::GetNetworkStatistics(
       << stats.fecPacketsDiscarded
       << "\n";
 
-  RTC_LOG(LS_INFO)
+  RTC_LOG(LS_VERBOSE)
       << "YASU PLAYOUT DELAY REPORT\n"
       << "BaseMinimumDelayMs="
       << GetBaseMinimumPlayoutDelayMs()
@@ -1064,7 +1070,7 @@ NetworkStatistics ChannelReceive::GetNetworkStatistics(
       << playout_delay_ms_
       << "\n";
 
-  RTC_LOG(LS_INFO)
+  RTC_LOG(LS_VERBOSE)
       << "YASU WAITING TIME REPORT\n"
       << "MeanWaitingTimeMs="
       << stats.meanWaitingTimeMs
@@ -1072,7 +1078,7 @@ NetworkStatistics ChannelReceive::GetNetworkStatistics(
       << stats.maxWaitingTimeMs
       << "\n";
 
-  RTC_LOG(LS_INFO)
+  RTC_LOG(LS_VERBOSE)
       << "YASU NETEQ BUFFER REPORT\n"
       << "BufferSizeMs="
       << stats.currentBufferSize
@@ -1088,7 +1094,7 @@ NetworkStatistics ChannelReceive::GetNetworkStatistics(
       << stats.packetsDiscarded
       << "\n";
 
-  RTC_LOG(LS_INFO)
+  RTC_LOG(LS_VERBOSE)
       << "YASU RECEIVE DELAY REPORT\n"
       << "CurrentDelayMs="
       << acm_receiver_.FilteredCurrentDelayMs()
@@ -1105,7 +1111,7 @@ NetworkStatistics ChannelReceive::GetNetworkStatistics(
   const NetEqOperationsAndState yasu_ops =
       acm_receiver_.GetNetEqOperationsAndState();
 
-  RTC_LOG(LS_INFO)
+  RTC_LOG(LS_VERBOSE)
       << "YASU NETEQ FORENSIC SNAPSHOT\n"
       << "BufferMs=" << stats.currentBufferSize
       << " TargetMs=" << stats.preferredBufferSize
@@ -1155,7 +1161,7 @@ AudioDecodingCallStats ChannelReceive::GetDecodingCallStatistics() const {
   AudioDecodingCallStats stats;
   acm_receiver_.GetDecodingCallStatistics(&stats);
 
-  RTC_LOG(LS_INFO)
+  RTC_LOG(LS_VERBOSE)
       << "YASU DECODE REPORT\n"
       << "CallsToNetEq="
       << stats.calls_to_neteq

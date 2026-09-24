@@ -17,58 +17,62 @@ LogSinkImpl::LogSinkImpl(const FilePath &logPath) {
 	}
 }
 
-void LogSinkImpl::OnLogMessage(const std::string &msg, rtc::LoggingSeverity severity, const char *tag) {
-	OnLogMessage(std::string(tag) + ": " + msg);
-}
-
-void LogSinkImpl::OnLogMessage(const std::string &message, rtc::LoggingSeverity severity) {
-	OnLogMessage(message);
-}
-
 void LogSinkImpl::OnLogMessage(const std::string &message) {
-	time_t rawTime;
-	time(&rawTime);
-	struct tm timeinfo;
+    std::time_t rawTime;
+    std::time(&rawTime);
 
-#ifdef WEBRTC_WIN
-	localtime_s(&timeinfo, &rawTime);
+    struct tm timeinfo;
 
-	FILETIME ft;
-	unsigned __int64 full = 0;
-	GetSystemTimeAsFileTime(&ft);
+#ifdef _WIN32
+    localtime_s(&timeinfo, &rawTime);
 
-	full |= ft.dwHighDateTime;
-	full <<= 32;
-	full |= ft.dwLowDateTime;
+    FILETIME ft;
+    unsigned __int64 full = 0;
+    GetSystemTimeAsFileTime(&ft);
 
-	const auto deltaEpochInMicrosecs = 11644473600000000Ui64;
-	full -= deltaEpochInMicrosecs;
-	full /= 10;
-	int32_t milliseconds = (long)(full % 1000000UL) / 1000;
+    full |= ft.dwHighDateTime;
+    full <<= 32;
+    full |= ft.dwLowDateTime;
+
+    const auto deltaEpochInMicrosecs = 11644473600000000Ui64;
+    full -= deltaEpochInMicrosecs;
+    full /= 10;
+    int32_t milliseconds = (long)(full % 1000000UL) / 1000;
 #else
-	timeval curTime = { 0 };
-	localtime_r(&rawTime, &timeinfo);
-	gettimeofday(&curTime, nullptr);
-	int32_t milliseconds = curTime.tv_usec / 1000;
+    timeval curTime = { 0 };
+    localtime_r(&rawTime, &timeinfo);
+    gettimeofday(&curTime, nullptr);
+    int32_t milliseconds = curTime.tv_usec / 1000;
 #endif
 
-	auto &stream = _file.is_open() ? (std::ostream&)_file : _data;
-     if (message.find("YASU ") != std::string::npos ||
-         message.find("YASUAGRAM HARDWARE TIMESTAMP") != std::string::npos)
-         _data << message << std::endl;
-     }
-	stream
-		<< (timeinfo.tm_year + 1900)
-		<< "-" << (timeinfo.tm_mon + 1)
-		<< "-" << (timeinfo.tm_mday)
-		<< " " << timeinfo.tm_hour
-		<< ":" << timeinfo.tm_min
-		<< ":" << timeinfo.tm_sec
-		<< ":" << milliseconds
-		<< " " << message;
+    auto &stream = _file.is_open() ? (std::ostream&)_file : _data;
+
+    // YASU: capture all telemetry markers into the measurement buffer.
+    if (message.find("YASU ") != std::string::npos ||
+        message.find("YASUAGRAM HARDWARE TIMESTAMP") != std::string::npos) {
+        _data << message << std::endl;
+    }
+
+    stream
+            << (timeinfo.tm_year + 1900)
+            << "-" << (timeinfo.tm_mon + 1)
+            << "-" << (timeinfo.tm_mday)
+            << " " << timeinfo.tm_hour
+            << ":" << timeinfo.tm_min
+            << ":" << timeinfo.tm_sec
+            << ":" << milliseconds
+            << " " << message;
 
 #if DEBUG
-    printf("%d-%d-%d %d:%d:%d:%d %s\n", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, milliseconds, message.c_str());
+    printf("%d-%d-%d %d:%d:%d:%d %s\n",
+           timeinfo.tm_year + 1900,
+           timeinfo.tm_mon + 1,
+           timeinfo.tm_mday,
+           timeinfo.tm_hour,
+           timeinfo.tm_min,
+           timeinfo.tm_sec,
+           milliseconds,
+           message.c_str());
 #endif
 }
 
