@@ -385,6 +385,32 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
   }
 
 
+  // YASU E2E: detailed T12 output-frame telemetry.
+  {
+    const int64_t yasu_t12_end_us = rtc::TimeMicros();
+
+    RTC_LOG(LS_INFO)
+        << "YASU E2E PLAYOUT"
+        << " stage=T12_PLAYOUT_FRAME"
+        << " frame_id=" << mixed_frame_.timestamp_ << ":"
+        << mixed_frame_.samples_per_channel_ << ":"
+        << mixed_frame_.sample_rate_hz_
+        << " time_us=" << yasu_t12_end_us
+        << " requested_frames=" << nSamples
+        << " output_samples=" << nSamplesOut
+        << " requested_channels=" << nChannels
+        << " output_rate=" << samplesPerSec
+        << " mixed_rate=" << mixed_frame_.sample_rate_hz_
+        << " mixed_channels=" << mixed_frame_.num_channels_
+        << " mixed_samples=" << mixed_frame_.samples_per_channel_
+        << " elapsed_ms=" << *elapsed_time_ms
+        << " ntp_ms=" << *ntp_time_ms
+        << " mix_us=" << yasu_mix_us
+        << " apm_us=" << yasu_apm_us
+        << " resample_us=" << yasu_resample_us
+        << " total_us=" << playback_processing_time;
+  }
+
   RTC_DCHECK_EQ(nSamplesOut, nChannels * nSamples);
   return 0;
 }

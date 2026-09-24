@@ -198,13 +198,48 @@ int AcmReceiver::GetAudio(int desired_freq_hz,
   const int yasu_neteq_result =
       neteq_->GetAudio(audio_frame, muted, &current_sample_rate_hz);
 
-  RTC_LOG(LS_INFO)
-      << "YASU TRACE NETEQ_OUTPUT"
-      << " result=" << static_cast<int>(yasu_neteq_result)
-      << " samples_per_channel=" << audio_frame->samples_per_channel_
-      << " channels=" << audio_frame->num_channels_
-      << " muted=" << (*muted ? 1 : 0)
-      << " sample_rate=" << current_sample_rate_hz;
+  // YASU E2E: correlate the NetEq output frame with the RTP packets
+  // that contributed to it. This is receiver-side timing, not sender-to-
+  // receiver one-way latency.
+  if (!audio_frame->packet_infos_.empty()) {
+    const auto& first_info = audio_frame->packet_infos_.front();
+    const auto& last_info = audio_frame->packet_infos_.back();
+
+    const int64_t now_us = rtc::TimeMicros();
+    const int64_t first_receive_us = first_info.receive_time().us();
+    const int64_t last_receive_us = last_info.receive_time().us();
+
+    RTC_LOG(LS_INFO)
+        << "YASU E2E FRAME"
+        << " stage=T11_NETEQ_OUTPUT"
+        << " time_us=" << now_us
+        << " result=" << static_cast<int>(yasu_neteq_result)
+        << " samples_per_channel=" << audio_frame->samples_per_channel_
+        << " channels=" << audio_frame->num_channels_
+        << " sample_rate=" << current_sample_rate_hz
+        << " muted=" << (*muted ? 1 : 0)
+        << " packet_infos=" << audio_frame->packet_infos_.size()
+        << " first_ssrc=" << first_info.ssrc()
+        << " first_rtp_ts=" << first_info.rtp_timestamp()
+        << " first_receive_us=" << first_receive_us
+        << " first_age_us=" << (now_us - first_receive_us)
+        << " last_ssrc=" << last_info.ssrc()
+        << " last_rtp_ts=" << last_info.rtp_timestamp()
+        << " last_receive_us=" << last_receive_us
+        << " last_age_us=" << (now_us - last_receive_us);
+  } else {
+    RTC_LOG(LS_INFO)
+        << "YASU E2E FRAME"
+        << " stage=T11_NETEQ_OUTPUT"
+        << " time_us=" << rtc::TimeMicros()
+        << " result=" << static_cast<int>(yasu_neteq_result)
+        << " samples_per_channel=" << audio_frame->samples_per_channel_
+        << " channels=" << audio_frame->num_channels_
+        << " sample_rate=" << current_sample_rate_hz
+        << " muted=" << (*muted ? 1 : 0)
+        << " packet_infos=0"
+        << " source=NON_RTP_OR_CONCEALED";
+  }
 
   if (yasu_neteq_result != NetEq::kOK) {
     RTC_LOG(LS_ERROR) << "AcmReceiver::GetAudio - NetEq Failed.";
@@ -262,6 +297,52 @@ int AcmReceiver::GetAudio(int desired_freq_hz,
   memcpy(last_audio_buffer_.get(), audio_frame->data(),
          sizeof(int16_t) * audio_frame->samples_per_channel_ *
              audio_frame->num_channels_);
+
+  // YASU E2E: final T11 frame state after any resampling.
+  {
+    const int64_t yasu_t11_final_us = rtc::TimeMicros();
+
+    if (!audio_frame->packet_infos_.empty()) {
+      const auto& first_info = audio_frame->packet_infos_.front();
+      const auto& last_info = audio_frame->packet_infos_.back();
+
+      const int64_t first_receive_us = first_info.receive_time().us();
+      const int64_t last_receive_us = last_info.receive_time().us();
+
+      RTC_LOG(LS_INFO)
+          << "YASU E2E FRAME FINAL"
+          << " stage=T11_FRAME_FINAL"
+          << " time_us=" << yasu_t11_final_us
+          << " timestamp=" << audio_frame->timestamp_
+          << " samples=" << audio_frame->samples_per_channel_
+          << " channels=" << audio_frame->num_channels_
+          << " rate=" << audio_frame->sample_rate_hz_
+          << " muted=" << (*muted ? 1 : 0)
+          << " packet_infos=" << audio_frame->packet_infos_.size()
+          << " first_ssrc=" << first_info.ssrc()
+          << " first_rtp_ts=" << first_info.rtp_timestamp()
+          << " first_receive_us=" << first_receive_us
+          << " first_age_us=" << (yasu_t11_final_us - first_receive_us)
+          << " last_ssrc=" << last_info.ssrc()
+          << " last_rtp_ts=" << last_info.rtp_timestamp()
+          << " last_receive_us=" << last_receive_us
+          << " last_age_us=" << (yasu_t11_final_us - last_receive_us)
+          << " resampled=" << (need_resampling ? 1 : 0);
+    } else {
+      RTC_LOG(LS_INFO)
+          << "YASU E2E FRAME FINAL"
+          << " stage=T11_FRAME_FINAL"
+          << " time_us=" << yasu_t11_final_us
+          << " timestamp=" << audio_frame->timestamp_
+          << " samples=" << audio_frame->samples_per_channel_
+          << " channels=" << audio_frame->num_channels_
+          << " rate=" << audio_frame->sample_rate_hz_
+          << " muted=" << (*muted ? 1 : 0)
+          << " packet_infos=0"
+          << " resampled=" << (need_resampling ? 1 : 0)
+          << " source=NON_RTP_OR_CONCEALED";
+    }
+  }
 
   call_stats_.DecodedByNetEq(audio_frame->speech_type_, *muted);
   return 0;

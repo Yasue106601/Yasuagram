@@ -796,35 +796,49 @@ void AAudioWrapper::LogStreamState() {
 
 
   if (timestamp_result == AAUDIO_OK) {
+    const double hardware_timestamp_ms =
+        hardware_time_nanos / 1000000.0;
 
-      RTC_LOG(LS_INFO)
-          << "=== YASUAGRAM HARDWARE TIMESTAMP ===";
+    const double buffer_latency_ms =
+        static_cast<double>(AAudioStream_getBufferSizeInFrames(stream_)) /
+        sample_rate() * 1000.0;
 
+    const double estimated_hardware_latency_ms =
+        (stream_state() == AAUDIO_STREAM_STATE_STARTED)
+            ? EstimateLatencyMillis()
+            : 0.0;
 
-      RTC_LOG(LS_INFO)
-          << "Hardware Frame Position: "
-          << hardware_position;
-
-
-      RTC_LOG(LS_INFO)
-          << "Hardware Time(ns): "
-          << hardware_time_nanos;
-
-
-      RTC_LOG(LS_INFO)
-          << "Hardware Timestamp(ms): "
-          << (hardware_time_nanos / 1000000.0);
-
-
-      RTC_LOG(LS_INFO)
-          << "====================================";
-
+    RTC_LOG(LS_INFO)
+        << "YASU AAUDIO HW"
+        << " time_us=" << rtc::TimeMicros()
+        << " hw_position=" << hardware_position
+        << " hw_time_ns=" << hardware_time_nanos
+        << " hw_time_ms=" << hardware_timestamp_ms
+        << " stream_frames_written=" << frames_written()
+        << " stream_frames_read=" << frames_read()
+        << " buffer_frames="
+        << AAudioStream_getBufferSizeInFrames(stream_)
+        << " burst_frames=" << frames_per_burst()
+        << " capacity_frames=" << buffer_capacity_in_frames()
+        << " sample_rate=" << sample_rate()
+        << " buffer_latency_ms=" << buffer_latency_ms
+        << " estimated_hardware_latency_ms="
+        << estimated_hardware_latency_ms
+        << " xrun_count=" << xrun_count();
   } else {
-
-      RTC_LOG(LS_INFO)
-          << "Hardware Timestamp unavailable: "
-          << AAudio_convertResultToText(timestamp_result);
-
+    RTC_LOG(LS_INFO)
+        << "YASU AAUDIO HW"
+        << " time_us=" << rtc::TimeMicros()
+        << " timestamp_unavailable=1"
+        << " result=" << AAudio_convertResultToText(timestamp_result)
+        << " stream_frames_written=" << frames_written()
+        << " stream_frames_read=" << frames_read()
+        << " buffer_frames="
+        << AAudioStream_getBufferSizeInFrames(stream_)
+        << " burst_frames=" << frames_per_burst()
+        << " capacity_frames=" << buffer_capacity_in_frames()
+        << " sample_rate=" << sample_rate()
+        << " xrun_count=" << xrun_count();
   }
 
 
