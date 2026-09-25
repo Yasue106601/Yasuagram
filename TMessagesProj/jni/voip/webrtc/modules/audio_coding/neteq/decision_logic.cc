@@ -412,7 +412,7 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
         << " aggressive_90=" << kYasuAggressiveLimitMs
         << " very_aggressive_100=" << kYasuVeryAggressiveLimitMs
         << " maximum_100=" << kYasuMaximumLimitMs
-        << " ceiling_100=" << kYasuHardCeilingMs;
+
 
     // NetEq exposes only two acceleration operations.
     // Stronger 90/100ms stages are implemented by
@@ -452,12 +452,6 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
         kYasuAccelerateLimitMs * sample_rate_khz_;
     const int yasu_fast_accelerate_limit =
         kYasuFastAccelerateLimitMs * sample_rate_khz_;
-    const int yasu_aggressive_limit =
-        kYasuAggressiveLimitMs * sample_rate_khz_;
-    const int yasu_very_aggressive_limit =
-        kYasuVeryAggressiveLimitMs * sample_rate_khz_;
-    const int yasu_maximum_limit =
-        kYasuMaximumLimitMs * sample_rate_khz_;
 
     const int buffer_level_samples =
         buffer_level_filter_->filtered_current_level();
