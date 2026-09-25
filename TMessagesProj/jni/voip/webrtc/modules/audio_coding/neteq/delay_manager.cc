@@ -118,8 +118,8 @@ void DelayManager::Update(int arrival_delay_ms, bool reordered) {
         << "combined=" << target_level_ms_ << "ms";
   }
 
-  constexpr int kYasuMaxTargetDelayMs = 80;
-  constexpr int kYasuMinTargetDelayMs = 30;
+  constexpr int kYasuMaxTargetDelayMs = 10;
+  constexpr int kYasuMinTargetDelayMs = 0;
 
   // YASU: Never allow adaptive NetEq delay to grow into hundreds of ms.
   // Prefer a small stable playback buffer over repeated underruns.

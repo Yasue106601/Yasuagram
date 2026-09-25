@@ -156,6 +156,7 @@ NetEqImpl::NetEqImpl(const NetEq::Config& config,
           !field_trial::IsDisabled("WebRTC-Audio-NetEqFecDelayAdaptation")),
       controller_(std::move(deps.neteq_controller)),
       last_mode_(Mode::kNormal),
+      yasu_cycle_id_(0),
       decoded_buffer_length_(kMaxFrameSize),
       decoded_buffer_(new int16_t[decoded_buffer_length_]),
       playout_timestamp_(0),
@@ -174,6 +175,11 @@ NetEqImpl::NetEqImpl(const NetEq::Config& config,
                                 tick_timer_.get()),
       no_time_stretching_(config.for_test_no_time_stretching) {
   RTC_LOG(LS_VERBOSE) << "NetEq config: " << config.ToString();
+
+  // YASU FORENSIC: record the actual runtime Field Trial state.
+  RTC_LOG(LS_WARNING)
+      << "YASU FORENSIC FEC_DELAY_ADAPTATION"
+      << " enabled=" << (enable_fec_delay_adaptation_ ? 1 : 0);
   int fs = config.sample_rate_hz;
   if (fs != 8000 && fs != 16000 && fs != 32000 && fs != 48000) {
     RTC_LOG(LS_ERROR) << "Sample rate " << fs
@@ -723,6 +729,16 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
                                      number_of_primary_packets);
   }
 
+  // YASU FORENSIC: measure actual primary vs secondary/FEC parsing.
+  RTC_LOG(LS_VERBOSE)
+      << "YASU FORENSIC PARSE_COUNTS"
+      << " seq=" << main_sequence_number
+      << " rtp_ts=" << main_timestamp
+      << " parsed=" << parsed_packet_list.size()
+      << " primary=" << number_of_primary_packets
+      << " secondary="
+      << (parsed_packet_list.size() - number_of_primary_packets);
+
   bool buffer_flush_occured = false;
   for (Packet& packet : parsed_packet_list) {
     if (MaybeChangePayloadType(packet.payload_type)) {
@@ -760,12 +776,13 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
       return kOtherError;
     }
 
-    // YASU: Hard 200ms packet backlog ceiling.
+    // YASU: Hard 150ms combined backlog ceiling.
     //
-    // No packet deletion at or below 180ms.
-    // Above 180ms, discard only enough packets to return
-    // the PacketBuffer backlog to 180ms or less.
-    constexpr size_t kYasuHardBacklogMs = 180;
+    // No packet deletion at or below 150ms.
+    // Above 150ms, discard only enough PacketBuffer packets
+    // to return the combined PacketBuffer + SyncBuffer backlog
+    // to 150ms or less.
+    constexpr size_t kYasuHardBacklogMs = 150;
     const size_t yasu_ms = fs_hz_ / 1000;
     const size_t yasu_hard_backlog_samples =
         kYasuHardBacklogMs * yasu_ms;
@@ -774,6 +791,9 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
         sync_buffer_->FutureLength();
 
     if (yasu_sync_samples < yasu_hard_backlog_samples) {
+      size_t yasu_discarded_packets = 0;
+      size_t yasu_backlog_before_samples = 0;
+
       while (!packet_buffer_->Empty()) {
         const size_t yasu_packet_span_samples =
             packet_buffer_->GetSpanSamples(0, fs_hz_, false);
@@ -785,7 +805,31 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
           break;
         }
 
-        packet_buffer_->DiscardNextPacket();
+        if (yasu_discarded_packets == 0) {
+          yasu_backlog_before_samples = yasu_total_samples;
+        }
+
+        if (packet_buffer_->DiscardNextPacket() != PacketBuffer::kOK) {
+          break;
+        }
+
+        ++yasu_discarded_packets;
+      }
+
+      if (yasu_discarded_packets > 0) {
+        const size_t yasu_backlog_after_samples =
+            yasu_sync_samples +
+            packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+
+        RTC_LOG(LS_WARNING)
+            << "YASU HARD_BACKLOG_DROP"
+            << " threshold_ms=150"
+            << " sync_ms=" << (yasu_sync_samples / yasu_ms)
+            << " before_ms="
+            << (yasu_backlog_before_samples / yasu_ms)
+            << " after_ms="
+            << (yasu_backlog_after_samples / yasu_ms)
+            << " discarded_packets=" << yasu_discarded_packets;
       }
     }
 
@@ -906,6 +950,10 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
   bool play_dtmf;
   *muted = false;
   last_decoded_packet_infos_.clear();
+
+  // YASU FORENSIC: unique ID for this complete NetEq audio cycle.
+  ++yasu_cycle_id_;
+
   tick_timer_->Increment();
   stats_->IncreaseCounter(output_size_samples_, fs_hz_);
   const auto lifetime_stats = stats_->GetLifetimeStatistics();
@@ -1088,29 +1136,21 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
         const size_t yasu_backlog_ms =
             yasu_total_backlog_samples / yasu_ms;
 
-        // YASU multi-level FastAccelerate policy.
-        // <30ms       -> normal
-        // 30-50ms     -> 4 passes
-        // 50-80ms     -> 5 passes
-        // 80-100ms    -> 6 passes
-        // 100-150ms   -> 8 passes
-        // 150ms+      -> 10 passes.
-        // YASU: Faster backlog draining with gradual escalation.
-        // 30ms  -> 4 passes
-        // 50ms  -> 5 passes
-        // 80ms  -> 6 passes
-        // 100ms -> 8 passes
-        // 150ms+ -> 10 passes
-        if (yasu_backlog_ms >= 150) {
+        // YASU: Sync/Packet backlog drain policy.
+        // <60ms       -> normal
+        // 60-80ms     -> Accelerate
+        // 80-90ms     -> FastAccelerate, 6 passes
+        // 90-100ms    -> aggressive FastAccelerate, 8 passes
+        // 100ms+      -> maximum FastAccelerate, 10 passes
+        //
+        // Do not delete decoded PCM here. The stronger stages
+        // drain through the existing Accelerate implementation.
+        if (yasu_backlog_ms >= 100) {
           yasu_max_accelerate_passes = 10;
-        } else if (yasu_backlog_ms >= 100) {
+        } else if (yasu_backlog_ms >= 90) {
           yasu_max_accelerate_passes = 8;
         } else if (yasu_backlog_ms >= 80) {
           yasu_max_accelerate_passes = 6;
-        } else if (yasu_backlog_ms >= 50) {
-          yasu_max_accelerate_passes = 5;
-        } else if (yasu_backlog_ms >= 30) {
-          yasu_max_accelerate_passes = 4;
         }
 
         RTC_LOG(LS_VERBOSE)
@@ -1477,28 +1517,38 @@ int NetEqImpl::GetDecision(Operation* operation,
   }
   *operation = controller_->GetDecision(status, &reset_decoder_);
 
-  // YASU: 80ms Hard Drain.
-  // Processing trigger only. No packet deletion.
-  // The existing 100ms emergency drop remains unchanged.
-  constexpr size_t kYasuHardDrainMs = 80;
-  const size_t yasu_hard_drain_ms =
-      status.packet_buffer_info.span_samples / (fs_hz_ / 1000);
+  // YASU FORENSIC: preserve the controller's original decision so it can
+  // be compared with the final operation after YASU overrides.
+  const Operation yasu_controller_operation = *operation;
 
-  if (yasu_hard_drain_ms >= kYasuHardDrainMs &&
+  // YASU: 90ms aggressive drain trigger.
+  // Processing trigger only. No packet deletion.
+  // The 150ms packet-buffer emergency drop remains separate.
+  constexpr size_t kYasuHardDrainMs = 90;
+  const size_t yasu_ms = fs_hz_ / 1000;
+  const size_t yasu_packet_ms =
+      status.packet_buffer_info.span_samples / yasu_ms;
+  const size_t yasu_sync_ms =
+      status.sync_buffer_samples / yasu_ms;
+  const size_t yasu_total_backlog_ms =
+      yasu_packet_ms + yasu_sync_ms;
+
+  if (yasu_total_backlog_ms >= kYasuHardDrainMs &&
       !status.packet_buffer_info.dtx_or_cng &&
       !status.play_dtmf) {
     RTC_LOG(LS_VERBOSE)
-        << "YASU HARD_DRAIN_80MS"
-        << " span_ms=" << yasu_hard_drain_ms
-        << " packets=" << status.packet_buffer_info.num_packets
-        << " sync_ms="
-        << (status.sync_buffer_samples / (fs_hz_ / 1000));
+        << "YASU AGGRESSIVE_DRAIN_90MS"
+        << " total_ms=" << yasu_total_backlog_ms
+        << " packet_ms=" << yasu_packet_ms
+        << " sync_ms=" << yasu_sync_ms
+        << " packets=" << status.packet_buffer_info.num_packets;
 
     *operation = Operation::kFastAccelerate;
   }
 
   RTC_LOG(LS_VERBOSE)
       << "YASU TRACE DECISION"
+      << " controller_op=" << static_cast<int>(yasu_controller_operation)
       << " op=" << static_cast<int>(*operation)
       << " packets=" << status.packet_buffer_info.num_packets
       << " span_ms=" << (status.packet_buffer_info.span_samples * 1000 / fs_hz_)
@@ -1747,6 +1797,34 @@ int NetEqImpl::GetDecision(Operation* operation,
       // Not enough, do normal operation instead.
       *operation = Operation::kNormal;
     }
+  }
+
+  // YASU FORENSIC FINAL_OPERATION:
+  // This is the final operation after every decision override and the
+  // post-extraction 30ms safety check. The RTP timestamp links this event
+  // back to TARGET_LINK for the same packet.
+  // Measurement only: no timing/buffering behavior is changed.
+  {
+    const size_t yasu_ms = fs_hz_ / 1000;
+    const size_t yasu_packet_samples =
+        packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+    const size_t yasu_sync_samples =
+        sync_buffer_->FutureLength();
+
+    RTC_LOG(LS_VERBOSE)
+        << "YASU FORENSIC FINAL_OPERATION"
+        << " time_us=" << rtc::TimeMicros()
+        << " cycle_id=" << yasu_cycle_id_
+        << " seq=" << (packet ? packet->sequence_number : 0)
+        << " rtp_ts=" << (packet ? packet->timestamp : 0)
+        << " operation=" << static_cast<int>(*operation)
+        << " samples_left=" << samples_left
+        << " extracted_samples=" << extracted_samples
+        << " required_samples=" << required_samples
+        << " packet_ms=" << (yasu_packet_samples / yasu_ms)
+        << " sync_ms=" << (yasu_sync_samples / yasu_ms)
+        << " backlog_ms="
+        << ((yasu_packet_samples + yasu_sync_samples) / yasu_ms);
   }
 
   timestamp_ = sync_buffer_->end_timestamp();
@@ -2193,11 +2271,11 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
                             bool play_dtmf,
                             bool fast_accelerate,
                             int max_accelerate_passes) {
-  // YASU: FastAccelerate requires at least 60 ms for the first pass.
+  // YASU: FastAccelerate requires at least 30 ms for the first pass.
   // This is a minimum, not a maximum. A larger decoded block may be used.
-  // Normal Accelerate keeps the original 30 ms requirement.
+  // Both FastAccelerate and normal Accelerate use the same 30 ms minimum.
   const size_t first_pass_required_samples =
-      static_cast<size_t>((fast_accelerate ? 480 : 240) * fs_mult_);
+      static_cast<size_t>(240 * fs_mult_);
 
   // Subsequent FastAccelerate passes require approximately 30 ms.
   const size_t next_pass_min_samples =
@@ -2310,12 +2388,63 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
 
     total_samples_removed += samples_removed;
 
+    // YASU FORENSIC FAST_PASS:
+    // Exact result of each Accelerate::Process() pass.
+    // Measurement only: no timing/buffering behavior is changed.
+    if (fast_accelerate) {
+      const size_t yasu_ms = fs_hz_ / 1000;
+      const size_t yasu_packet_samples =
+          packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+      const size_t yasu_sync_samples =
+          sync_buffer_->FutureLength();
+
+      RTC_LOG(LS_VERBOSE)
+          << "YASU FORENSIC FAST_PASS"
+          << " time_us=" << rtc::TimeMicros()
+          << " cycle_id=" << yasu_cycle_id_
+          << " pass=" << pass
+          << " max_passes=" << max_passes
+          << " return_code=" << static_cast<int>(return_code)
+          << " input_decoded_samples=" << decoded_length
+          << " samples_removed=" << samples_removed
+          << " total_removed=" << total_samples_removed
+          << " algorithm_samples=" << algorithm_buffer_->Size()
+          << " packet_ms=" << (yasu_packet_samples / yasu_ms)
+          << " sync_ms=" << (yasu_sync_samples / yasu_ms)
+          << " backlog_ms="
+          << ((yasu_packet_samples + yasu_sync_samples) / yasu_ms);
+
+    }
+
     if (!fast_accelerate ||
         return_code == Accelerate::kNoStretch ||
         return_code == Accelerate::kError ||
         samples_removed == 0) {
       break;
     }
+  }
+
+  // YASU FORENSIC FAST_RESULT:
+  // Final measurable result of the complete FastAccelerate operation.
+  // Measurement only: no timing/buffering behavior is changed.
+  if (fast_accelerate) {
+    const size_t yasu_ms = fs_hz_ / 1000;
+    const size_t yasu_packet_samples =
+        packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+    const size_t yasu_sync_samples =
+        sync_buffer_->FutureLength();
+
+    RTC_LOG(LS_VERBOSE)
+        << "YASU FORENSIC FAST_RESULT"
+        << " time_us=" << rtc::TimeMicros()
+        << " cycle_id=" << yasu_cycle_id_
+        << " max_passes=" << max_passes
+        << " return_code=" << static_cast<int>(return_code)
+        << " total_removed=" << total_samples_removed
+        << " packet_ms=" << (yasu_packet_samples / yasu_ms)
+        << " sync_ms=" << (yasu_sync_samples / yasu_ms)
+        << " backlog_ms="
+        << ((yasu_packet_samples + yasu_sync_samples) / yasu_ms);
   }
 
   stats_->AcceleratedSamples(total_samples_removed);
