@@ -337,7 +337,9 @@ void NetworkManager::transportReadyToSend(cricket::IceTransportInternal *transpo
 	assert(_thread->IsCurrent());
 }
 
-\1
+void NetworkManager::transportPacketReceived(rtc::PacketTransportInternal *transport, const char *bytes, size_t size, const int64_t &timestamp, int unused) {
+        assert(_thread->IsCurrent());
+
     // YASU FORENSIC T0: actual network packet arrival.
     static uint64_t yasu_t0_packet_id = 0;
     const uint64_t yasu_t0_id = ++yasu_t0_packet_id;
@@ -350,18 +352,18 @@ void NetworkManager::transportReadyToSend(cricket::IceTransportInternal *transpo
         << " transport_timestamp=" << timestamp
         << " size=" << size;
 
-_lastNetworkActivityMs = rtc::TimeMillis();
-    
+    _lastNetworkActivityMs = rtc::TimeMillis();
+
     addTrafficStats(size, true);
 
-	if (auto decrypted = _transport.handleIncomingPacket(bytes, size)) {
-		if (_transportMessageReceived) {
-			_transportMessageReceived(std::move(decrypted->main));
-			for (auto &message : decrypted->additional) {
-				_transportMessageReceived(std::move(message));
-			}
-		}
-	}
+        if (auto decrypted = _transport.handleIncomingPacket(bytes, size)) {
+                if (_transportMessageReceived) {
+                        _transportMessageReceived(std::move(decrypted->main));
+                        for (auto &message : decrypted->additional) {
+                                _transportMessageReceived(std::move(message));
+                        }
+                }
+        }
 }
 
 void NetworkManager::transportRouteChanged(absl::optional<rtc::NetworkRoute> route) {
