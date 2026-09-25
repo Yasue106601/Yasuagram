@@ -622,12 +622,13 @@ void GroupNetworkManager::transportPacketReceived(rtc::PacketTransportInternal *
 
     _latencyLastUdpReceiveTimestamp = udpPacketReceiveTime;
 
-    // YASU FORENSIC T0
+    // YASU FORENSIC T0: exact packet arrival timestamp.
     static int yasu_t0_count = 0;
     if ((++yasu_t0_count % 100) == 0) {
         RTC_LOG(LS_INFO)
             << "YASU FORENSIC T0 UDP_RX "
-            << "time_us=" << udpPacketReceiveTime
+            << "arrival_us=" << timestamp
+            << "callback_us=" << udpPacketReceiveTime
             << "size=" << size;
     }
 
@@ -638,6 +639,18 @@ void GroupNetworkManager::RtpPacketReceived_n(webrtc::RtpPacketReceived const &p
 
     // Yasuagram: calculate RTP processing delay
     int64_t rtpProcessTime = rtc::TimeMicros();
+
+    // YASU FORENSIC T1: exact T0 arrival timestamp carried into RTP.
+    static int yasu_t1_count = 0;
+    if ((++yasu_t1_count % 100) == 0) {
+        RTC_LOG(LS_VERBOSE)
+            << "YASU FORENSIC T1 RTP_RX "
+            << "arrival_us=" << packet.arrival_time().us()
+            << "process_us=" << rtpProcessTime
+            << "ssrc=" << packet.Ssrc()
+            << "seq=" << packet.SequenceNumber()
+            << "rtp_ts=" << packet.Timestamp();
+    }
 
     // Yasuagram: real incoming RTP timestamp
     _latencyLastReceiveTimestamp = rtc::TimeMicros();

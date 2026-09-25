@@ -173,7 +173,7 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
   //
   // <30ms  -> no forced backlog draining here.
   // >=30ms -> Accelerate: reduce backlog, but less aggressively.
-  // >=50ms -> FastAccelerate: drain backlog aggressively.
+  // >=40ms -> FastAccelerate: drain backlog aggressively.
   //
   // These checks run BEFORE PostponeDecode(), so stale queued audio
   // cannot indefinitely postpone backlog reduction.
@@ -186,13 +186,18 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
   const size_t yasu_packet_buffer_ms =
       status.packet_buffer_info.span_samples / sample_rate_khz_;
 
+  // YASU: Use the total pending playout backlog.
+  // PacketBuffer and SyncBuffer are consecutive stages of the same
+  // future audio path. Do not require either stage to reach the
+  // threshold independently.
+  const size_t yasu_total_backlog_ms =
+      yasu_packet_buffer_ms + yasu_sync_buffer_ms;
+
   const bool yasu_fast_accelerate =
-      yasu_sync_buffer_ms >= kYasuFastAccelerateMs ||
-      yasu_packet_buffer_ms >= kYasuFastAccelerateMs;
+      yasu_total_backlog_ms >= kYasuFastAccelerateMs;
 
   const bool yasu_accelerate =
-      yasu_sync_buffer_ms >= kYasuAccelerateMs ||
-      yasu_packet_buffer_ms >= kYasuAccelerateMs;
+      yasu_total_backlog_ms >= kYasuAccelerateMs;
 
   if (yasu_fast_accelerate) {
     RTC_LOG(LS_WARNING)
@@ -385,8 +390,8 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
       // YASU: Multi-level backlog policy.
     //
     // <30ms       -> normal
-    // 30-50ms     -> normal acceleration
-    // 50-80ms     -> fast acceleration
+    // 30-40ms     -> normal acceleration
+    // 40-80ms     -> fast acceleration
     // 80-100ms    -> aggressive acceleration
     // 100-150ms   -> very aggressive acceleration
     // 150-200ms   -> maximum acceleration
@@ -458,13 +463,13 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
     const int buffer_level_samples =
         buffer_level_filter_->filtered_current_level();
 
-    // YASU: 30-50ms.
+    // YASU: 30-40ms.
     if (buffer_level_samples >= yasu_accelerate_limit &&
         buffer_level_samples < yasu_fast_accelerate_limit) {
       return NetEq::Operation::kAccelerate;
     }
 
-    // YASU: 50ms and above.
+    // YASU: 40ms and above.
     // The stronger 80/100/150ms stages are handled in NetEqImpl.
     if (buffer_level_samples >= yasu_fast_accelerate_limit) {
       return NetEq::Operation::kFastAccelerate;
@@ -518,7 +523,7 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
     // continuing to return NoPacket. This limits excessive NetEq waiting
     // without dropping the packet.
     // YASU: Future-packet waiting follows the same global
-    // 30ms / 50ms acceleration policy.
+    // 30ms / 40ms acceleration policy.
     constexpr int kYasuAcceleratePacketWaitMs = 30;
     constexpr int kYasuFastAcceleratePacketWaitMs = 40;
 
