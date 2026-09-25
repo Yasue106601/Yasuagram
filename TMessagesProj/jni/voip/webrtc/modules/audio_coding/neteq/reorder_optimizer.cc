@@ -20,7 +20,7 @@ namespace {
 
 constexpr int kDelayBuckets = 100;
 constexpr int kBucketSizeMs = 10;
-constexpr int kYasuMaxOptimizerDelayMs = 80;
+constexpr int kYasuMaxOptimizerDelayMs = 0;
 
 }  // namespace
 

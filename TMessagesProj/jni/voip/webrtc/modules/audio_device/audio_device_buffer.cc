@@ -318,6 +318,7 @@ int32_t AudioDeviceBuffer::RequestPlayoutData(size_t samples_per_channel) {
   TRACE_EVENT1("webrtc", "AudioDeviceBuffer::RequestPlayoutData",
                "samples_per_channel", samples_per_channel);
 
+  const uint64_t yasu_playout_request_id = ++yasu_playout_request_id_;
   const int64_t yasu_t9_start_us = rtc::TimeMicros();
 
   // The consumer can change the requested size on the fly and we therefore
@@ -405,6 +406,7 @@ int32_t AudioDeviceBuffer::RequestPlayoutData(size_t samples_per_channel) {
   if ((++yasu_t9_count % 100) == 0) {
     RTC_LOG(LS_VERBOSE)
         << "YASU FORENSIC T9 REQUEST_TOTAL "
+        << "playout_request_id=" << yasu_playout_request_id << " "
         << "duration_us=" << (yasu_t9_end_us - yasu_t9_start_us)
         << "requested_frames=" << samples_per_channel
         << "channels=" << play_channels_
@@ -450,6 +452,7 @@ int32_t AudioDeviceBuffer::GetPlayoutData(void* audio_buffer) {
   if ((++yasu_t10_count % 100) == 0) {
     RTC_LOG(LS_VERBOSE)
         << "YASU FORENSIC T10 PCM_COPY "
+        << "playout_request_id=" << yasu_playout_request_id_ << " "
         << "duration_us=" << (yasu_t10_end_us - yasu_t10_start_us)
         << "frames=" << yasu_t10_frames
         << "channels=" << play_channels_

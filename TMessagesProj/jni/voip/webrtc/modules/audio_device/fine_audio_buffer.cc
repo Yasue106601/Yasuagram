@@ -133,6 +133,8 @@ void FineAudioBuffer::GetPlayoutData(rtc::ArrayView<int16_t> audio_buffer,
         << " time_us=" << yasu_fab_end_us
         << " duration_us=" << (yasu_fab_end_us - yasu_fab_start_us)
         << " request_samples=" << audio_buffer.size()
+        << " playout_request_id="
+        << audio_device_buffer_->LastPlayoutRequestId()
         << " request_frames="
         << (playout_channels_ > 0
                 ? audio_buffer.size() / playout_channels_

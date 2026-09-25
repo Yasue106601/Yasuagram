@@ -117,6 +117,10 @@ class AudioDeviceBuffer {
   virtual int32_t RequestPlayoutData(size_t samples_per_channel);
   virtual int32_t GetPlayoutData(void* audio_buffer);
 
+  // YASU E2E: ID linking RequestPlayoutData -> GetPlayoutData.
+  uint64_t LastPlayoutRequestId() const { return yasu_playout_request_id_; }
+
+
   int32_t SetTypingStatus(bool typing_status);
 
  private:
@@ -186,6 +190,10 @@ class AudioDeviceBuffer {
   // dynamically. The 16-bit samples are interleaved, hence the size is
   // proportional to the number of channels.
   rtc::BufferT<int16_t> play_buffer_;
+
+  // YASU E2E: monotonically increasing playout request ID.
+  uint64_t yasu_playout_request_id_ = 0;
+
 
   // Byte buffer used for recorded audio samples. Size can be changed
   // dynamically.
