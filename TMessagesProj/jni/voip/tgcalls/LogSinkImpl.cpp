@@ -17,6 +17,15 @@ LogSinkImpl::LogSinkImpl(const FilePath &logPath) {
 	}
 }
 
+void LogSinkImpl::OnLogMessage(const std::string &msg, rtc::LoggingSeverity severity, const char *tag) {
+	OnLogMessage(std::string(tag) + ": " + msg);
+}
+
+void LogSinkImpl::OnLogMessage(const std::string &message, rtc::LoggingSeverity severity) {
+	OnLogMessage(message);
+}
+
+
 void LogSinkImpl::OnLogMessage(const std::string &message) {
     std::time_t rawTime;
     std::time(&rawTime);
