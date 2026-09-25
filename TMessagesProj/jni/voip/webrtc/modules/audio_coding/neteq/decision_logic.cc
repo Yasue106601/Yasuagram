@@ -281,23 +281,6 @@ absl::optional<int> DecisionLogic::PacketArrived(
       !packet_arrival_history_->IsNewestRtpTimestamp(info.main_timestamp);
   delay_manager_->Update(arrival_delay_ms, reordered);
 
-  // YASU FORENSIC TARGET_LINK:
-  // Correlate this exact RTP packet with the final DelayManager target.
-  // Measurement only: no timing/buffering behavior is changed.
-  RTC_LOG(LS_VERBOSE)
-      << "YASU FORENSIC TARGET_LINK"
-      << " time_us=" << rtc::TimeMicros()
-      << " seq=" << info.main_sequence_number
-      << " rtp_ts=" << info.main_timestamp
-      << " arrival_delay_ms=" << arrival_delay_ms
-      << " reordered=" << reordered
-      << " delay_target_ms=" << delay_manager_->TargetLevelMs()
-      << " decision_target_ms=" << TargetLevelMs()
-      << " unlimited_target_ms=" << UnlimitedTargetLevelMs()
-      << " packet_len_samples=" << info.packet_length_samples
-      << " fs_hz=" << fs_hz
-      << " history_size=" << packet_arrival_history_->size();
-
   return arrival_delay_ms;
 }
 
@@ -419,7 +402,6 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
     constexpr int kYasuAggressiveLimitMs = 90;
     constexpr int kYasuVeryAggressiveLimitMs = 100;
     constexpr int kYasuMaximumLimitMs = 100;
-    constexpr int kYasuHardCeilingMs = 100;
 
     RTC_LOG(LS_WARNING)
         << "YASU DELAY DECISION"
@@ -465,7 +447,6 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
     constexpr int kYasuAggressiveLimitMs = 90;
     constexpr int kYasuVeryAggressiveLimitMs = 100;
     constexpr int kYasuMaximumLimitMs = 100;
-    constexpr int kYasuHardCeilingMs = 100;
 
     const int yasu_accelerate_limit =
         kYasuAccelerateLimitMs * sample_rate_khz_;
