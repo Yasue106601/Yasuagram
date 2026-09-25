@@ -60,18 +60,6 @@ Accelerate::ReturnCodes Accelerate::CheckCriteriaAndStretch(
     // 120 corresponds to 15 ms.
     size_t fs_mult_120 = fs_mult_ * 120;
 
-    if (fast_mode) {
-      // YASU: FastAccelerate uses the largest safe multiple of the detected
-      // pitch period that fits the 15 ms acceleration window.
-      // Keep the original overlap/add structure and avoid packet dropping.
-      if (peak_index > 0) {
-        const size_t max_peak_count = fs_mult_120 / peak_index;
-        if (max_peak_count > 1) {
-          peak_index *= max_peak_count;
-        }
-      }
-    }
-
     RTC_DCHECK_GE(fs_mult_120, peak_index);  // Should be handled in Process().
     // Copy first part; 0 to 15 ms.
     output->PushBackInterleaved(

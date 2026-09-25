@@ -208,14 +208,6 @@ void NetworkManager::start() {
 
     _transportChannel->SetRemoteIceMode(cricket::ICEMODE_FULL);
     
-    // YASU FORENSIC T0
-    static int yasu_t0_count = 0;
-    if ((++yasu_t0_count % 100) == 0) {
-        RTC_LOG(LS_VERBOSE)
-            << "YASU FORENSIC T0 UDP_RX "
-            << "time_us=" << rtc::TimeMicros();
-    }
-
     _lastNetworkActivityMs = rtc::TimeMillis();
     
     checkConnectionTimeout();
@@ -345,10 +337,20 @@ void NetworkManager::transportReadyToSend(cricket::IceTransportInternal *transpo
 	assert(_thread->IsCurrent());
 }
 
-void NetworkManager::transportPacketReceived(rtc::PacketTransportInternal *transport, const char *bytes, size_t size, const int64_t &timestamp, int unused) {
-	assert(_thread->IsCurrent());
-    
-    _lastNetworkActivityMs = rtc::TimeMillis();
+\1
+    // YASU FORENSIC T0: actual network packet arrival.
+    static uint64_t yasu_t0_packet_id = 0;
+    const uint64_t yasu_t0_id = ++yasu_t0_packet_id;
+    const int64_t yasu_t0_time_us = rtc::TimeMicros();
+
+    RTC_LOG(LS_VERBOSE)
+        << "YASU FORENSIC T0 UDP_RX_REAL"
+        << " t0_id=" << yasu_t0_id
+        << " time_us=" << yasu_t0_time_us
+        << " transport_timestamp=" << timestamp
+        << " size=" << size;
+
+_lastNetworkActivityMs = rtc::TimeMillis();
     
     addTrafficStats(size, true);
 
