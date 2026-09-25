@@ -36,16 +36,6 @@ bool PacketArrivalHistory::Insert(uint32_t rtp_timestamp,
   }
   history_.emplace(packet.rtp_timestamp, packet);
 
-  // YASU FORENSIC PAH: exact PacketArrivalHistory insertion point.
-  // Measurement only: no timing/buffering behavior is changed.
-  RTC_LOG(LS_VERBOSE)
-      << "YASU FORENSIC PAH_INSERT "
-      << "rtp_ts=" << packet.rtp_timestamp
-      << "arrival_tick=" << tick_timer_->ticks()
-      << "arrival_ms=" << (arrival_timestamp / sample_rate_khz_)
-      << "sample_rate_khz=" << sample_rate_khz_
-      << "history_size=" << history_.size()
-      << "packet_len_samples=" << packet_length_samples;
 
   if (packet != history_.rbegin()->second) {
     // Packet was reordered.
@@ -92,20 +82,6 @@ int PacketArrivalHistory::GetDelayMs(uint32_t rtp_timestamp) const {
 
   const int yasu_delay_ms = GetPacketArrivalDelayMs(packet);
 
-  // YASU FORENSIC PAH: exact GetDelayMs calculation used by TARGET arrival.
-  // Measurement only: no timing/buffering behavior is changed.
-  if (!min_packet_arrivals_.empty()) {
-    RTC_LOG(LS_VERBOSE)
-        << "YASU FORENSIC PAH_DELAY "
-        << "rtp_ts=" << unwrapped_rtp_timestamp
-        << "now_tick=" << tick_timer_->ticks()
-        << "now_ms=" << (current_timestamp / sample_rate_khz_)
-        << "min_rtp_ts=" << min_packet_arrivals_.front().rtp_timestamp
-        << "min_arrival_ms="
-        << (min_packet_arrivals_.front().arrival_timestamp /
-            sample_rate_khz_)
-        << "delay_ms=" << yasu_delay_ms
-        << "history_size=" << history_.size();
   }
 
   return yasu_delay_ms;
