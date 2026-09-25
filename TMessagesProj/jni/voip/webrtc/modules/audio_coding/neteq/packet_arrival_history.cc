@@ -82,7 +82,6 @@ int PacketArrivalHistory::GetDelayMs(uint32_t rtp_timestamp) const {
 
   const int yasu_delay_ms = GetPacketArrivalDelayMs(packet);
 
-  }
 
   return yasu_delay_ms;
 }
