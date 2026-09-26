@@ -782,7 +782,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     // Above 150ms, discard only enough PacketBuffer packets
     // to return the combined PacketBuffer + SyncBuffer backlog
     // to 150ms or less.
-    constexpr size_t kYasuHardBacklogMs = 150;
+    constexpr size_t kYasuHardBacklogMs = 45;
     const size_t yasu_ms = fs_hz_ / 1000;
     const size_t yasu_hard_backlog_samples =
         kYasuHardBacklogMs * yasu_ms;
@@ -823,7 +823,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
 
         RTC_LOG(LS_WARNING)
             << "YASU HARD_BACKLOG_DROP"
-            << " threshold_ms=150"
+            << " threshold_ms=45"
             << " sync_ms=" << (yasu_sync_samples / yasu_ms)
             << " before_ms="
             << (yasu_backlog_before_samples / yasu_ms)

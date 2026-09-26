@@ -112,7 +112,7 @@ void AsyncUDPSocket::OnReadEvent(Socket* socket) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
 
   // YASU: Drain a small UDP burst immediately to reduce receive-side delay.
-  constexpr int kYasuMaxPacketsPerReadEvent = 8;
+  constexpr int kYasuMaxPacketsPerReadEvent = 32;
 
   for (int i = 0; i < kYasuMaxPacketsPerReadEvent; ++i) {
     Socket::ReceiveBuffer receive_buffer(buffer_);
