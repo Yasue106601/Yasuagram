@@ -782,7 +782,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     // Above 60ms, discard at most 3 PacketBuffer packets per insertion.
     // This prevents large bursts of packet loss while still trimming
     // excessive backlog.
-    constexpr size_t kYasuHardBacklogMs = 70;
+    constexpr size_t kYasuHardBacklogMs = 120;
     constexpr size_t kYasuMaxDiscardPackets = 3;
     const size_t yasu_ms = fs_hz_ / 1000;
     const size_t yasu_hard_backlog_samples =
@@ -825,7 +825,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
 
         RTC_LOG(LS_WARNING)
             << "YASU HARD_BACKLOG_DROP"
-            << " threshold_ms=70"
+            << " threshold_ms=120"
             << " max_discard_packets=3"
             << " sync_ms=" << (yasu_sync_samples / yasu_ms)
             << " before_ms="
@@ -2307,8 +2307,13 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
   size_t total_samples_removed = 0;
   Accelerate::ReturnCodes return_code = Accelerate::kNoStretch;
 
+  // YASU: Allow normal Accelerate a few passes too, not just one,
+  // so gentle compression can clear backlog earlier without needing
+  // the stronger, more audible FastAccelerate.
+  constexpr int kYasuNormalAcceleratePasses = 3;
   const int max_passes =
-      fast_accelerate ? std::max(1, max_accelerate_passes) : 1;
+      fast_accelerate ? std::max(1, max_accelerate_passes)
+                       : kYasuNormalAcceleratePasses;
 
   // YASU: Reuse the temporary buffers across FastAccelerate passes.
   // Keep the untouched suffix in AudioMultiVector form instead of using
@@ -2419,8 +2424,7 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
 
     }
 
-    if (!fast_accelerate ||
-        return_code == Accelerate::kNoStretch ||
+    if (return_code == Accelerate::kNoStretch ||
         return_code == Accelerate::kError ||
         samples_removed == 0) {
       break;
