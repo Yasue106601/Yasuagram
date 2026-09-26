@@ -776,13 +776,14 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
       return kOtherError;
     }
 
-    // YASU: Hard 150ms combined backlog ceiling.
+    // YASU: Conservative combined backlog ceiling.
     //
-    // No packet deletion at or below 150ms.
-    // Above 150ms, discard only enough PacketBuffer packets
-    // to return the combined PacketBuffer + SyncBuffer backlog
-    // to 150ms or less.
-    constexpr size_t kYasuHardBacklogMs = 45;
+    // No packet deletion at or below 60ms.
+    // Above 60ms, discard at most 3 PacketBuffer packets per insertion.
+    // This prevents large bursts of packet loss while still trimming
+    // excessive backlog.
+    constexpr size_t kYasuHardBacklogMs = 60;
+    constexpr size_t kYasuMaxDiscardPackets = 3;
     const size_t yasu_ms = fs_hz_ / 1000;
     const size_t yasu_hard_backlog_samples =
         kYasuHardBacklogMs * yasu_ms;
@@ -794,7 +795,8 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
       size_t yasu_discarded_packets = 0;
       size_t yasu_backlog_before_samples = 0;
 
-      while (!packet_buffer_->Empty()) {
+      while (!packet_buffer_->Empty() &&
+             yasu_discarded_packets < kYasuMaxDiscardPackets) {
         const size_t yasu_packet_span_samples =
             packet_buffer_->GetSpanSamples(0, fs_hz_, false);
 
@@ -823,7 +825,8 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
 
         RTC_LOG(LS_WARNING)
             << "YASU HARD_BACKLOG_DROP"
-            << " threshold_ms=45"
+            << " threshold_ms=60"
+            << " max_discard_packets=3"
             << " sync_ms=" << (yasu_sync_samples / yasu_ms)
             << " before_ms="
             << (yasu_backlog_before_samples / yasu_ms)
