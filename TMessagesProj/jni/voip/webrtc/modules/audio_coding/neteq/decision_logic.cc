@@ -178,8 +178,8 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
   //
   // These checks run BEFORE PostponeDecode(), so stale queued audio
   // cannot indefinitely postpone backlog reduction.
-  constexpr size_t kYasuAccelerateMs = 15;
-  constexpr size_t kYasuFastAccelerateMs = 25;
+  constexpr size_t kYasuAccelerateMs = 25;
+  constexpr size_t kYasuFastAccelerateMs = 40;
 
   const size_t yasu_sync_buffer_ms =
       status.sync_buffer_samples / sample_rate_khz_;
@@ -300,7 +300,7 @@ void DecisionLogic::FilterBufferLevel(size_t buffer_size_samples) {
 
     // YASU: Hard-limit the filtered NetEq buffer contribution.
     // Prefer latency growth to be cut rather than carried forward.
-    constexpr int kYasuMaxFilteredBufferMs = 20;
+    constexpr int kYasuMaxFilteredBufferMs = 35;
     const int max_filtered_samples =
         kYasuMaxFilteredBufferMs * sample_rate_khz_;
     if (buffer_level_filter_->filtered_current_level() >
@@ -397,8 +397,8 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
     // 90-100ms    -> aggressive fast acceleration
     // 100ms+      -> maximum fast acceleration
     // 150ms+      -> packet-buffer emergency handling in NetEqImpl.
-    constexpr int kYasuAccelerateLimitMs = 15;
-    constexpr int kYasuFastAccelerateLimitMs = 25;
+    constexpr int kYasuAccelerateLimitMs = 25;
+    constexpr int kYasuFastAccelerateLimitMs = 40;
 
     RTC_LOG(LS_WARNING)
         << "YASU DELAY DECISION"
@@ -435,8 +435,8 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
                 config_.deceleration_target_level_offset_ms *
                     sample_rate_khz_);
 
-    constexpr int kYasuAccelerateLimitMs = 15;
-    constexpr int kYasuFastAccelerateLimitMs = 25;
+    constexpr int kYasuAccelerateLimitMs = 25;
+    constexpr int kYasuFastAccelerateLimitMs = 40;
 
     const int yasu_accelerate_limit =
         kYasuAccelerateLimitMs * sample_rate_khz_;
@@ -508,8 +508,8 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
     // without dropping the packet.
     // YASU: Future-packet waiting follows the global
     // 60ms / 80ms acceleration policy.
-    constexpr int kYasuAcceleratePacketWaitMs = 15;
-    constexpr int kYasuFastAcceleratePacketWaitMs = 25;
+    constexpr int kYasuAcceleratePacketWaitMs = 25;
+    constexpr int kYasuFastAcceleratePacketWaitMs = 40;
 
     const size_t yasu_packet_wait_ms =
         status.packet_buffer_info.span_samples_wait_time /
