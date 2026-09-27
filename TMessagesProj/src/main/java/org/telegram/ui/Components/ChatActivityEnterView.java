@@ -633,2187 +633,13 @@ public class ChatActivityEnterView extends FrameLayout implements
     private ViewPropertyAnimator attachButtonAnimator;
     private ImageView attachButton;
         // YASU_FEATURES_BUTTON
-        private TextView yasuFeaturesButton;
-
-        // الحالة الشكلية فقط حالياً - سيتم ربطها لاحقاً بالإرسال الحقيقي
-        private boolean yasuFeature000 = false;
-        private boolean yasuFeature001 = false;
-        private boolean yasuFeature002 = false;
-        private boolean yasuFeature003 = false;
-        private boolean yasuFeature004 = false;
-        private boolean yasuProcessingFeatures = false;
-        private boolean yasuDeleteMessages = false;
-
-        // YASU VOICE TRANSCRIPTION
-        private static final int YASU_VOICE_MODE_WORDS = 0;
-        private static final int YASU_VOICE_MODE_NUMBERS = 1;
-        private int yasuVoiceMode = YASU_VOICE_MODE_WORDS;
-        private boolean yasuVoiceEnabled = false;
-    private int yasuVoiceInsertedStart = -1;
-    private int yasuVoiceInsertedEnd = -1;
-    private String yasuVoiceInsertedText = "";
-    private String yasuVoiceBeforeText = "";
-    private String yasuVoiceAfterText = "";
-
-
-        // YASU: maximum 10, never above Telegram's normal sending path
-        private int yasuFeature001Count = 1;
-        private int yasuFeature002Count = 1;
-        private int yasuFeature004Count = 1;
-
-        // 002 burst cache: reuse identical local processing across repeated sends.
-        private boolean yasu002BurstActive = false;
-        private CharSequence yasu002CachedProcessedText;
-        private String yasu002CachedSendText;
-        private boolean yasu002CachedHasOnlyEmoji;
-        private boolean yasu002CachedSupportsNewEntities;
-        private int yasu002CachedMaxLength;
-        private ArrayList<TLRPC.MessageEntity> yasu002CachedEntities;
-        private boolean yasu002CachedUpdateStickersOrder;
-
-
-    private AiButtonDrawable aiButtonIcon;
-    private ImageView aiButton;
-    private ImageView richButton;
-    private float attachButtonAlpha = 1.0f;
-    private ImageView suggestButton;
-    @Nullable
-    private ImageView botButton;
-    @Nullable
-    private ImageView reactionsButton;
-    public FrameLayout messageEditTextContainer;
-    public FrameLayout textFieldContainer;
-    public FrameLayout sendButtonContainer;
-    private ImageView sendOutlineView;
-    public RichMessageLayout.PreviewView richDraftPreview;
-    private boolean richDraftActive;
-    private TL_iv.RichMessage richDraftMessage;
-    @Nullable
-    private SendButton doneButton;
-    private AnimatorSet doneButtonAnimation;
-    protected View topView;
-    private BotKeyboardView botKeyboardView;
-    private ImageView notifyButton;
-    @Nullable
-    private ImageView scheduledButton;
-    @Nullable
-    private ImageView giftButton;
-    private boolean scheduleButtonHidden;
-    private AnimatorSet scheduledButtonAnimation;
-    @Nullable
-    private RecordCircle recordCircle;
-    public ControlsView controlsView;
-    private CloseProgressDrawable2 progressDrawable;
-    private Paint dotPaint;
-    private int searchingType;
-    private Runnable focusRunnable;
-    protected int animatedTop;
-    @Nullable
-    private ReplaceableIconDrawable botButtonDrawable;
-
-    private CharSequence draftMessage;
-    private boolean draftSearchWebpage;
-
-    private boolean isPaste;
-
-    private boolean destroyed;
-
-    private MessageObject editingMessageObject;
-    private boolean editingCaption;
-
-    private TL_account.TL_businessChatLink editingBusinessLink;
-
-    private BusinessLinkPresetMessage lastSavedBusinessLinkMessage;
-
-    private TLRPC.ChatFull info;
-
-    private boolean hasRecordVideo;
-
-    private int currentPopupContentType = -1;
-
-    private boolean silent;
-    private boolean canWriteToChannel;
-
-    private boolean smoothKeyboard;
-
-    private boolean isPaused = true;
-    private boolean recordIsCanceled;
-    private boolean showKeyboardOnResume;
-
-    private MessageObject botButtonsMessageObject;
-    private TLRPC.TL_replyKeyboardMarkup botReplyMarkup;
-    private int botCount;
-    private boolean hasBotCommands;
-    private boolean hasQuickReplies;
-
-    private PowerManager.WakeLock wakeLock;
-    private AnimatorSet runningAnimation;
-    private AnimatorSet runningAnimation2;
-    private AnimatorSet runningAnimationAudio;
-    private AnimatorSet recordPannelAnimation;
-    private int runningAnimationType;
-    private int recordInterfaceState;
-
-    private int keyboardHeight;
-    private int keyboardHeightLand;
-    private boolean keyboardVisible;
-    private int emojiPadding;
-    private boolean sendByEnter;
-    private long lastTypingTimeSend;
-    private float startedDraggingX = -1;
-    private float distCanMove = dp(80);
-    private boolean recordingAudioVideo;
-    public int recordingGuid;
-    private boolean forceShowSendButton;
-    private boolean allowAnimatedEmoji;
-    private boolean allowStickers;
-    private boolean allowGifs;
-
-    private int lastSizeChangeValue1;
-    private boolean lastSizeChangeValue2;
-
-    private int[] location = new int[2];
-
-    private Activity parentActivity;
-    private ChatActivity parentFragment;
-    private long dialog_id;
-    private boolean ignoreTextChange;
-    private int innerTextChange;
-    private MessageObject replyingMessageObject;
-    private MessageObject replyingTopMessage;
-    private ChatActivity.ReplyQuote replyingQuote;
-    private MessageObject botMessageObject;
-    private TLRPC.WebPage messageWebPage;
-    private boolean messageWebPageSearch = true;
-    private ChatActivityEnterViewDelegate delegate;
-    private TrendingStickersAlert trendingStickersAlert;
-
-    private TLRPC.TL_document audioToSend;
-    private String audioToSendPath;
-    private MessageObject audioToSendMessageObject;
-    private VideoEditedInfo videoToSendMessageObject;
-
-    protected boolean topViewShowed;
-
-    private boolean needShowTopView;
-    private boolean allowShowTopView;
-
-    private MessageObject pendingMessageObject;
-    private TLRPC.KeyboardButton pendingLocationButton;
-
-    private boolean waitingForKeyboardOpen;
-    private boolean waitingForKeyboardOpenAfterAnimation;
-    private boolean wasSendTyping;
-    protected boolean shouldAnimateEditTextWithBounds;
-    private int animatingContentType = -1;
-
-    private boolean clearBotButtonsOnKeyboardOpen;
-    private boolean expandStickersWithKeyboard;
-    private float doneButtonEnabledProgress = 1f;
-    @Nullable
-    private Drawable doneCheckDrawable;
-    boolean doneButtonEnabled = true;
-    private ValueAnimator doneButtonColorAnimator;
-
-    private Runnable openKeyboardRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (hasBotWebView() && botCommandsMenuIsShowing() || BaseFragment.hasSheets(parentFragment)) {
-                return;
-            }
-
-            if (!destroyed && messageEditText != null && waitingForKeyboardOpen && !keyboardVisible && !AndroidUtilities.usingHardwareInput && !AndroidUtilities.isInMultiwindow) {
-                if (delegate != null) {
-                    delegate.onKeyboardRequested();
-                }
-                messageEditText.requestFocus();
-                AndroidUtilities.showKeyboard(messageEditText);
-                AndroidUtilities.cancelRunOnUIThread(openKeyboardRunnable);
-                AndroidUtilities.runOnUIThread(openKeyboardRunnable, 100);
-            }
-        }
-    };
-    private Runnable updateExpandabilityRunnable = new Runnable() {
-
-        private int lastKnownPage = -1;
-
-        @Override
-        public void run() {
-            if (emojiView != null) {
-                int curPage = emojiView.getCurrentPage();
-                if (curPage != lastKnownPage) {
-                    lastKnownPage = curPage;
-                    boolean prevOpen = stickersTabOpen;
-                    stickersTabOpen = curPage == 1 || curPage == 2;
-                    boolean prevOpen2 = emojiTabOpen;
-                    emojiTabOpen = curPage == 0;
-                    if (stickersExpanded) {
-                        if (searchingType != 0) {
-                            setSearchingTypeInternal(curPage == 0 ? 2 : 1, true);
-                            checkStickresExpandHeight();
-                        } else if (!stickersTabOpen) {
-                            setStickersExpanded(false, true, false);
-                        }
-                    }
-                    if (prevOpen != stickersTabOpen || prevOpen2 != emojiTabOpen) {
-                        checkSendButton(true);
-                    }
-                }
-            }
-        }
-    };
-
-    private Property<View, Integer> roundedTranslationYProperty = new Property<View, Integer>(Integer.class, "translationY") {
-        @Override
-        public Integer get(View object) {
-            return Math.round(object.getTranslationY());
-        }
-
-        @Override
-        public void set(View object, Integer value) {
-            object.setTranslationY(value);
-        }
-    };
-
-    private Property<RecordCircle, Float> recordCircleScale = new Property<RecordCircle, Float>(Float.class, "scale") {
-        @Override
-        public Float get(RecordCircle object) {
-            return object.getScale();
-        }
-
-        @Override
-        public void set(RecordCircle object, Float value) {
-            object.setScale(value);
-        }
-    };
-
-    private Property<RecordCircle, Float> recordControlsCircleScale = new Property<RecordCircle, Float>(Float.class, "controlsScale") {
-        @Override
-        public Float get(RecordCircle object) {
-            return object.getControlsScale();
-        }
-
-        @Override
-        public void set(RecordCircle object, Float value) {
-            object.setControlsScale(value);
-        }
-    };
-
-    private Paint redDotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-    private boolean stickersTabOpen;
-    private boolean emojiTabOpen;
-    private boolean gifsTabOpen;
-    private boolean stickersExpanded;
-    private boolean closeAnimationInProgress;
-    private Animator stickersExpansionAnim;
-    private Animator currentResizeAnimation;
-    private float stickersExpansionProgress;
-    private int stickersExpandedHeight;
-    private boolean stickersDragging;
-    private AnimatedArrowDrawable stickersArrow;
-    private boolean removeEmojiViewAfterAnimation;
-
-    private Runnable onFinishInitCameraRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (delegate != null) {
-                delegate.needStartRecordVideo(0, true, 0, 0, 0, 0, 0);
-            }
-        }
-    };
-
-    private boolean recordAudioVideoRunnableStarted;
-    private boolean calledRecordRunnable;
-    private Runnable recordAudioVideoRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (delegate == null || parentActivity == null) {
-                return;
-            }
-            delegate.onPreAudioVideoRecord();
-            calledRecordRunnable = true;
-            recordAudioVideoRunnableStarted = false;
-            if (slideText != null) {
-                slideText.setAlpha(1.0f);
-                slideText.setTranslationY(0);
-            }
-            audioToSendPath = null;
-            audioToSend = null;
-            if (isInVideoMode()) {
-                if (Build.VERSION.SDK_INT >= 23) {
-                    boolean hasAudio = parentActivity.checkSelfPermission(Manifest.permission.RECORD_AUDIO ) == PackageManager.PERMISSION_GRANTED;
-                    boolean hasVideo = parentActivity.checkSelfPermission(Manifest.permission.CAMERA ) == PackageManager.PERMISSION_GRANTED;
-                    if (!hasAudio || !hasVideo) {
-                        String[] permissions = new String[!hasAudio && !hasVideo ? 2 : 1];
-                        if (!hasAudio && !hasVideo) {
-                            permissions[0] = Manifest.permission.RECORD_AUDIO ;
-                            permissions[1] = Manifest.permission.CAMERA ;
-                        } else if (!hasAudio) {
-                            permissions[0] = Manifest.permission.RECORD_AUDIO ;
-                        } else {
-                            permissions[0] = Manifest.permission.CAMERA ;
-                        }
-                        parentActivity.requestPermissions(permissions, BasePermissionsActivity.REQUEST_CODE_VIDEO_MESSAGE);
-                        return;
-                    }
-                }
-                if (!CameraController.getInstance().isCameraInitied()) {
-                    CameraController.getInstance().initCamera(onFinishInitCameraRunnable);
-                } else {
-                    onFinishInitCameraRunnable.run();
-                }
-                if (!recordingAudioVideo) {
-                    recordingAudioVideo = true;
-                    updateRecordInterface(RECORD_STATE_ENTER, true);
-                    if (recordCircle != null) {
-                        recordCircle.showWaves(false, false);
-                    }
-                    if (recordTimerView != null) {
-                        recordTimerView.reset();
-                    }
-                }
-            } else {
-                if (Build.VERSION.SDK_INT >= 23 && parentActivity.checkSelfPermission(Manifest.permission.RECORD_AUDIO ) != PackageManager.PERMISSION_GRANTED) {
-                    parentActivity.requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO }, 3);
-                    return;
-                }
-
-                delegate.needStartRecordAudio(1);
-                startedDraggingX = -1;
-                TL_stories.StoryItem storyItem = delegate != null ? delegate.getReplyToStory() : null;
-                MediaController.getInstance().startRecording(currentAccount, dialog_id, replyingMessageObject, getThreadMessage(), storyItem, recordingGuid, true, parentFragment != null ? parentFragment.quickReplyShortcut : null, parentFragment != null ? parentFragment.getQuickReplyId() : 0, getSendMonoForumPeerId(), getSendMessageSuggestionParams());
-                recordingAudioVideo = true;
-                updateRecordInterface(RECORD_STATE_ENTER, true);
-                if (recordTimerView != null) {
-                    recordTimerView.start(0);
-                }
-                if (recordDot != null) {
-                    recordDot.enterAnimation = false;
-                }
-                audioVideoButtonContainer.getParent().requestDisallowInterceptTouchEvent(true);
-                if (recordCircle != null) {
-                    recordCircle.showWaves(true, false);
-                }
-            }
-        }
-    };
-
-    private AnimationNotificationsLocker notificationsLocker = new AnimationNotificationsLocker();
-
-    private class RecordDot extends View {
-
-        private float alpha;
-        private long lastUpdateTime;
-        private boolean isIncr;
-        boolean attachedToWindow;
-        boolean playing;
-        RLottieDrawable drawable;
-        private boolean enterAnimation;
-
-        @Override
-        protected void onAttachedToWindow() {
-            super.onAttachedToWindow();
-            attachedToWindow = true;
-            if (playing) {
-                drawable.start();
-            }
-            drawable.setMasterParent(this);
-        }
-
-        @Override
-        protected void onDetachedFromWindow() {
-            super.onDetachedFromWindow();
-            attachedToWindow = false;
-            drawable.stop();
-            drawable.setMasterParent(null);
-        }
-
-        public RecordDot(Context context) {
-            super(context);
-            int resId = R.raw.chat_audio_record_delete_2;
-            drawable = new RLottieDrawable(resId, "" + resId, dp(28), dp(28), false, null);
-            drawable.setInvalidateOnProgressSet(true);
-            updateColors();
-        }
-
-        public void updateColors() {
-            int dotColor = getThemedColor(Theme.key_chat_recordedVoiceDot);
-            int background = getThemedColor(Theme.key_chat_messagePanelBackground);
-            redDotPaint.setColor(dotColor);
-            drawable.beginApplyLayerColors();
-            drawable.setLayerColor("Cup Red.**", dotColor);
-            drawable.setLayerColor("Box.**", dotColor);
-            drawable.setLayerColor("Line 1.**", background);
-            drawable.setLayerColor("Line 2.**", background);
-            drawable.setLayerColor("Line 3.**", background);
-            drawable.commitApplyLayerColors();
-        }
-
-        public void resetAlpha() {
-            alpha = 1.0f;
-            lastUpdateTime = System.currentTimeMillis();
-            isIncr = false;
-            playing = false;
-            drawable.stop();
-            invalidate();
-        }
-
-        @Override
-        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-            drawable.setBounds(0, 0, getMeasuredWidth(), getMeasuredHeight());
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            if (playing) {
-                drawable.setAlpha((int) (255 * alpha));
-            }
-            redDotPaint.setAlpha((int) (255 * alpha));
-
-            long dt = (System.currentTimeMillis() - lastUpdateTime);
-            if (enterAnimation) {
-                alpha = 1;
-            } else {
-                if (!isIncr && !playing) {
-                    alpha -= dt / 600.0f;
-                    if (alpha <= 0) {
-                        alpha = 0;
-                        isIncr = true;
-                    }
-                } else {
-                    alpha += dt / 600.0f;
-                    if (alpha >= 1) {
-                        alpha = 1;
-                        isIncr = false;
-                    }
-                }
-            }
-            lastUpdateTime = System.currentTimeMillis();
-            if (playing) {
-                drawable.draw(canvas);
-            }
-            if (!playing || !drawable.hasBitmap()) {
-                canvas.drawCircle(this.getMeasuredWidth() >> 1, this.getMeasuredHeight() >> 1, dp(5), redDotPaint);
-            }
-            invalidate();
-        }
-
-        public void playDeleteAnimation() {
-            playing = true;
-            drawable.setProgress(0);
-            if (attachedToWindow) {
-                drawable.start();
-            }
-        }
-    }
-
-    private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private Drawable micOutline;
-    private Drawable cameraOutline;
-    private Drawable micDrawable;
-    private Drawable cameraDrawable;
-    private Drawable sendDrawable;
-    private RectF pauseRect = new RectF();
-    private android.graphics.Rect sendRect = new Rect();
-    private android.graphics.Rect rect = new Rect();
-
-    private Drawable lockShadowDrawable;
-    private final Theme.ResourcesProvider resourcesProvider;
-
-    private final boolean isChat;
-
-    private Runnable runEmojiPanelAnimation = new Runnable() {
-        @Override
-        public void run() {
-            if (panelAnimation != null && !panelAnimation.isRunning()) {
-                panelAnimation.start();
-            }
-        }
-    };
-
-    private final Property<? super View, Float> EMOJI_BUTTON_SCALE = new Property<View, Float>(Float.class, "emoji_button_scale") {
-        @Override
-        public Float get(View object) {
-            return emojiButtonScale;
-        }
-
-        @Override
-        public void set(View object, Float value) {
-            emojiButtonScale = value;
-            updateEmojiButtonParams();
-        }
-    };
-
-    private final Property<? super View, Float> ATTACH_LAYOUT_ALPHA = new Property<View, Float>(Float.class, "attach_scale") {
-        @Override
-        public Float get(View object) {
-            return attachLayoutAlpha;
-        }
-
-        @Override
-        public void set(View object, Float value) {
-            attachLayoutAlpha = value;
-            updateAttachLayoutParams();
-        }
-    };
-
-    private final Property<? super View, Float> EMOJI_BUTTON_ALPHA = new Property<View, Float>(Float.class, "emoji_button_alpha") {
-        @Override
-        public Float get(View object) {
-            return emojiButtonAlpha;
-        }
-
-        @Override
-        public void set(View object, Float value) {
-            emojiButtonAlpha = value;
-            updateEmojiButtonParams();
-        }
-    };
-
-    private final Property<? super View, Float> ATTACH_LAYOUT_TRANSLATION_X = new Property<View, Float>(Float.class, "attach_layout_translation_x") {
-        @Override
-        public Float get(View object) {
-            return attachLayoutTranslationX;
-        }
-
-        @Override
-        public void set(View object, Float value) {
-            attachLayoutTranslationX = value;
-            updateAttachLayoutParams();
-        }
-    };
-
-    private final Property<? super View, Float> MESSAGE_TEXT_TRANSLATION_X = new Property<View, Float>(Float.class, "message_text_translation_x") {
-        @Override
-        public Float get(View object) {
-            return messageTextTranslationX;
-        }
-
-        @Override
-        public void set(View object, Float value) {
-            messageTextTranslationX = value;
-            updateMessageTextParams();
-        }
-    };
-
-    private boolean showTooltip;
-    private long showTooltipStartTime;
-    private float tooltipAlpha;
-
-    public class ControlsView extends FrameLayout {
-
-        private HintView2 pauseHint;
-        private HintView2 onceHint;
-
-        private Drawable tooltipBackground;
-        private Drawable tooltipBackgroundArrow;
-        private String tooltipMessage;
-        private StaticLayout tooltipLayout;
-        private float tooltipWidth;
-        private TextPaint tooltipPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        Paint lockBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        Paint lockPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        Paint lockOutlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-        Path path = new Path();
-        private Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-        private CaptionContainerView.PeriodDrawable periodDrawable;
-
-        private Drawable micDrawable;
-        private Drawable vidDrawable;
-
-        @Override
-        public void setAlpha(float alpha) {
-            super.setAlpha(alpha);
-        }
-
-        @Override
-        protected boolean onSetAlpha(int alpha) {
-            return super.onSetAlpha(alpha);
-        }
-
-        private VirtualViewHelper virtualViewHelper;
-
-        public ControlsView(Context context) {
-            super(context);
-
-            virtualViewHelper = new VirtualViewHelper(this);
-            ViewCompat.setAccessibilityDelegate(this, virtualViewHelper);
-
-            periodDrawable = new CaptionContainerView.PeriodDrawable();
-            periodDrawable.setCallback(this);
-            periodDrawable.setValue(1, voiceOnce, false);
-
-            lockOutlinePaint.setStyle(Paint.Style.STROKE);
-            lockOutlinePaint.setStrokeCap(Paint.Cap.ROUND);
-            lockOutlinePaint.setStrokeWidth(dpf2(1.7f));
-
-            lockShadowDrawable = getResources().getDrawable(R.drawable.lock_round_shadow);
-            lockShadowDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_messagePanelVoiceLockShadow), PorterDuff.Mode.MULTIPLY));
-            tooltipBackground = Theme.createRoundRectDrawable(dp(5), getThemedColor(Theme.key_chat_gifSaveHintBackground));
-
-            tooltipPaint.setTextSize(dp(14));
-            tooltipBackgroundArrow = ContextCompat.getDrawable(context, R.drawable.tooltip_arrow);
-            tooltipMessage = getString("SlideUpToLock", R.string.SlideUpToLock);
-
-            radiiLeft[0] = radiiLeft[1] = radiiLeft[6] = radiiLeft[7] = dp(3);
-            radiiLeft[2] = radiiLeft[3] = radiiLeft[4] = radiiLeft[5] = 0;
-
-            radiiRight[0] = radiiRight[1] = radiiRight[6] = radiiRight[7] = 0;
-            radiiRight[2] = radiiRight[3] = radiiRight[4] = radiiRight[5] = dp(3);
-
-            micDrawable = getResources().getDrawable(R.drawable.input_mic).mutate();
-            vidDrawable = getResources().getDrawable(R.drawable.input_video).mutate();
-
-            setWillNotDraw(false);
-            updateColors();
-        }
-
-        public void showTooltipIfNeed() {
-            if (SharedConfig.lockRecordAudioVideoHint < 3) {
-                showTooltip = true;
-                showTooltipStartTime = System.currentTimeMillis();
-            }
-        }
-
-        public void showPauseHint() {
-            if (MessagesController.getGlobalMainSettings().getInt("voicepausehint", 0) > 3) {
-                return;
-            }
-            hideHintView();
-            pauseHint = new HintView2(getContext(), HintView2.DIRECTION_RIGHT);
-            pauseHint.setJoint(1, 0);
-            pauseHint.setMultilineText(true);
-            pauseHint.setText(getString(R.string.VoicePauseHint));
-            MessagesController.getGlobalMainSettings().edit().putInt("voicepausehint", MessagesController.getGlobalMainSettings().getInt("voicepausehint", 0) + 1).apply();
-            addView(pauseHint, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL, 0, 0, 54, 58));
-            final HintView2 thisHintView = pauseHint;
-            pauseHint.setOnHiddenListener(() -> {
-                removeView(thisHintView);
-                if (pauseHint == thisHintView) {
-                    pauseHint = null;
-                }
-            });
-            pauseHint.show();
-        }
-
-        public void showOnceHint() {
-            hideHintView();
-            onceHint = new HintView2(getContext(), HintView2.DIRECTION_RIGHT);
-            onceHint.setJoint(1, 0);
-            onceHint.setMultilineText(true);
-            int text;
-            if (isInVideoMode) {
-                text = voiceOnce ? R.string.VideoSetOnceHintEnabled : R.string.VideoSetOnceHint;
-            } else {
-                text = voiceOnce ? R.string.VoiceSetOnceHintEnabled : R.string.VoiceSetOnceHint;
-            }
-            onceHint.setText(AndroidUtilities.replaceTags(getString(text)));
-            onceHint.setMaxWidthPx(HintView2.cutInFancyHalf(onceHint.getText(), onceHint.getTextPaint()));
-            if (voiceOnce) {
-                onceHint.setIcon(R.raw.fire_on);
-            } else {
-                MessagesController.getGlobalMainSettings().edit().putInt("voiceoncehint", MessagesController.getGlobalMainSettings().getInt("voiceoncehint", 0) + 1).apply();
-            }
-            addView(onceHint, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL, 0, 0, 54, 58));
-            final HintView2 thisHintView = onceHint;
-            onceHint.setOnHiddenListener(() -> {
-                removeView(thisHintView);
-                if (onceHint == thisHintView) {
-                    onceHint = null;
-                }
-            });
-            onceHint.show();
-        }
-
-        public void hideHintView() {
-            if (pauseHint != null) {
-                HintView2 oldPauseHintView = pauseHint;
-                oldPauseHintView.setOnHiddenListener(() -> removeView(oldPauseHintView));
-                oldPauseHintView.hide();
-                pauseHint = null;
-            }
-            if (onceHint != null) {
-                HintView2 oldHintView = onceHint;
-                oldHintView.setOnHiddenListener(() -> removeView(oldHintView));
-                oldHintView.hide();
-                onceHint = null;
-            }
-        }
-
-        private int lastSize;
-
-        @Override
-        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            int currentSize = MeasureSpec.getSize(widthMeasureSpec);
-            int h = dp(194 + DEFAULT_HEIGHT + 12);
-            if (lastSize != currentSize) {
-                lastSize = currentSize;
-                tooltipLayout = new StaticLayout(tooltipMessage, tooltipPaint, dp(220), Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, true);
-                int n = tooltipLayout.getLineCount();
-                tooltipWidth = 0;
-                for (int i = 0; i < n; i++) {
-                    float w = tooltipLayout.getLineWidth(i);
-                    if (w > tooltipWidth) {
-                        tooltipWidth = w;
-                    }
-                }
-            }
-//            if (tooltipLayout != null && tooltipLayout.getLineCount() > 1) {
-//                h += tooltipLayout.getHeight() - tooltipLayout.getLineBottom(0);
-//            }
-            super.onMeasure(
-                widthMeasureSpec,
-                MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY)
-            );
-        }
-
-        private final RectF rectF = new RectF();
-        public final RectF onceRect = new RectF();
-
-        private long lastUpdateTime;
-
-        private final Path path2 = new Path();
-        private final float[] radiiLeft = new float[8], radiiRight = new float[8];
-
-        private AnimatedFloat hidePauseT = new AnimatedFloat(this, 0, 350, CubicBezierInterpolator.EASE_OUT_QUINT);
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            float sc;
-            if (scale <= 0.5f) {
-                sc = scale / 0.5f;
-            } else if (scale <= 0.75f) {
-                sc = 1.0f - (scale - 0.5f) / 0.25f * 0.1f;
-            } else {
-                sc = 0.9f + (scale - 0.75f) / 0.25f * 0.1f;
-            }
-            long dt = System.currentTimeMillis() - lastUpdateTime;
-            lastUpdateTime = System.currentTimeMillis();
-
-            float yAdd = 0;
-            if (lockAnimatedTranslation != 10000) {
-                yAdd = Math.max(0, (int) (startTranslation - lockAnimatedTranslation));
-                if (yAdd > dp(57)) {
-                    yAdd = dp(57);
-                }
-            }
-
-            final int cx = getMeasuredWidth() - AndroidUtilities.dp2(26);
-            float moveProgress = 1.0f - yAdd / dp(57);
-            final float multilinTooltipOffset = getMeasuredHeight() - dp(194);
-
-            float lockSize;
-            float lockY;
-            float lockTopY;
-            float lockMiddleY;
-
-            float lockRotation;
-            float transformToPauseProgress = 0;
-            if (sendButtonVisible) {
-                lockSize = dp(36);
-                lockY = dp(60) + multilinTooltipOffset + dpf2(30) * (1.0f - sc) - yAdd + dpf2(14f) * moveProgress;
-
-                lockMiddleY = lockY + lockSize / 2f - dpf2(8) + dpf2(2);
-                lockTopY =    lockY + lockSize / 2f - dpf2(16) + dpf2(2);
-                float snapRotateBackProgress = moveProgress > 0.4f ? 1f : moveProgress / 0.4f;
-
-                lockRotation = 9 * (1f - moveProgress) * (1f - snapAnimationProgress) - 15 * snapAnimationProgress * (1f - snapRotateBackProgress);
-
-                transformToPauseProgress = moveProgress;
-            } else {
-                lockSize = dp(36) + (int) (dp(14) * moveProgress);
-                lockY = dp(60) + multilinTooltipOffset + (int) (dp(30) * (1.0f - sc)) - (int) yAdd + (moveProgress) * idleProgress * -dp(8);
-                lockMiddleY = lockY + lockSize / 2f - dpf2(8) + dpf2(2) + dpf2(2) * moveProgress;
-                lockTopY =    lockY + lockSize / 2f - dpf2(16) + dpf2(2) + dpf2(2) * moveProgress;
-                lockRotation = 9 * (1f - moveProgress);
-                snapAnimationProgress = 0;
-            }
-
-            if ((showTooltip && System.currentTimeMillis() - showTooltipStartTime > 200) || tooltipAlpha != 0f) {
-                if (moveProgress < 0.8f || sendButtonVisible || exitTransition != 0 || transformToSeekbar != 0) {
-                    showTooltip = false;
-                }
-                if (showTooltip) {
-                    if (tooltipAlpha != 1f) {
-                        tooltipAlpha += dt / 150f;
-                        if (tooltipAlpha >= 1f) {
-                            tooltipAlpha = 1f;
-                            SharedConfig.increaseLockRecordAudioVideoHintShowed();
-                        }
-                    }
-                } else {
-                    tooltipAlpha -= dt / 150f;
-                    if (tooltipAlpha < 0) {
-                        tooltipAlpha = 0f;
-                    }
-                }
-
-
-                int alphaInt = (int) (tooltipAlpha * 255);
-
-                tooltipBackground.setAlpha(alphaInt);
-                tooltipBackgroundArrow.setAlpha(alphaInt);
-                tooltipPaint.setAlpha(alphaInt);
-
-                if (tooltipLayout != null) {
-                    canvas.save();
-                    rectF.set(0, 0, getMeasuredWidth(), getMeasuredHeight());
-                    canvas.translate(getMeasuredWidth() - tooltipWidth - dp(44), multilinTooltipOffset + dpf2(16));
-                    tooltipBackground.setBounds(
-                            -dp(8), -dp(2),
-                            (int) (tooltipWidth + dp(36)), (int) (tooltipLayout.getHeight() + dpf2(4))
-                    );
-                    tooltipBackground.draw(canvas);
-                    tooltipLayout.draw(canvas);
-                    canvas.restore();
-
-                    canvas.save();
-                    canvas.translate(getMeasuredWidth() - dp(26), multilinTooltipOffset + dpf2(16 + 1) + tooltipLayout.getHeight() / 2f - idleProgress * dpf2(3f));
-                    path.reset();
-                    path.setLastPoint(-dpf2(5), dpf2(4));
-                    path.lineTo(0, 0);
-                    path.lineTo(dpf2(5), dpf2(4));
-
-                    p.setColor(Color.WHITE);
-                    p.setAlpha(alphaInt);
-                    p.setStyle(Paint.Style.STROKE);
-                    p.setStrokeCap(Paint.Cap.ROUND);
-                    p.setStrokeJoin(Paint.Join.ROUND);
-                    p.setStrokeWidth(dpf2(1.5f));
-                    canvas.drawPath(path, p);
-                    canvas.restore();
-
-                    canvas.save();
-                    tooltipBackgroundArrow.setBounds(
-                            cx - tooltipBackgroundArrow.getIntrinsicWidth() / 2, (int) (tooltipLayout.getHeight() + multilinTooltipOffset + dpf2(20)),
-                            cx + tooltipBackgroundArrow.getIntrinsicWidth() / 2, (int) (tooltipLayout.getHeight() + multilinTooltipOffset + dpf2(20)) + tooltipBackgroundArrow.getIntrinsicHeight()
-                    );
-                    tooltipBackgroundArrow.draw(canvas);
-                    canvas.restore();
-                }
-            }
-
-            float progressToSeekbarStep1 = 0f;
-            float progressToSeekbarStep2 = 0;
-            float exitProgress2 = 0f;
-            float hidePause = hidePauseT.set(isInVideoMode && millisecondsRecorded >= 59_000);
-
-            if (transformToSeekbar != 0 && audioTimelineView != null) {
-                float step1Time = 0.38f;
-                float step2Time = 0.25f;
-
-                progressToSeekbarStep1 = transformToSeekbar > step1Time ? 1f : transformToSeekbar / step1Time;
-                progressToSeekbarStep2 = transformToSeekbar > step1Time + step2Time ? 1f : Math.max(0, (transformToSeekbar - step1Time) / step2Time);
-
-                progressToSeekbarStep1 = CubicBezierInterpolator.EASE_BOTH.getInterpolation(progressToSeekbarStep1);
-                progressToSeekbarStep2 = CubicBezierInterpolator.EASE_BOTH.getInterpolation(progressToSeekbarStep2);
-            } else if (exitTransition != 0) {
-                float step1Time = 0.6f;
-                float step2Time = 0.4f;
-
-                progressToSeekbarStep1 = exitTransition > step1Time ? 1f : exitTransition / step1Time;
-                exitProgress2 = messageTransitionIsRunning ? exitTransition : Math.max(0, (exitTransition - step1Time) / step2Time);
-
-                progressToSeekbarStep1 = CubicBezierInterpolator.EASE_BOTH.getInterpolation(progressToSeekbarStep1);
-                exitProgress2 = CubicBezierInterpolator.EASE_BOTH.getInterpolation(exitProgress2);
-            }
-
-            canvas.save();
-            canvas.clipRect(0, 0, getMeasuredWidth(), getMeasuredHeight() - textFieldContainer.getMeasuredHeight());
-            float translation = 0;
-            if (1f - controlsScale != 0) {
-                translation = 1f - controlsScale;
-//            } else if (progressToSeekbarStep2 != 0) {
-//                translation = progressToSeekbarStep2;
-            } else if (exitProgress2 != 0) {
-                translation = exitProgress2;
-            }
-            if (slideToCancelProgress < 0.7f || canceledByGesture) {
-                showTooltip = false;
-                if (slideToCancelLockProgress != 0) {
-                    slideToCancelLockProgress -= 0.12f;
-                    if (slideToCancelLockProgress < 0) {
-                        slideToCancelLockProgress = 0;
-                    }
-                }
-            } else {
-                if (slideToCancelLockProgress != 1f) {
-                    slideToCancelLockProgress += 0.12f;
-                    if (slideToCancelLockProgress > 1f) {
-                        slideToCancelLockProgress = 1f;
-                    }
-                }
-            }
-
-            float maxTranslationDy = dpf2(72);
-            float dy = (
-                maxTranslationDy * translation
-                + dpf2(24) * (progressToSeekbarStep1) * (1f - translation)
-                + maxTranslationDy * (1f - slideToCancelLockProgress)
-            );
-            if (dy > maxTranslationDy) {
-                dy = maxTranslationDy;
-            }
-            float s = (1f - hidePause) * controlsScale * (1f - exitProgress2) * slideToCancelLockProgress;
-            canvas.scale(s, s, cx, lockMiddleY + dy);
-
-            rectF.set(cx - dpf2(18), lockY + dy, cx + dpf2(18), lockY + dy + lockSize);
-
-            if (lockBackgroundDrawable != null){
-                lockBackgroundDrawable.setBounds(
-                        (int) (rectF.left - dpf2(3)), (int) (rectF.top - dpf2(3)),
-                        (int) (rectF.right + dpf2(3)), (int) (rectF.bottom + dpf2(3))
-                );
-                lockBackgroundDrawable.draw(canvas);
-            } else {
-                lockShadowDrawable.setBounds(
-                        (int) (rectF.left - dpf2(3)), (int) (rectF.top - dpf2(3)),
-                        (int) (rectF.right + dpf2(3)), (int) (rectF.bottom + dpf2(3))
-                );
-                lockShadowDrawable.draw(canvas);
-                canvas.drawRoundRect(rectF, dpf2(18), dpf2(18), lockBackgroundPaint);
-            }
-
-
-            pauseRect.set(rectF);
-            scale(pauseRect, s);
-            if (pauseHint != null) {
-                pauseHint.setJointPx(0, rectF.centerY());
-                pauseHint.invalidate();
-            }
-
-            rectF.set(
-                cx - dpf2(6) - dpf2(2) * (1f - transformToPauseProgress),
-                lockMiddleY + dy - dpf2(2) * (1f - transformToPauseProgress),
-                cx + dp(6) + dpf2(2) * (1f - transformToPauseProgress),
-                lockMiddleY + dy + dp(12) + dpf2(2) * (1f - transformToPauseProgress)
-            );
-            float lockBottom = rectF.bottom;
-            float locCx = rectF.centerX();
-            float locCy = rectF.centerY();
-            canvas.save();
-
-            final float transformToResume = Utilities.clamp(transformToSeekbar * 2f, 1, 0);
-            final int wasAlpha = lockPaint.getAlpha();
-            final int saveToLayer = canvas.saveLayerAlpha(
-                    locCx - dp(24),
-                    locCy - dp(24),
-                    locCx + dp(24),
-                    locCy + dp(24), (int) (wasAlpha * (1f - transformToResume)), Canvas.ALL_SAVE_FLAG);
-            lockOutlinePaint.setAlpha(255);
-            lockPaint.setAlpha(255);
-
-            canvas.translate(0, dpf2(2) * (1f - moveProgress));
-            canvas.rotate(lockRotation, locCx, locCy);
-
-            if (transformToPauseProgress != 1f) {
-                AndroidUtilities.rectTmp.set(0, 0, dpf2(8), dpf2(8));
-                canvas.save();
-                canvas.clipRect(0, 0, getMeasuredWidth(), dy + lockBottom + dpf2(2) * (1f - moveProgress));
-                canvas.translate(cx - dpf2(4), rectF.top - dp(6) - lerp(dpf2(2), dpf2(1.5f) * (1f - idleProgress), moveProgress) + dpf2(12) * transformToPauseProgress + dpf2(2) * snapAnimationProgress);
-                if (lockRotation > 0) {
-                    canvas.rotate(lockRotation, dp(8), dp(8));
-                }
-                canvas.drawLine(dpf2(8), dpf2(4), dpf2(8), dpf2(6) + dpf2(4) * (1f - transformToPauseProgress), lockOutlinePaint);
-                canvas.drawArc(AndroidUtilities.rectTmp, 0, -180, false, lockOutlinePaint);
-                canvas.drawLine(
-                        0, dpf2(4),
-                        0, dpf2(4) + dpf2(4) * idleProgress * (moveProgress) * (sendButtonVisible ? 0 : 1) + dpf2(4) * snapAnimationProgress * (1f - moveProgress),
-                        lockOutlinePaint
-                );
-                canvas.restore();
-            }
-
-            Drawable resumeDrawable = null;
-            if (transformToResume > 0) {
-                resumeDrawable = isInVideoMode ? vidDrawable : micDrawable;
-            }
-
-            if (transformToPauseProgress > 0) {
-                if (periodBackgroundDrawable == null) {
-                    canvas.drawRoundRect(rectF, dpf2(3), dpf2(3), lockBackgroundPaint);
-                }
-
-                path2.rewind();
-                AndroidUtilities.rectTmp.set(rectF);
-                AndroidUtilities.rectTmp.right = rectF.centerX() - dp(1.66f) * transformToPauseProgress;
-                radiiLeft[0] = radiiLeft[1] = radiiLeft[6] = radiiLeft[7] = lerp(dp(3), dp(1.5f), transformToPauseProgress);
-                radiiLeft[2] = radiiLeft[3] = radiiLeft[4] = radiiLeft[5] = dp(1.5f) * transformToPauseProgress;
-                path2.addRoundRect(AndroidUtilities.rectTmp, radiiLeft, Path.Direction.CW);
-                AndroidUtilities.rectTmp.set(rectF);
-                AndroidUtilities.rectTmp.left = rectF.centerX() + dp(1.66f) * transformToPauseProgress;
-                radiiRight[2] = radiiRight[3] = radiiRight[4] = radiiRight[5] = lerp(dp(3), dp(1.5f), transformToPauseProgress);
-                radiiRight[0] = radiiRight[1] = radiiRight[6] = radiiRight[7] = dp(1.5f) * transformToPauseProgress;
-                path2.addRoundRect(AndroidUtilities.rectTmp, radiiRight, Path.Direction.CW);
-                canvas.drawPath(path2, lockPaint);
-            } else {
-                canvas.drawRoundRect(rectF, dpf2(3), dpf2(3), lockPaint);
-            }
-            lockPaint.setAlpha(wasAlpha);
-            lockOutlinePaint.setAlpha(wasAlpha);
-            canvas.restoreToCount(saveToLayer);
-
-            if (resumeDrawable != null) {
-                final float _s = 0.9285f;
-                AndroidUtilities.rectTmp2.set(
-                    (int) (rectF.centerX() - resumeDrawable.getIntrinsicWidth() / 2 * _s),
-                    (int) (rectF.centerY() - resumeDrawable.getIntrinsicHeight() / 2 * _s),
-                    (int) (rectF.centerX() + resumeDrawable.getIntrinsicWidth() / 2 * _s),
-                    (int) (rectF.centerY() + resumeDrawable.getIntrinsicHeight() / 2 * _s)
-                );
-                resumeDrawable.setBounds(AndroidUtilities.rectTmp2);
-                resumeDrawable.setAlpha((int) (0xFF * transformToResume));
-                resumeDrawable.draw(canvas);
-            }
-
-            if (transformToPauseProgress != 1) {
-                canvas.drawCircle(locCx, locCy, dpf2(2) * (1f - transformToPauseProgress), lockBackgroundPaint);
-            }
-            canvas.restore();
-            canvas.restore();
-
-            final float cy = lerp(lockY, getMeasuredHeight() - dp(118), Math.max(exitTransition, Math.min(progressToSeekbarStep1, slideToCancelLockProgress))) + dy + dp(38) * hidePause;
-            rectF.set(cx - dpf2(18), cy, cx + dpf2(18), cy + lockSize);
-            onceVisible = delegate != null && delegate.onceVoiceAvailable();
-            if (onceVisible) {
-                final float onceOffset = dpf2(12);
-                rectF.set(
-                    rectF.left, rectF.top - dpf2(36) - onceOffset, rectF.right, rectF.top - onceOffset
-                );
-                if (onceHint != null) {
-                    onceHint.setJointPx(0, rectF.centerY());
-                    onceHint.invalidate();
-                }
-                onceRect.set(rectF);
-                canvas.save();
-                final float s2 = controlsScale * (1f - exitTransition) * slideToCancelLockProgress * snapAnimationProgress;
-                canvas.scale(s2, s2, rectF.centerX(), rectF.centerY());
-
-                if (periodBackgroundDrawable != null) {
-                    periodBackgroundDrawable.setBounds(
-                        (int) (rectF.left - dpf2(3)), (int) (rectF.top - dpf2(3)),
-                        (int) (rectF.right + dpf2(3)), (int) (rectF.bottom + dpf2(3))
-                    );
-                    periodBackgroundDrawable.draw(canvas);
-                } else {
-                    lockShadowDrawable.setBounds(
-                            (int) (rectF.left - dpf2(3)), (int) (rectF.top - dpf2(3)),
-                            (int) (rectF.right + dpf2(3)), (int) (rectF.bottom + dpf2(3))
-                    );
-                    lockShadowDrawable.draw(canvas);
-                    canvas.drawRoundRect(rectF, dpf2(18), dpf2(18), lockBackgroundPaint);
-                }
-                periodDrawable.setBounds((int) rectF.left, (int) rectF.top, (int) rectF.right, (int) rectF.bottom);
-                periodDrawable.draw(canvas);
-                canvas.restore();
-            }
-        }
-
-        @Override
-        protected boolean dispatchHoverEvent(MotionEvent event) {
-            return super.dispatchHoverEvent(event) || virtualViewHelper.dispatchHoverEvent(event);
-        }
-
-        private BlurredBackgroundColorProviderThemed colorProvider;
-        private boolean useGlassDesign;
-        private BlurredBackgroundDrawable lockBackgroundDrawable;
-        private BlurredBackgroundDrawable periodBackgroundDrawable;
-
-        public void setBlurredBackgroundFactory(BlurredBackgroundDrawableViewFactory factory) {
-            useGlassDesign = true;
-
-            if (colorProvider == null) {
-                colorProvider = new BlurredBackgroundColorProviderThemed(resourcesProvider, Theme.key_chat_messagePanelVoiceLockBackground);
-            }
-
-            lockBackgroundDrawable = factory.create(this, colorProvider);
-            lockBackgroundDrawable.setRadius(dp(18));
-            lockBackgroundDrawable.setPadding(dp(3));
-
-            periodBackgroundDrawable = factory.create(this, colorProvider);
-            periodBackgroundDrawable.setRadius(dp(18));
-            periodBackgroundDrawable.setPadding(dp(3));
-
-            updateColors();
-        }
-
-        public void updateColors() {
-            if (colorProvider != null) {
-                colorProvider.updateColors();
-            }
-            if (lockBackgroundDrawable != null) {
-                lockBackgroundDrawable.updateColors();
-            }
-            if (periodBackgroundDrawable != null) {
-                periodBackgroundDrawable.updateColors();
-            }
-
-            periodDrawable.updateColors(
-                getThemedColor(useGlassDesign ? Theme.key_glass_defaultIcon : Theme.key_chat_messagePanelVoiceLock),
-                getThemedColor(Theme.key_chat_messagePanelVoiceBackground),
-                0xFFFFFFFF
-            );
-
-            tooltipPaint.setColor(getThemedColor(Theme.key_chat_gifSaveHintText));
-            tooltipBackground = Theme.createRoundRectDrawable(dp(5), getThemedColor(Theme.key_chat_gifSaveHintBackground));
-            tooltipBackgroundArrow.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_gifSaveHintBackground), PorterDuff.Mode.SRC_IN));
-
-            lockBackgroundPaint.setColor(getThemedColor(Theme.key_chat_messagePanelVoiceLockBackground));
-            lockPaint.setColor(getThemedColor(useGlassDesign ? Theme.key_glass_defaultIcon : Theme.key_chat_messagePanelVoiceLock));
-            lockOutlinePaint.setColor(getThemedColor(useGlassDesign ? Theme.key_glass_defaultIcon : Theme.key_chat_messagePanelVoiceLock));
-
-            micDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(useGlassDesign ? Theme.key_glass_defaultIcon : Theme.key_chat_messagePanelVoiceLock), PorterDuff.Mode.SRC_IN));
-            vidDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(useGlassDesign ? Theme.key_glass_defaultIcon : Theme.key_chat_messagePanelVoiceLock), PorterDuff.Mode.SRC_IN));
-        }
-
-        private void scale(RectF rect, float s) {
-            final float cx = rect.centerX(), cy = rect.centerY();
-            rect.left = lerp(cx, rect.left, s);
-            rect.right = lerp(cx, rect.right, s);
-            rect.top = lerp(cy, rect.top, s);
-            rect.bottom = lerp(cy, rect.bottom, s);
-        }
-
-        private boolean oncePressed;
-        private boolean pausePressed;
-
-        @Override
-        public boolean onTouchEvent(MotionEvent event) {
-            final int x = (int) event.getX();
-            final int y = (int) event.getY();
-
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                if (sendButtonVisible) {
-                    pausePressed = pauseRect.contains(x, y);
-                }
-                if (onceVisible && (recordCircle != null && snapAnimationProgress > .1f)) {
-                    oncePressed = onceRect.contains(x, y);
-                }
-            } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (pausePressed && pauseRect.contains(x, y)) {
-                    if (isInVideoMode()) {
-                        if (slideText != null) {
-                            slideText.setEnabled(false);
-                        }
-                        delegate.toggleVideoRecordingPause();
-                    } else {
-                        final Runnable resume = () -> {
-                            if (!MediaController.getInstance().isRecordingPaused()) {
-                                MessagesController.getGlobalMainSettings().edit().putInt("voicepausehint", 3).apply();
-                            }
-                            if (sendButtonVisible) {
-                                calledRecordRunnable = true;
-                            }
-                            MediaController.getInstance().toggleRecordingPause(voiceOnce);
-                            delegate.needStartRecordAudio(0);
-                            if (slideText != null) {
-                                slideText.setEnabled(false);
-                            }
-                        };
-                        if (pauseHint != null && pauseHint.shown()) {
-                            hideHintView();
-                        }
-                        if (audioTimelineView != null) {
-                            audioTimelineView.setPlaying(false);
-                        }
-                        if (MediaController.getInstance().isRecordingPaused() && (audioTimelineView.getAudioLeft() > 0.01f || audioTimelineView.getAudioRight() < 0.99f)) {
-                            final Runnable trim = () -> {
-                                millisecondsRecorded = audioTimelineView.getAudioRightMs() - audioTimelineView.getAudioLeftMs();
-                                MediaController.getInstance().trimCurrentRecording(audioTimelineView.getAudioLeftMs(), audioTimelineView.getAudioRightMs(), resume);
-                            };
-                            if (MessagesController.getGlobalMainSettings().getBoolean("trimvoicehint", true)) {
-                                new AlertDialog.Builder(getContext(), resourcesProvider)
-                                    .setTitle(getString(R.string.RecordingTrimTitle))
-                                    .setMessage(getString(R.string.RecordingTrimText))
-                                    .setPositiveButton(getString(R.string.OK), (di, w) -> {
-                                        trim.run();
-                                        MessagesController.getGlobalMainSettings().edit().putBoolean("trimvoicehint", false).apply();
-                                    })
-                                    .setNegativeButton(getString(R.string.Cancel), null)
-                                    .show();
-                            } else {
-                                trim.run();
-                            }
-                        } else {
-                            resume.run();
-                        }
-                    }
-                    pausePressed = oncePressed = false;
-                    return true;
-                } else if (oncePressed && onceRect.contains(x, y)) {
-                    voiceOnce = !voiceOnce;
-                    periodDrawable.setValue(1, voiceOnce, true);
-                    MediaDataController.getInstance(currentAccount).toggleDraftVoiceOnce(dialog_id, parentFragment != null && parentFragment.isTopic ? parentFragment.getTopicId() : 0, voiceOnce);
-                    if (voiceOnce) {
-                        showOnceHint();
-                    } else {
-                        hideHintView();
-                    }
-                    invalidate();
-                    pausePressed = oncePressed = false;
-                    return true;
-                }
-                pausePressed = oncePressed = false;
-            } else if (event.getAction() == MotionEvent.ACTION_CANCEL) {
-                pausePressed = oncePressed = false;
-            }
-            return pausePressed || oncePressed;
-        }
-
-        @Override
-        protected boolean verifyDrawable(@NonNull Drawable who) {
-            return who == periodDrawable || super.verifyDrawable(who);
-        }
-
-
-        private class VirtualViewHelper extends ExploreByTouchHelper {
-
-            public VirtualViewHelper(@NonNull View host) {
-                super(host);
-            }
-
-            @Override
-            protected int getVirtualViewAt(float x, float y) {
-                if (sendButtonVisible && recordCircle != null && pauseRect.contains(x, y)) {
-                    return 2;
-                }
-                if (onceVisible && (recordCircle != null && snapAnimationProgress > .1f) && onceRect.contains(x, y)) {
-                    return 4;
-                }
-                return HOST_ID;
-            }
-
-            @Override
-            protected void getVisibleVirtualViews(List<Integer> list) {
-                if (sendButtonVisible) {
-                    list.add(2);
-                }
-                if (onceVisible && (recordCircle != null && snapAnimationProgress > .1f)) {
-                    list.add(4);
-                }
-            }
-
-            @Override
-            protected void onPopulateNodeForVirtualView(int id, @NonNull AccessibilityNodeInfoCompat info) {
-                if (id == 2) {
-                    rect.set((int) pauseRect.left, (int) pauseRect.top, (int) pauseRect.right, (int) pauseRect.bottom);
-                    info.setBoundsInParent(rect);
-                    info.setText(getString(transformToSeekbar > .5f ? R.string.AccActionResume : R.string.AccActionPause));
-                } else if (id == 4) {
-                    rect.set((int) onceRect.left, (int) onceRect.top, (int) onceRect.right, (int) onceRect.bottom);
-                    info.setBoundsInParent(rect);
-                    info.setText(getString(voiceOnce ? R.string.AccActionOnceDeactivate : R.string.AccActionOnceActivate));
-                }
-            }
-
-            @Override
-            protected boolean onPerformActionForVirtualView(int id, int action, @Nullable Bundle args) {
-                return true;
-            }
-        }
-    }
-
-    private float scale;
-    private float controlsScale;
-    private float slideToCancelProgress;
-    private float startTranslation;
-    private float lockAnimatedTranslation;
-    private float exitTransition;
-    private float snapAnimationProgress;
-    float idleProgress;
-    private float transformToSeekbar;
-    private float progressToSeekbarStep1, progressToSeekbarStep2;
-    private float slideToCancelLockProgress;
-    private boolean canceledByGesture;
-    private boolean sendButtonVisible;
-    private int slideDelta;
-
-    @Keep
-    public float getExitTransition() {
-        return exitTransition;
-    }
-
-    @Keep
-    public void setExitTransition(float value) {
-        exitTransition = value;
-        if (recordCircle != null) {
-            recordCircle.invalidate();
-        }
-    }
-
-    @Keep
-    public float getSlideToCancelProgress() {
-        return slideToCancelProgress;
-    }
-
-    @Keep
-    public void setSlideToCancelProgress(float value) {
-        slideToCancelProgress = value;
-        float distance = getMeasuredWidth() * 0.35f;
-        if (distance > dp(140)) {
-            distance = dp(140);
-        }
-        slideDelta = (int) (-distance * (1f - slideToCancelProgress));
-        if (recordCircle != null) {
-            recordCircle.invalidate();
-        }
-    }
-
-    @Keep
-    public float getLockAnimatedTranslation() {
-        return lockAnimatedTranslation;
-    }
-    @Keep
-    public void setLockAnimatedTranslation(float value) {
-        lockAnimatedTranslation = value;
-        if (recordCircle != null) {
-            recordCircle.invalidate();
-        }
-    }
-
-    @Keep
-    public void setSnapAnimationProgress(float value) {
-        snapAnimationProgress = value;
-        invalidate();
-    }
-
-    public boolean seekbarVisible() {
-        return !recordIsCanceled && transformToSeekbar > 0;
-    }
-
-    public class RecordCircle extends View {
-
-        private float amplitude;
-        private float animateToAmplitude;
-        private float animateAmplitudeDiff;
-        private long lastUpdateTime;
-        private boolean pressed;
-        public float progressToSeekbarStep3;
-        private float progressToSendButton;
-
-        public float iconScale;
-
-        BlobDrawable tinyWaveDrawable = new BlobDrawable(11, LiteMode.FLAGS_CHAT);
-        BlobDrawable bigWaveDrawable = new BlobDrawable(12, LiteMode.FLAGS_CHAT);
-
-        private float circleRadius = dpf2(41);
-        private float circleRadiusAmplitude = dp(30);
-        RectF rectF = new RectF();
-
-        boolean incIdle;
-
-        private VirtualViewHelper virtualViewHelper;
-
-        private int paintAlpha;
-        private float touchSlop;
-
-        private float lastMovingX;
-        private float lastMovingY;
-
-        private float wavesEnterAnimation = 0f;
-        private boolean showWaves = true;
-
-        public float drawingCx, drawingCy, drawingCircleRadius;
-
-        public boolean voiceEnterTransitionInProgress;
-        public boolean skipDraw;
-        private int lastSize;
-
-        public RecordCircle(Context context) {
-            super(context);
-
-            virtualViewHelper = new VirtualViewHelper(this);
-            ViewCompat.setAccessibilityDelegate(this, virtualViewHelper);
-
-            tinyWaveDrawable.minRadius = dp(47);
-            tinyWaveDrawable.maxRadius = dp(55);
-            tinyWaveDrawable.generateBlob();
-
-            bigWaveDrawable.minRadius = dp(47);
-            bigWaveDrawable.maxRadius = dp(55);
-            bigWaveDrawable.generateBlob();
-            iconScale = 1f;
-
-            final ViewConfiguration vc = ViewConfiguration.get(context);
-            touchSlop = vc.getScaledTouchSlop();
-            touchSlop *= touchSlop;
-
-            updateColors();
-        }
-
-        private void checkDrawables() {
-            if (micDrawable != null) {
-                return;
-            }
-            micDrawable = getResources().getDrawable(R.drawable.input_mic_pressed).mutate();
-            micDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_messagePanelVoicePressed), PorterDuff.Mode.MULTIPLY));
-
-            cameraDrawable = getResources().getDrawable(R.drawable.input_video_pressed).mutate();
-            cameraDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_messagePanelVoicePressed), PorterDuff.Mode.MULTIPLY));
-
-            sendDrawable = getResources().getDrawable(R.drawable.attach_send).mutate();
-            sendDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_messagePanelVoicePressed), PorterDuff.Mode.MULTIPLY));
-
-            micOutline = getResources().getDrawable(R.drawable.input_mic).mutate();
-            micOutline.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
-
-            cameraOutline = getResources().getDrawable(R.drawable.input_video).mutate();
-            cameraOutline.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
-        }
-
-        public void setAmplitude(double value) {
-            bigWaveDrawable.setValue((float) (Math.min(WaveDrawable.MAX_AMPLITUDE, value) / WaveDrawable.MAX_AMPLITUDE), true);
-            tinyWaveDrawable.setValue((float) (Math.min(WaveDrawable.MAX_AMPLITUDE, value) / WaveDrawable.MAX_AMPLITUDE), false);
-
-            animateToAmplitude = (float) (Math.min(WaveDrawable.MAX_AMPLITUDE, value) / WaveDrawable.MAX_AMPLITUDE);
-            animateAmplitudeDiff = (animateToAmplitude - amplitude) / (100 + 500.0f * WaveDrawable.animationSpeedCircle);
-
-            invalidate();
-        }
-
-        public float getScale() {
-            return scale;
-        }
-
-        @Keep
-        public void setScale(float value) {
-            scale = value;
-            invalidate();
-        }
-
-        public float getControlsScale() {
-            return controlsScale;
-        }
-
-        @Keep
-        public void setControlsScale(float value) {
-            controlsScale = value;
-            if (controlsView != null) {
-                controlsView.invalidate();
-            }
-        }
-
-        public boolean isSendButtonVisible() {
-            return sendButtonVisible;
-        }
-
-        public void setSendButtonInvisible() {
-            sendButtonVisible = false;
-            invalidate();
-            if (controlsView != null) {
-                controlsView.invalidate();
-            }
-        }
-
-        public void resetLockTranslation(boolean toLock) {
-            if (!toLock) {
-                sendButtonVisible = false;
-                lockAnimatedTranslation = -1;
-                startTranslation = -1;
-                slideToCancelProgress = 1f;
-                slideToCancelLockProgress = 1f;
-                snapAnimationProgress = 0;
-                controlsScale = 0f;
-            }
-            invalidate();
-            transformToSeekbar = 0;
-            isRecordingStateChanged();
-            exitTransition = 0;
-            iconScale = 1f;
-            scale = 0f;
-            tooltipAlpha = 0f;
-            showTooltip = false;
-            progressToSendButton = 0f;
-            canceledByGesture = false;
-            if (controlsView != null) {
-                controlsView.invalidate();
-            }
-        }
-
-        public int setLockTranslation(float value) {
-            if (sendButtonVisible) {
-                return 2;
-            }
-            if (lockAnimatedTranslation == -1) {
-                startTranslation = value;
-            }
-            lockAnimatedTranslation = value;
-            invalidate();
-            if (canceledByGesture || slideToCancelProgress < 0.7f) {
-                return 1;
-            }
-            if (startTranslation - lockAnimatedTranslation >= dp(57)) {
-                sendButtonVisible = true;
-                if (controlsView != null) {
-                    controlsView.showPauseHint();
-                }
-                return 2;
-            }
-            return 1;
-        }
-
-        @SuppressLint("DrawAllocation")
-        @Override
-        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            int currentSize = MeasureSpec.getSize(widthMeasureSpec);
-            int h = dp(194);
-            super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY));
-
-            float distance = getMeasuredWidth() * 0.35f;
-            if (distance > dp(140)) {
-                distance = dp(140);
-            }
-            slideDelta = (int) (-distance * (1f - slideToCancelProgress));
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            if (skipDraw) {
-                return;
-            }
-            float multilinTooltipOffset = 0;
-//            if (tooltipLayout != null && tooltipLayout.getLineCount() > 1) {
-//                multilinTooltipOffset = tooltipLayout.getHeight() - tooltipLayout.getLineBottom(0);
-//            }
-            int cx = getMeasuredWidth() - AndroidUtilities.dp2(26);
-            int cy = (int) (dp(170) + multilinTooltipOffset);
-//            float yAdd = 0;
-//            if (lockAnimatedTranslation != 10000) {
-//                yAdd = Math.max(0, (int) (startTranslation - lockAnimatedTranslation));
-//                if (yAdd > AndroidUtilities.dp(57)) {
-//                    yAdd = AndroidUtilities.dp(57);
-//                }
-//            }
-
-            drawingCx = cx + slideDelta;
-            drawingCy = cy;
-
-            float sc;
-            float circleAlpha = 1f;
-            if (scale <= 0.5f) {
-                sc = scale / 0.5f;
-            } else if (scale <= 0.75f) {
-                sc = 1.0f - (scale - 0.5f) / 0.25f * 0.1f;
-            } else {
-                sc = 0.9f + (scale - 0.75f) / 0.25f * 0.1f;
-            }
-            long dt = System.currentTimeMillis() - lastUpdateTime;
-            if (animateToAmplitude != amplitude) {
-                amplitude += animateAmplitudeDiff * dt;
-                if (animateAmplitudeDiff > 0) {
-                    if (amplitude > animateToAmplitude) {
-                        amplitude = animateToAmplitude;
-                    }
-                } else {
-                    if (amplitude < animateToAmplitude) {
-                        amplitude = animateToAmplitude;
-                    }
-                }
-                invalidate();
-            }
-
-            float slideToCancelScale;
-            if (canceledByGesture) {
-                slideToCancelScale = 0.7f * CubicBezierInterpolator.EASE_OUT.getInterpolation(1f - slideToCancelProgress);
-            } else {
-                slideToCancelScale = (0.7f + slideToCancelProgress * 0.3f);
-            }
-            float radius = (circleRadius + circleRadiusAmplitude * amplitude) * sc * slideToCancelScale;
-
-            progressToSeekbarStep3 = 0f;
-            float progressToSeekbarStep1 = 0f;
-            float progressToSeekbarStep2 = 0;
-            float exitProgress2 = 0f;
-            if (transformToSeekbar != 0 && audioTimelineView != null) {
-                float step1Time = 0.38f;
-                float step2Time = 0.25f;
-                float step3Time = 1f - step1Time - step2Time;
-
-                progressToSeekbarStep1 = transformToSeekbar > step1Time ? 1f : transformToSeekbar / step1Time;
-                progressToSeekbarStep2 = transformToSeekbar > step1Time + step2Time ? 1f : Math.max(0, (transformToSeekbar - step1Time) / step2Time);
-                progressToSeekbarStep3 = Math.max(0, (transformToSeekbar - step1Time - step2Time) / step3Time);
-
-                progressToSeekbarStep1 = CubicBezierInterpolator.EASE_BOTH.getInterpolation(progressToSeekbarStep1);
-                progressToSeekbarStep2 = CubicBezierInterpolator.EASE_BOTH.getInterpolation(progressToSeekbarStep2);
-                progressToSeekbarStep3 = CubicBezierInterpolator.EASE_BOTH.getInterpolation(progressToSeekbarStep3);
-
-                radius = radius + dp(16) * progressToSeekbarStep1;
-
-                float toRadius = dp(8);
-                radius = toRadius + (radius - toRadius) * (1f - progressToSeekbarStep2);
-            } else if (exitTransition != 0) {
-                float step1Time = 0.6f;
-                float step2Time = 0.4f;
-
-                progressToSeekbarStep1 = exitTransition > step1Time ? 1f : exitTransition / step1Time;
-                exitProgress2 = messageTransitionIsRunning ? exitTransition : Math.max(0, (exitTransition - step1Time) / step2Time);
-
-                progressToSeekbarStep1 = CubicBezierInterpolator.EASE_BOTH.getInterpolation(progressToSeekbarStep1);
-                exitProgress2 = CubicBezierInterpolator.EASE_BOTH.getInterpolation(exitProgress2);
-
-                radius = radius + dp(16) * progressToSeekbarStep1;
-                radius *= (1f - exitProgress2);
-
-                if (LiteMode.isEnabled(LiteMode.FLAGS_CHAT) && exitTransition > 0.6f) {
-                    circleAlpha = Math.max(0, 1f - (exitTransition - 0.6f) / 0.4f);
-                }
-            }
-
-            if (canceledByGesture && slideToCancelProgress > 0.7f) {
-                circleAlpha *= (1f - (slideToCancelProgress - 0.7f) / 0.3f);
-            }
-
-            if (progressToSeekbarStep3 > 0) {
-                paint.setColor(ColorUtils.blendARGB(getThemedColor(Theme.key_chat_messagePanelVoiceBackground), getThemedColor(Theme.key_chat_recordedVoiceBackground), progressToSeekbarStep3));
-            } else {
-                paint.setColor(getThemedColor(Theme.key_chat_messagePanelVoiceBackground));
-            }
-
-            Drawable drawable;
-            Drawable replaceDrawable = null;
-            checkDrawables();
-            if (isSendButtonVisible()) {
-                if (progressToSendButton != 1f) {
-                    progressToSendButton += dt / 150f;
-                    if (progressToSendButton > 1f) {
-                        progressToSendButton = 1f;
-                    }
-                    replaceDrawable = isInVideoMode() ? cameraDrawable : micDrawable;
-                }
-                drawable = sendDrawable;
-                sendRect.set(cx - drawable.getIntrinsicWidth() / 2, cy - drawable.getIntrinsicHeight() / 2, cx + drawable.getIntrinsicWidth() / 2, cy + drawable.getIntrinsicHeight() / 2);
-                if (replaceDrawable != null) {
-                    replaceDrawable.setBounds(cx - replaceDrawable.getIntrinsicWidth() / 2, cy - replaceDrawable.getIntrinsicHeight() / 2, cx + replaceDrawable.getIntrinsicWidth() / 2, cy + replaceDrawable.getIntrinsicHeight() / 2);
-                }
-            } else {
-                drawable = isInVideoMode() ? cameraDrawable : micDrawable;
-                sendRect.set(cx - dp(12), cy - dp(12), cx + dp(12), cy + dp(12));
-            }
-            drawable.setBounds(sendRect);
-
-            if (incIdle) {
-                idleProgress += 0.01f;
-                if (idleProgress > 1f) {
-                    incIdle = false;
-                    idleProgress = 1f;
-                }
-            } else {
-                idleProgress -= 0.01f;
-                if (idleProgress < 0) {
-                    incIdle = true;
-                    idleProgress = 0;
-                }
-            }
-
-            if (LiteMode.isEnabled(LiteMode.FLAGS_CHAT)) {
-                tinyWaveDrawable.minRadius = dp(47);
-                tinyWaveDrawable.maxRadius = dp(47) + dp(15) * BlobDrawable.FORM_SMALL_MAX;
-
-                bigWaveDrawable.minRadius = dp(50);
-                bigWaveDrawable.maxRadius = dp(50) + dp(12) * BlobDrawable.FORM_BIG_MAX;
-
-                bigWaveDrawable.updateAmplitude(dt);
-                bigWaveDrawable.update(bigWaveDrawable.amplitude, 1.01f);
-                tinyWaveDrawable.updateAmplitude(dt);
-                tinyWaveDrawable.update(tinyWaveDrawable.amplitude, 1.02f);
-
-//                bigWaveDrawable.tick(radius);
-//                tinyWaveDrawable.tick(radius);
-            }
-            lastUpdateTime = System.currentTimeMillis();
-            float slideToCancelProgress1 = slideToCancelProgress > 0.7f ? 1f : slideToCancelProgress / 0.7f;
-
-            if (LiteMode.isEnabled(LiteMode.FLAGS_CHAT) && progressToSeekbarStep2 != 1 && exitProgress2 < 0.4f && slideToCancelProgress1 > 0 && !canceledByGesture) {
-                if (showWaves && wavesEnterAnimation != 1f) {
-                    wavesEnterAnimation += 0.04f;
-                    if (wavesEnterAnimation > 1f) {
-                        wavesEnterAnimation = 1f;
-                    }
-                }
-                if (!voiceEnterTransitionInProgress) {
-                    float enter = CubicBezierInterpolator.EASE_OUT.getInterpolation(wavesEnterAnimation);
-                    canvas.save();
-                    float s = scale * (1f - progressToSeekbarStep1) * slideToCancelProgress1 * enter * (BlobDrawable.SCALE_BIG_MIN + 1.4f * bigWaveDrawable.amplitude);
-                    canvas.scale(s, s, cx + slideDelta, cy);
-                    bigWaveDrawable.draw(cx + slideDelta, cy, canvas, bigWaveDrawable.paint);
-                    canvas.restore();
-                    s = scale * (1f - progressToSeekbarStep1) * slideToCancelProgress1 * enter * (BlobDrawable.SCALE_SMALL_MIN + 1.4f * tinyWaveDrawable.amplitude);
-                    canvas.save();
-                    canvas.scale(s, s, cx + slideDelta, cy);
-                    tinyWaveDrawable.draw(cx + slideDelta, cy, canvas, tinyWaveDrawable.paint);
-                    canvas.restore();
-                }
-            }
-
-            if (canceledByGesture && slideToCancelProgress < 1f) {
-                radius = Math.max(radius, dp(19));
-            }
-
-            if (!voiceEnterTransitionInProgress) {
-                paint.setAlpha((int) (paintAlpha * circleAlpha));
-                if (scale == 1f) {
-                    if (transformToSeekbar != 0) {
-                        if (!isInVideoMode && progressToSeekbarStep3 > 0 && audioTimelineView != null) {
-                            float circleB = cy + radius;
-                            float circleT = cy - radius;
-                            float circleR = cx + slideDelta + radius;
-                            float circleL = cx + slideDelta - radius;
-
-                            int topOffset = 0;
-                            int leftOffset = 0;
-
-                            View transformToView = audioTimelineView;
-                            View v = (View) transformToView.getParent();
-                            while (v != getParent()) {
-                                topOffset += v.getY();
-                                leftOffset += v.getX();
-                                v = (View) v.getParent();
-                            }
-
-                            float seekbarT = transformToView.getY() + topOffset - getY();
-                            float seekbarB = transformToView.getY() + transformToView.getMeasuredHeight() + topOffset - getY();
-                            float seekbarR = transformToView.getX() + transformToView.getMeasuredWidth() + leftOffset - getX() - horizontalPadding;
-                            float seekbarL = transformToView.getX() + leftOffset - getX() + horizontalPadding;
-                            float toRadius = isInVideoMode() ? 0 : transformToView.getMeasuredHeight() / 2f;
-
-                            float top = lerp(circleT, seekbarT, progressToSeekbarStep3); // seekbarT + (circleT - seekbarT) * (1f - progressToSeekbarStep3);
-                            float bottom = lerp(circleB, seekbarB, progressToSeekbarStep3); // seekbarB + (circleB - seekbarB) * (1f - progressToSeekbarStep3);
-                            float left = lerp(circleL, seekbarL, progressToSeekbarStep3); //seekbarL + (circleL - seekbarL) * (1f - progressToSeekbarStep3);
-                            float right = lerp(circleR, seekbarR, progressToSeekbarStep3); //seekbarR + (circleR - seekbarR) * (1f - progressToSeekbarStep3);
-                            float transformRadius = lerp(radius, toRadius, progressToSeekbarStep3); // toRadius + (radius - toRadius) * (1f - progressToSeekbarStep3);
-
-                            rectF.set(left, top, right, bottom);
-                            audioTimelineView.drawIn(canvas, rectF, progressToSeekbarStep3);
-                        } else {
-                            canvas.drawCircle(cx + slideDelta, cy, radius * (1f - progressToSeekbarStep3), paint);
-                        }
-                    } else {
-                        canvas.drawCircle(cx + slideDelta, cy, radius, paint);
-                    }
-                    canvas.save();
-                    float a = (1f - exitProgress2);
-                    canvas.translate(slideDelta, 0);
-                    drawIconInternal(canvas, drawable, replaceDrawable, progressToSendButton, (int) ((1f - progressToSeekbarStep2) * a * 255));
-                    canvas.restore();
-                }
-            }
-
-            if (scale != 1f) {
-                canvas.drawCircle(cx + slideDelta, cy, radius, paint);
-                float a = (canceledByGesture ? (1f - slideToCancelProgress) : 1);
-                canvas.save();
-                canvas.translate(slideDelta, 0);
-                drawIconInternal(canvas, drawable, replaceDrawable, progressToSendButton, (int) (255 * a));
-                canvas.restore();
-            }
-            drawingCircleRadius = radius;
-        }
-
-        @Override
-        public void invalidate() {
-            super.invalidate();
-            if (controlsView != null) {
-                controlsView.invalidate();
-            }
-        }
-
-        public void drawIcon(Canvas canvas, int cx, int cy, float alpha) {
-            Drawable drawable;
-            Drawable replaceDrawable = null;
-            checkDrawables();
-            if (isSendButtonVisible()) {
-                if (progressToSendButton != 1f) {
-                    replaceDrawable = isInVideoMode() ? cameraDrawable : micDrawable;
-                }
-                drawable = sendDrawable;
-                sendRect.set(cx - drawable.getIntrinsicWidth() / 2, cy - drawable.getIntrinsicHeight() / 2, cx + drawable.getIntrinsicWidth() / 2, cy + drawable.getIntrinsicHeight() / 2);
-                if (replaceDrawable != null) {
-                    replaceDrawable.setBounds(cx - replaceDrawable.getIntrinsicWidth() / 2, cy - replaceDrawable.getIntrinsicHeight() / 2, cx + replaceDrawable.getIntrinsicWidth() / 2, cy + replaceDrawable.getIntrinsicHeight() / 2);
-                }
-            } else {
-                drawable = isInVideoMode() ? cameraDrawable : micDrawable;
-                sendRect.set(cx - dp(12), cy - dp(12), cx + dp(12), cy + dp(12));
-            }
-            drawable.setBounds(sendRect);
-            drawIconInternal(canvas, drawable, replaceDrawable, progressToSendButton, (int) (255 * alpha));
-        }
-
-        private void drawIconInternal(Canvas canvas, Drawable drawable, Drawable replaceDrawable, float progressToSendButton, int alpha) {
-            checkDrawables();
-            if (progressToSendButton == 0 || progressToSendButton == 1 || replaceDrawable == null) {
-                if (canceledByGesture && slideToCancelProgress == 1f) {
-                    View v = audioVideoSendButton;
-                    v.setAlpha(1f);
-                    setVisibility(View.GONE);
-                    return;
-                }
-                if (canceledByGesture && slideToCancelProgress < 1f) {
-                    drawable.setAlpha(255);
-                    drawable.draw(canvas);
-                } else if (!canceledByGesture) {
-                    drawable.setAlpha(alpha);
-                    drawable.draw(canvas);
-                }
-            } else {
-                canvas.save();
-                canvas.scale(progressToSendButton, progressToSendButton, drawable.getBounds().centerX(), drawable.getBounds().centerY());
-                drawable.setAlpha((int) (alpha * progressToSendButton));
-                drawable.draw(canvas);
-                canvas.restore();
-
-                canvas.save();
-                canvas.scale(1f - progressToSendButton, 1f - progressToSendButton, drawable.getBounds().centerX(), drawable.getBounds().centerY());
-                replaceDrawable.setAlpha((int) (alpha * (1f - progressToSendButton)));
-                replaceDrawable.draw(canvas);
-                canvas.restore();
-            }
-        }
-
-        @Override
-        protected boolean dispatchHoverEvent(MotionEvent event) {
-            return super.dispatchHoverEvent(event) || virtualViewHelper.dispatchHoverEvent(event);
-        }
-
-        public void setTransformToSeekbar(float value) {
-            transformToSeekbar = value;
-            invalidate();
-        }
-
-        public float getTransformToSeekbarProgressStep3() {
-            return progressToSeekbarStep3;
-        }
-
-        public void updateColors() {
-            paint.setColor(getThemedColor(Theme.key_chat_messagePanelVoiceBackground));
-            tinyWaveDrawable.paint.setColor(ColorUtils.setAlphaComponent(getThemedColor(Theme.key_chat_messagePanelVoiceBackground), (int) (255 * WaveDrawable.CIRCLE_ALPHA_2)));
-            bigWaveDrawable.paint.setColor(ColorUtils.setAlphaComponent(getThemedColor(Theme.key_chat_messagePanelVoiceBackground), (int) (255 * WaveDrawable.CIRCLE_ALPHA_1)));
-
-            paintAlpha = paint.getAlpha();
-        }
-
-        public void canceledByGesture() {
-            canceledByGesture = true;
-        }
-
-        public void setMovingCords(float x, float y) {
-            float delta = (x - lastMovingX) * (x - lastMovingX) + (y - lastMovingY) * (y - lastMovingY);
-            lastMovingY = y;
-            lastMovingX = x;
-            if (showTooltip && tooltipAlpha == 0f && delta > touchSlop) {
-                showTooltipStartTime = System.currentTimeMillis();
-            }
-        }
-
-        public void showWaves(boolean b, boolean animated) {
-            if (!animated) {
-                wavesEnterAnimation = b ? 1f : 0.5f;
-            }
-            showWaves = b;
-        }
-
-        public void drawWaves(Canvas canvas, float cx, float cy, float additionalScale) {
-            float enter = CubicBezierInterpolator.EASE_OUT.getInterpolation(wavesEnterAnimation);
-            float slideToCancelProgress1 = slideToCancelProgress > 0.7f ? 1f : slideToCancelProgress / 0.7f;
-            canvas.save();
-            float s = scale * slideToCancelProgress1 * enter * (BlobDrawable.SCALE_BIG_MIN + 1.4f * bigWaveDrawable.amplitude) * additionalScale;
-            canvas.scale(s, s, cx, cy);
-            bigWaveDrawable.draw(cx, cy, canvas, bigWaveDrawable.paint);
-            canvas.restore();
-            s = scale * slideToCancelProgress1 * enter * (BlobDrawable.SCALE_SMALL_MIN + 1.4f * tinyWaveDrawable.amplitude) * additionalScale;
-            canvas.save();
-            canvas.scale(s, s, cx, cy);
-            tinyWaveDrawable.draw(cx, cy, canvas, tinyWaveDrawable.paint);
-            canvas.restore();
-        }
-
-        private class VirtualViewHelper extends ExploreByTouchHelper {
-
-            public VirtualViewHelper(@NonNull View host) {
-                super(host);
-            }
-
-            private int[] coords = new int[2];
-
-            @Override
-            protected int getVirtualViewAt(float x, float y) {
-                if (isSendButtonVisible() && recordCircle != null) {
-                    if (sendRect.contains((int) x, (int) y)) {
-                        return 1;
-                    } else if (pauseRect.contains(x, y)) {
-                        return 2;
-                    } else if (slideText != null && slideText.cancelRect != null) {
-                        AndroidUtilities.rectTmp.set(slideText.cancelRect);
-                        slideText.getLocationOnScreen(coords);
-                        AndroidUtilities.rectTmp.offset(coords[0], coords[1]);
-                        recordCircle.getLocationOnScreen(coords);
-                        AndroidUtilities.rectTmp.offset(-coords[0], -coords[1]);
-                        if (AndroidUtilities.rectTmp.contains(x, y)) {
-                            return 3;
-                        }
-                    }
-                }
-                return HOST_ID;
-            }
-
-            @Override
-            protected void getVisibleVirtualViews(List<Integer> list) {
-                if (isSendButtonVisible()) {
-                    list.add(1);
-//                    list.add(2);
-                    list.add(3);
-                }
-            }
-
-            @Override
-            protected void onPopulateNodeForVirtualView(int id, @NonNull AccessibilityNodeInfoCompat info) {
-                if (id == 1) {
-                    info.setBoundsInParent(sendRect);
-                    info.setText(getString("Send", R.string.Send));
-                } else if (id == 2) {
-                    rect.set((int) pauseRect.left, (int) pauseRect.top, (int) pauseRect.right, (int) pauseRect.bottom);
-                    info.setBoundsInParent(rect);
-                    info.setText(getString(R.string.Stop));
-                } else if (id == 3 && recordCircle != null) {
-                    if (slideText != null && slideText.cancelRect != null) {
-                        AndroidUtilities.rectTmp2.set(slideText.cancelRect);
-                        slideText.getLocationOnScreen(coords);
-                        AndroidUtilities.rectTmp2.offset(coords[0], coords[1]);
-                        recordCircle.getLocationOnScreen(coords);
-                        AndroidUtilities.rectTmp2.offset(-coords[0], -coords[1]);
-                        info.setBoundsInParent(AndroidUtilities.rectTmp2);
-                    }
-                    info.setText(getString("Cancel", R.string.Cancel));
-                }
-            }
-
-            @Override
-            protected boolean onPerformActionForVirtualView(int id, int action, @Nullable Bundle args) {
-                return true;
-            }
-        }
-    }
-
-    public ChatActivityEnterView(Activity context, SizeNotifierFrameLayout parent, ChatActivity fragment, final boolean isChat) {
-        this(context, parent, fragment, isChat, null);
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    public ChatActivityEnterView(Activity context, SizeNotifierFrameLayout parent, ChatActivity fragment, final boolean isChat, Theme.ResourcesProvider resourcesProvider) {
-        super(context);
-        this.resourcesProvider = resourcesProvider;
-        this.isChat = isChat;
-
-        smoothKeyboard = isChat && !AndroidUtilities.isInMultiwindow && (fragment == null || !fragment.isInBubbleMode());
-        dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        dotPaint.setColor(getThemedColor(Theme.key_chat_emojiPanelNewTrending));
-        setFocusable(true);
-        setFocusableInTouchMode(true);
-        setWillNotDraw(false);
-        setClipChildren(false);
-
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.recordStarted);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.yasuVoiceTextUpdated);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.recordPaused);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.recordResumed);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.recordStartError);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.recordStopped);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.recordProgressChanged);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.closeChats);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.audioDidSent);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.audioRouteChanged);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messagePlayingProgressDidChanged);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.featuredStickersDidLoad);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.messageReceivedByServer2);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.sendingMessagesChanged);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.audioRecordTooShort);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.updateBotMenuButton);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.didUpdatePremiumGiftFieldIcon);
-        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.currentUserPremiumStatusChanged);
-        NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.emojiLoaded);
-
-        parentActivity = context;
-        parentFragment = fragment;
-        if (fragment != null) {
-            recordingGuid = parentFragment.getClassGuid();
-        }
-        sizeNotifierLayout = parent;
-        viewParentForEmojiView = parent;
-        sizeNotifierLayout.setDelegate(this);
-        SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-        sendByEnter = preferences.getBoolean("send_by_enter", false);
-
-        // YASU_FEATURES: restore feature state so enabled features stay enabled.
-        yasuFeature000 = preferences.getBoolean("yasu_feature_000", false);
-        yasuFeature001 = preferences.getBoolean("yasu_feature_001", false);
-        yasuFeature002 = preferences.getBoolean("yasu_feature_002", false);
-        yasuFeature003 = preferences.getBoolean("yasu_feature_003", false);
-        yasuFeature004 = preferences.getBoolean("yasu_feature_004", false);
-
-        yasuFeature001Count = Math.max(1,
-                Math.min(10, preferences.getInt("yasu_feature_001_count", 1)));
-        yasuFeature002Count = Math.max(1,
-                Math.min(10, preferences.getInt("yasu_feature_002_count", 1)));
-        yasuFeature004Count = Math.max(1,
-                Math.min(10, preferences.getInt("yasu_feature_004_count", 1)));
-
-        textFieldContainer = new FrameLayout(context) {
-            @Override
-            public boolean dispatchTouchEvent(MotionEvent ev) {
-                if (botWebViewButton != null && botWebViewButton.getVisibility() == VISIBLE) {
-                    return botWebViewButton.dispatchTouchEvent(ev);
-                }
-                return super.dispatchTouchEvent(ev);
-            }
-        };
-        textFieldContainer.setClipChildren(false);
-        textFieldContainer.setClipToPadding(false);
-        textFieldContainer.setPadding(0, dp(1), 0, 0);
-        addView(textFieldContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.BOTTOM, 0, 1, 0, 0));
-
-        FrameLayout frameLayout = messageEditTextContainer = new FrameLayout(context) {
-            @Override
-            protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-                super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-                final int height = Math.max(dp(44), getMeasuredHeight());
-                if (animatorInputFieldHeight.getFactor() > 0) {
-                    animatorInputFieldHeight.animateTo(height);
-                } else {
-                    animatorInputFieldHeight.forceFactor(height);
-                }
-                checkUi_TopViewVisibility();
-            }
-
-            @Override
-            protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-                super.onLayout(changed, left, top, right, bottom);
-                if (!animationParamsX.isEmpty()) {
-                    for (int i = 0; i < getChildCount(); i++) {
-                        View child = getChildAt(i);
-                        Float fromX = animationParamsX.get(child);
-                        if (fromX != null) {
-                            child.setTranslationX(fromX - child.getLeft());
-                            child.animate().translationX(0).setDuration(150).setInterpolator(CubicBezierInterpolator.DEFAULT).start();
-                        }
-                    }
-                    animationParamsX.clear();
-                }
-            }
-
-            @Override
-            protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
-                if (child != null && child == messageEditText) {
-                    return drawMessageEditText(canvas, () -> super.drawChild(canvas, child, drawingTime));
-                }
-                if (shouldDrawRecordedAudioPanelInParent && child == recordedAudioPanel) {
-                    return true;
-                }
-                return super.drawChild(canvas, child, drawingTime);
-            }
-        };
-        frameLayout.setClipChildren(false);
-        textFieldContainer.addView(frameLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM, 0, 0, DEFAULT_HEIGHT, 0));
-
-        emojiButton = new ChatActivityEnterViewAnimatedIconView(context) {
-            @Override
-            protected void onDraw(Canvas canvas) {
-                super.onDraw(canvas);
-                if (getTag() != null && attachLayout != null && !emojiViewVisible && !MediaDataController.getInstance(currentAccount).getUnreadStickerSets().isEmpty() && dotPaint != null) {
-                    int x = getWidth() / 2 + dp(4 + 5);
-                    int y = getHeight() / 2 - dp(13 - 5);
-                    canvas.drawCircle(x, y, dp(5), dotPaint);
-
-                }
-            }
-        };
-        emojiButton.setContentDescription(getString(R.string.AccDescrEmojiButton));
-        emojiButton.setFocusable(true);
-        int padding = dp(7.5f);
-        emojiButton.setPadding(padding, padding, padding, padding);
-        emojiButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.SRC_IN));
-        emojiButton.setBackground(Theme.createInsetRoundRectDrawable(getThemedColor(Theme.key_listSelector), dp(19), dp(1), dp(3)));
-        emojiButton.setOnClickListener(v -> {
-            if (adjustPanLayoutHelper != null && adjustPanLayoutHelper.animationInProgress()) {
-                return;
-            }
-            if (emojiButtonRestricted) {
-                showRestrictedHint();
-                return;
-            }
-            if (!isPopupShowing() || currentPopupContentType != 0) {
-                showPopup(1, POPUP_CONTENT_EMOJI_KEYBOARD);
-                emojiView.onOpen(messageEditText != null && messageEditText.length() > 0, parentFragment != null && parentFragment.groupEmojiPackHintWasVisible());
-            } else {
-                if (searchingType != 0) {
-                    setSearchingTypeInternal(0, true);
-                    if (emojiView != null) {
-                        emojiView.closeSearch(false);
-                    }
-                    if (messageEditText != null) {
-                        messageEditText.requestFocus();
-                    }
-                }
-                if (stickersExpanded) {
-                    setStickersExpanded(false, true, false);
-                    waitingForKeyboardOpenAfterAnimation = true;
-                    AndroidUtilities.runOnUIThread(() -> {
-                        waitingForKeyboardOpenAfterAnimation = false;
-                        openKeyboardInternal();
-                    }, 200);
-                } else {
-                    openKeyboardInternal();
-                }
-            }
-        });
-        messageEditTextContainer.addView(emojiButton, LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.LEFT, 2, 0, 0, 0));
-        setEmojiButtonImage(false, false);
-
-        deleteRichDraftButton = new ImageView(context);
-        deleteRichDraftButton.setScaleType(ImageView.ScaleType.CENTER);
-        deleteRichDraftButton.setImageResource(R.drawable.menu_delete_old);
-        deleteRichDraftButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.SRC_IN));
-        deleteRichDraftButton.setBackground(Theme.createInsetRoundRectDrawable(getThemedColor(Theme.key_listSelector), dp(19), dp(1), dp(3)));
-        deleteRichDraftButton.setVisibility(View.GONE);
-        deleteRichDraftButton.setContentDescription(getString(R.string.ArticleDeleteDraft));
-        deleteRichDraftButton.setOnClickListener(v -> {
-            new AlertDialog.Builder(getContext(), resourcesProvider)
-                .setTitle(getString(R.string.ArticleDeleteDraftTitle))
-                .setMessage(getString(R.string.ArticleDeleteDraftMessage))
-                .setNegativeButton(getString(R.string.Cancel), null)
-                .setPositiveButton(getString(R.string.Delete), (di, w) -> {
-                    clearRichDraft();
-                    if (messageEditText != null) {
-                        messageEditText.setText("");
-                    }
-                })
-                .makeRed(AlertDialog.BUTTON_POSITIVE)
-                .show();
-        });
-        messageEditTextContainer.addView(deleteRichDraftButton, LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.LEFT, 2, 0, 0, 0));
-
-        if (isChat) {
-            attachLayout = new LinearLayout(context) {
-                @Override
-                protected void onLayout(boolean changed, int l, int t, int r, int b) {
-                    super.onLayout(changed, l, t, r, b);
-                    setPivotX(getWidth());
-                }
-            };
-            attachLayout.setOrientation(LinearLayout.HORIZONTAL);
-            attachLayout.setGravity(Gravity.CENTER_VERTICAL);
-            attachLayout.setEnabled(false);
-            attachLayout.setClipChildren(false);
-        // YASU_FEATURES_BUTTON
         yasuFeaturesButton = new TextView(context);
         yasuFeaturesButton.setText("الميزات");
         yasuFeaturesButton.setTextSize(11);
         yasuFeaturesButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         yasuFeaturesButton.setTextColor(Color.WHITE);
         yasuFeaturesButton.setGravity(Gravity.CENTER);
-        yasuFeaturesButton.setPadding(dp(2), 0, dp(2), 0);
+        yasuFeaturesButton.setPadding(dp(1), 0, dp(1), 0);
         yasuFeaturesButton.setClickable(true);
         yasuFeaturesButton.setFocusable(true);
         yasuFeaturesButton.setMinHeight(0);
@@ -2823,7 +649,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         yasuFeaturesBackground.setColor(
                 Theme.getColor(Theme.key_chats_actionBackground)
         );
-        yasuFeaturesBackground.setCornerRadius(dp(9));
+        yasuFeaturesBackground.setCornerRadius(dp(8));
         yasuFeaturesButton.setBackground(yasuFeaturesBackground);
 
         yasuFeaturesButton.setForeground(
@@ -2836,8 +662,11 @@ public class ChatActivityEnterView extends FrameLayout implements
         TLRPC.Chat yasuFeaturesChat = parentFragment != null
                 ? parentFragment.getCurrentChat()
                 : null;
+
         boolean yasuFeaturesOnlyGroup = yasuFeaturesChat != null
-                && (!ChatObject.isChannel(yasuFeaturesChat) || yasuFeaturesChat.megagroup);
+                && (!ChatObject.isChannel(yasuFeaturesChat)
+                || yasuFeaturesChat.megagroup);
+
         yasuFeaturesButton.setVisibility(
                 yasuFeaturesOnlyGroup ? View.VISIBLE : View.GONE
         );
@@ -2849,7 +678,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         attachLayout.addView(
                 yasuFeaturesButton,
                 LayoutHelper.createLinear(
-                        dp(36),
+                        dp(30),
                         dp(18)
                 )
         );
@@ -2861,7 +690,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         yasuVoiceButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         yasuVoiceButton.setTextColor(Color.WHITE);
         yasuVoiceButton.setGravity(Gravity.CENTER);
-        yasuVoiceButton.setPadding(dp(2), 0, dp(2), 0);
+        yasuVoiceButton.setPadding(dp(1), 0, dp(1), 0);
         yasuVoiceButton.setClickable(true);
         yasuVoiceButton.setFocusable(true);
         yasuVoiceButton.setMinHeight(0);
@@ -2869,7 +698,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         GradientDrawable yasuVoiceBackground = new GradientDrawable();
         yasuVoiceBackground.setColor(Color.RED);
-        yasuVoiceBackground.setCornerRadius(dp(9));
+        yasuVoiceBackground.setCornerRadius(dp(8));
         yasuVoiceButton.setBackground(yasuVoiceBackground);
 
         yasuVoiceButton.setForeground(
@@ -2883,7 +712,6 @@ public class ChatActivityEnterView extends FrameLayout implements
                 yasuFeaturesOnlyGroup ? View.VISIBLE : View.GONE
         );
 
-        // Restore the selected mode only.
         yasuVoiceMode = MessagesController.getGlobalMainSettings()
                 .getInt(
                         "yasu_voice_mode",
@@ -2895,233 +723,214 @@ public class ChatActivityEnterView extends FrameLayout implements
         final android.os.Handler yasuVoiceHandler =
                 new android.os.Handler(android.os.Looper.getMainLooper());
 
-        final boolean[] waitingForSecondTap = {false};
+        final long[] lastVoiceTapTime = {0};
 
-        final Runnable singleTapAction = new Runnable() {
-            @Override
-            public void run() {
-                waitingForSecondTap[0] = false;
+        final Runnable showYasuVoiceModePopup = () -> {
 
-                yasuVoiceEnabled = !yasuVoiceEnabled;
+            if (getContext() == null) {
+                return;
+            }
 
-                yasuVoiceButton.setTag(yasuVoiceEnabled);
+            LinearLayout modeLayout = new LinearLayout(getContext());
+            modeLayout.setOrientation(LinearLayout.VERTICAL);
+            modeLayout.setGravity(Gravity.CENTER);
+            modeLayout.setPadding(
+                    dp(7),
+                    dp(7),
+                    dp(7),
+                    dp(7)
+            );
 
-                yasuVoiceButton.animate()
-                        .scaleX(0.88f)
-                        .scaleY(0.88f)
-                        .alpha(0.75f)
-                        .setDuration(70)
-                        .withEndAction(() -> {
-                            yasuVoiceBackground.setColor(
-                                    yasuVoiceEnabled
-                                            ? Color.rgb(45, 200, 75)
-                                            : Color.RED
-                            );
+            TextView numbersButton = new TextView(getContext());
+            numbersButton.setText("تتبع الارقام فقط");
+            numbersButton.setTextSize(13);
+            numbersButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            numbersButton.setTextColor(Color.WHITE);
+            numbersButton.setGravity(Gravity.CENTER);
+            numbersButton.setMinHeight(0);
+            numbersButton.setMinimumHeight(0);
 
-                            yasuVoiceButton.invalidate();
+            TextView wordsButton = new TextView(getContext());
+            wordsButton.setText("تتبع الكلمات فقط");
+            wordsButton.setTextSize(13);
+            wordsButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            wordsButton.setTextColor(Color.WHITE);
+            wordsButton.setGravity(Gravity.CENTER);
+            wordsButton.setMinHeight(0);
+            wordsButton.setMinimumHeight(0);
 
-                            yasuVoiceButton.animate()
-                                    .scaleX(1.0f)
-                                    .scaleY(1.0f)
-                                    .alpha(1.0f)
-                                    .setDuration(130)
-                                    .start();
-                        })
-                        .start();
+            GradientDrawable numbersBackground =
+                    new GradientDrawable();
+            numbersBackground.setCornerRadius(dp(8));
 
-                VoIPService voipService = VoIPService.getSharedInstance();
+            GradientDrawable wordsBackground =
+                    new GradientDrawable();
+            wordsBackground.setCornerRadius(dp(8));
+
+            numbersButton.setBackground(numbersBackground);
+            wordsButton.setBackground(wordsBackground);
+
+            final android.widget.PopupWindow[] popupHolder =
+                    new android.widget.PopupWindow[1];
+
+            Runnable updateMode = () -> {
+
+                numbersBackground.setColor(
+                        yasuVoiceMode == YASU_VOICE_MODE_NUMBERS
+                                ? Color.rgb(45, 175, 75)
+                                : Color.rgb(80, 80, 80)
+                );
+
+                wordsBackground.setColor(
+                        yasuVoiceMode == YASU_VOICE_MODE_WORDS
+                                ? Color.rgb(45, 175, 75)
+                                : Color.rgb(80, 80, 80)
+                );
+
+                numbersButton.invalidate();
+                wordsButton.invalidate();
+            };
+
+            updateMode.run();
+
+            numbersButton.setOnClickListener(view -> {
+
+                yasuVoiceMode = YASU_VOICE_MODE_NUMBERS;
+
+                MessagesController.getGlobalMainSettings()
+                        .edit()
+                        .putInt("yasu_voice_mode", yasuVoiceMode)
+                        .apply();
+
+                VoIPService voipService =
+                        VoIPService.getSharedInstance();
+
                 if (voipService != null) {
                     voipService.setYasuVoiceMode(yasuVoiceMode);
-                    voipService.setYasuVoiceEnabled(yasuVoiceEnabled);
                 }
-            }
+
+                updateMode.run();
+
+                if (popupHolder[0] != null) {
+                    popupHolder[0].dismiss();
+                }
+            });
+
+            wordsButton.setOnClickListener(view -> {
+
+                yasuVoiceMode = YASU_VOICE_MODE_WORDS;
+
+                MessagesController.getGlobalMainSettings()
+                        .edit()
+                        .putInt("yasu_voice_mode", yasuVoiceMode)
+                        .apply();
+
+                VoIPService voipService =
+                        VoIPService.getSharedInstance();
+
+                if (voipService != null) {
+                    voipService.setYasuVoiceMode(yasuVoiceMode);
+                }
+
+                updateMode.run();
+
+                if (popupHolder[0] != null) {
+                    popupHolder[0].dismiss();
+                }
+            });
+
+            modeLayout.addView(
+                    numbersButton,
+                    LayoutHelper.createLinear(
+                            dp(176),
+                            dp(34)
+                    )
+            );
+
+            modeLayout.addView(
+                    wordsButton,
+                    LayoutHelper.createLinear(
+                            dp(176),
+                            dp(34),
+                            0,
+                            dp(5),
+                            0,
+                            0
+                    )
+            );
+
+            android.widget.PopupWindow popup =
+                    new android.widget.PopupWindow(
+                            modeLayout,
+                            dp(190),
+                            dp(90),
+                            true
+                    );
+
+            popupHolder[0] = popup;
+
+            popup.setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(
+                            Color.TRANSPARENT
+                    )
+            );
+
+            popup.setOutsideTouchable(true);
+            popup.setFocusable(true);
+            popup.setElevation(dp(8));
+
+            popup.showAtLocation(
+                    yasuVoiceButton,
+                    Gravity.CENTER,
+                    0,
+                    0
+            );
         };
 
         yasuVoiceButton.setOnClickListener(v -> {
 
-            if (waitingForSecondTap[0]) {
-                // DOUBLE TAP
-                waitingForSecondTap[0] = false;
-                yasuVoiceHandler.removeCallbacks(singleTapAction);
+            long now = android.os.SystemClock.uptimeMillis();
 
-                if (getContext() == null) {
-                    return;
-                }
+            if (now - lastVoiceTapTime[0] <= 300) {
 
-                LinearLayout modeLayout = new LinearLayout(getContext());
-                modeLayout.setOrientation(LinearLayout.VERTICAL);
-                modeLayout.setGravity(Gravity.CENTER);
-                modeLayout.setPadding(
-                        dp(4),
-                        dp(4),
-                        dp(4),
-                        dp(4)
+                lastVoiceTapTime[0] = 0;
+
+                yasuVoiceHandler.removeCallbacks(
+                        showYasuVoiceModePopup
                 );
 
-                TextView numbersButton = new TextView(getContext());
-                numbersButton.setText("تتبع الارقام فقط");
-                numbersButton.setTextSize(12);
-                numbersButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-                numbersButton.setTextColor(Color.WHITE);
-                numbersButton.setGravity(Gravity.CENTER);
-                numbersButton.setMinHeight(0);
-                numbersButton.setMinimumHeight(0);
-
-                TextView wordsButton = new TextView(getContext());
-                wordsButton.setText("تتبع الكلمات فقط");
-                wordsButton.setTextSize(12);
-                wordsButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-                wordsButton.setTextColor(Color.WHITE);
-                wordsButton.setGravity(Gravity.CENTER);
-                wordsButton.setMinHeight(0);
-                wordsButton.setMinimumHeight(0);
-
-                GradientDrawable numbersBackground =
-                        new GradientDrawable();
-                numbersBackground.setCornerRadius(dp(7));
-
-                GradientDrawable wordsBackground =
-                        new GradientDrawable();
-                wordsBackground.setCornerRadius(dp(7));
-
-                numbersButton.setBackground(numbersBackground);
-                wordsButton.setBackground(wordsBackground);
-
-                Runnable updateMode = () -> {
-                    numbersBackground.setColor(
-                            yasuVoiceMode == YASU_VOICE_MODE_NUMBERS
-                                    ? Color.rgb(45, 175, 75)
-                                    : Color.rgb(80, 80, 80)
-                    );
-
-                    wordsBackground.setColor(
-                            yasuVoiceMode == YASU_VOICE_MODE_WORDS
-                                    ? Color.rgb(45, 175, 75)
-                                    : Color.rgb(80, 80, 80)
-                    );
-
-                    numbersButton.invalidate();
-                    wordsButton.invalidate();
-                };
-
-                updateMode.run();
-
-                final android.widget.PopupWindow[] popupHolder =
-                        new android.widget.PopupWindow[1];
-
-                numbersButton.setOnClickListener(view -> {
-                    yasuVoiceMode = YASU_VOICE_MODE_NUMBERS;
-
-                    MessagesController.getGlobalMainSettings()
-                            .edit()
-                            .putInt("yasu_voice_mode", yasuVoiceMode)
-                            .apply();
-
-                    /*
-                     * Change the worker mode immediately.
-                     * This does NOT enable voice transcription.
-                     */
-                    VoIPService voipService =
-                            VoIPService.getSharedInstance();
-
-                    if (voipService != null) {
-                        voipService.setYasuVoiceMode(yasuVoiceMode);
-                    }
-
-                    updateMode.run();
-
-                    if (popupHolder[0] != null) {
-                        popupHolder[0].dismiss();
-                    }
-                });
-
-                wordsButton.setOnClickListener(view -> {
-                    yasuVoiceMode = YASU_VOICE_MODE_WORDS;
-
-                    MessagesController.getGlobalMainSettings()
-                            .edit()
-                            .putInt("yasu_voice_mode", yasuVoiceMode)
-                            .apply();
-
-                    /*
-                     * Change the worker mode immediately.
-                     * This does NOT enable voice transcription.
-                     */
-                    VoIPService voipService =
-                            VoIPService.getSharedInstance();
-
-                    if (voipService != null) {
-                        voipService.setYasuVoiceMode(yasuVoiceMode);
-                    }
-
-                    updateMode.run();
-
-                    if (popupHolder[0] != null) {
-                        popupHolder[0].dismiss();
-                    }
-                });
-
-                modeLayout.addView(
-                        numbersButton,
-                        LayoutHelper.createLinear(
-                                dp(150),
-                                dp(28)
-                        )
-                );
-
-                modeLayout.addView(
-                        wordsButton,
-                        LayoutHelper.createLinear(
-                                dp(150),
-                                dp(28),
-                                0,
-                                dp(2),
-                                0,
-                                0
-                        )
-                );
-
-                android.widget.PopupWindow popup =
-                        new android.widget.PopupWindow(
-                                modeLayout,
-                                dp(158),
-                                dp(66),
-                                true
-                        );
-
-                popupHolder[0] = popup;
-
-                popup.setBackgroundDrawable(
-                        new android.graphics.drawable.ColorDrawable(
-                                Color.TRANSPARENT
-                        )
-                );
-
-                popup.setOutsideTouchable(true);
-                popup.setFocusable(true);
-
-                popup.showAsDropDown(
-                        yasuVoiceButton,
-                        -dp(122),
-                        -dp(70)
-                );
+                showYasuVoiceModePopup.run();
 
                 return;
             }
 
-            // First tap: wait briefly to detect a second tap.
-            waitingForSecondTap[0] = true;
+            lastVoiceTapTime[0] = now;
 
-            yasuVoiceHandler.postDelayed(
-                    singleTapAction,
-                    220
+            yasuVoiceEnabled = !yasuVoiceEnabled;
+
+            yasuVoiceButton.setTag(yasuVoiceEnabled);
+
+            yasuVoiceBackground.setColor(
+                    yasuVoiceEnabled
+                            ? Color.rgb(45, 200, 75)
+                            : Color.RED
             );
+
+            yasuVoiceButton.invalidate();
+
+            VoIPService voipService =
+                    VoIPService.getSharedInstance();
+
+            if (voipService != null) {
+                voipService.setYasuVoiceMode(yasuVoiceMode);
+                voipService.setYasuVoiceEnabled(yasuVoiceEnabled);
+            }
         });
 
         attachLayout.addView(
                 yasuVoiceButton,
                 LayoutHelper.createLinear(
-                        dp(36),
+                        dp(30),
                         dp(18),
                         0,
                         0,
@@ -3129,7 +938,6 @@ public class ChatActivityEnterView extends FrameLayout implements
                         0
                 )
         );
-
 
             messageEditTextContainer.addView(attachLayout, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.RIGHT, 0, 0, DEFAULT_HEIGHT, 0));
 

@@ -1,3 +1,4 @@
+#include "rtc_base/logging.h"
 #include "YasuVoiceAsrWorker.h"
 #include "YasuVoicePcmQueue.h"
 
@@ -84,8 +85,15 @@ bool YasuVoiceAsrWorker::initializeRecognizer(
         SherpaOnnxCreateOfflineRecognizer(&config);
 
     if (!recognizer) {
+        RTC_LOG(LS_ERROR)
+            << "[YASU VOICE] Sherpa recognizer creation FAILED"
+            << " modelDir=" << modelDir;
         return false;
     }
+
+    RTC_LOG(LS_INFO)
+        << "[YASU VOICE] Sherpa recognizer initialized"
+        << " modelDir=" << modelDir;
 
     _recognizer =
         const_cast<SherpaOnnxOfflineRecognizer *>(recognizer);
@@ -372,6 +380,14 @@ void YasuVoiceAsrWorker::decodePartial(
 
         const std::string text(result->text);
 
+        static std::atomic<bool> loggedFirstResult{false};
+        bool expectedFirstResult = false;
+        if (loggedFirstResult.compare_exchange_strong(
+                expectedFirstResult, true)) {
+            RTC_LOG(LS_INFO)
+                << "[YASU VOICE] First ASR result: " << text;
+        }
+
         /*
          * Partial results are emitted only when changed.
          * A final result is emitted even if it is identical
@@ -411,6 +427,18 @@ void YasuVoiceAsrWorker::processChunk(
         sampleRate <= 0 ||
         channels == 0) {
         return;
+    }
+
+    static std::atomic<bool> loggedFirstPcm{false};
+    bool expectedFirstPcm = false;
+    if (loggedFirstPcm.compare_exchange_strong(
+            expectedFirstPcm, true)) {
+        RTC_LOG(LS_INFO)
+            << "[YASU VOICE] First PCM reached processChunk"
+            << " ssrc=" << ssrc
+            << " samples=" << sampleCount
+            << " rate=" << sampleRate
+            << " channels=" << channels;
     }
 
     const int currentMode =
