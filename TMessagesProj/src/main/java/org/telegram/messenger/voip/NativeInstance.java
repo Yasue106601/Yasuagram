@@ -146,6 +146,12 @@ public class NativeInstance {
         }
     }
 
+    public void setMeasurementsEnabled(boolean enabled) {
+        if (nativePtr != 0 && isGroup) {
+            setMeasurementsEnabledNative(enabled);
+        }
+    }
+
     public void setYasuVoiceMode(int mode) {
         if (nativePtr != 0 && isGroup) {
             setYasuVoiceModeNative(mode);
@@ -278,6 +284,7 @@ public class NativeInstance {
     }
 
     private native void setYasuVoiceEnabledNative(boolean enabled);
+    private native void setMeasurementsEnabledNative(boolean enabled);
     private native void setYasuVoiceModeNative(int mode);
 
     private static native long makeGroupNativeInstance(NativeInstance instance, String persistentStateFilePath, boolean highQuality, long videoCapturer, boolean screencast, boolean noiseSupression, boolean conference, String yasuVoiceModelDir);

@@ -304,7 +304,7 @@ void AudioTrackJni::OnGetPlayoutData(size_t length) {
   const int64_t yasu_t11_end_us = rtc::TimeMicros();
   static int yasu_t11_count = 0;
   if ((++yasu_t11_count % 100) == 0) {
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU FORENSIC T11 JNI_PLAYOUT_TOTAL "
         << "duration_us=" << (yasu_t11_end_us - yasu_t11_start_us)
         << "request_us=" << (yasu_t11a_end_us - yasu_t11a_start_us)

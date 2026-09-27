@@ -268,6 +268,8 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
     private final VoIPToggleButton soundButton;
     private final VoIPToggleButton leaveButton;
     private final VoIPToggleButton messageButton;
+    private VoIPToggleButton measurementsButton;
+    private boolean measurementsEnabled = false;
     private final VoIPToggleButton muteButton;
     private final RLottieImageView muteButtonIcon;
     private final ImageView expandOrMinimizeButton;
@@ -4430,6 +4432,42 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
             onLeaveClick(context, this::dismiss, false);
         });
 
+        measurementsButton = new VoIPToggleButton(context, 50f);
+        measurementsButton.setTextSize(11);
+        measurementsButton.setData(
+                0,
+                Color.WHITE,
+                Color.RED,
+                1f,
+                true,
+                "تفعيل القياسات",
+                false,
+                false
+        );
+        measurementsButton.showText(true, false);
+
+        measurementsButton.setOnClickListener(v -> {
+            VoIPService service = VoIPService.getSharedInstance();
+            if (service == null) {
+                return;
+            }
+
+            measurementsEnabled = !measurementsEnabled;
+            service.setMeasurementsEnabled(measurementsEnabled);
+
+            measurementsButton.setData(
+                    0,
+                    Color.WHITE,
+                    measurementsEnabled ? Color.GREEN : Color.RED,
+                    1f,
+                    true,
+                    measurementsEnabled ? "تعطيل القياسات" : "تفعيل القياسات",
+                    false,
+                    true
+            );
+            measurementsButton.showText(true, true);
+        });
+
         messageButton = new VoIPToggleButton(context, 50f);
         messageButton.setCheckable(true);
         messageButton.setChecked(true, false);
@@ -4652,6 +4690,7 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
             }
         });
 
+        buttonsContainer.addButton(measurementsButton);
         buttonsContainer.addButton(messageButton);
         buttonsContainer.addButton(leaveButton);
 

@@ -236,7 +236,7 @@ namespace tgvoip {
     int64_t start_us;
     ~YasuT13JAVATraceGuard() {
       const int64_t end_us = rtc::TimeMicros();
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "YASU E2E TRACE"
           << " stage=T13_JAVA_END"
           << " time_us=" << end_us

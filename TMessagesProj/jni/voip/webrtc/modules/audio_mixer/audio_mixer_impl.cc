@@ -112,7 +112,7 @@ void AudioMixerImpl::Mix(size_t number_of_channels,
 
   static int yasu_t5_count = 0;
   if ((++yasu_t5_count % 100) == 0) {
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU FORENSIC T5 MIX "
         << "duration_us="
         << (yasu_t5_end_us - yasu_t5_start_us)

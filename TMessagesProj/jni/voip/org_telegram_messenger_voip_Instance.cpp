@@ -1083,6 +1083,16 @@ JNIEXPORT void JNICALL Java_org_telegram_messenger_voip_NativeInstance_setYasuVo
 }
 
 extern "C"
+JNIEXPORT void JNICALL Java_org_telegram_messenger_voip_NativeInstance_setMeasurementsEnabledNative(JNIEnv *env, jobject obj, jboolean enabled) {
+    InstanceHolder *instance = getInstanceHolder(env, obj);
+    if (instance == nullptr || instance->groupNativeInstance == nullptr) {
+        return;
+    }
+
+    instance->groupNativeInstance->setMeasurementsEnabled(enabled == JNI_TRUE);
+}
+
+extern "C"
 JNIEXPORT void JNICALL Java_org_telegram_messenger_voip_NativeInstance_setYasuVoiceModeNative(JNIEnv *env, jobject obj, jint mode) {
     InstanceHolder *instance = getInstanceHolder(env, obj);
     if (instance == nullptr || instance->groupNativeInstance == nullptr) {

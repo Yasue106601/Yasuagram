@@ -172,7 +172,7 @@ absl::optional<Packet> PacketBuffer::GetNextPacket() {
     yasu_packet_sum_ms += waiting_ms;
 
     if ((yasu_packet_count % 100) == 0) {
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "YASU PACKET BUFFER"
           << " n=" << yasu_packet_count
           << " last_ms=" << waiting_ms
@@ -183,7 +183,7 @@ absl::optional<Packet> PacketBuffer::GetNextPacket() {
     }
 
     if (waiting_ms >= 10) {
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "YASU PACKET WAIT"
           << " waiting_ms=" << waiting_ms
           << " timestamp=" << buffer_.front().timestamp
@@ -196,7 +196,7 @@ absl::optional<Packet> PacketBuffer::GetNextPacket() {
   RTC_DCHECK(!packet->empty());
   buffer_.pop_front();
 
-  RTC_LOG(LS_INFO)
+  RTC_LOG(LS_VERBOSE)
       << "YASU FORENSIC T8_OUT"
       << " seq=" << packet->sequence_number
       << " timestamp=" << packet->timestamp

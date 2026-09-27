@@ -77,7 +77,7 @@ int AudioDecoderOpusImpl::DecodeInternal(const uint8_t* encoded,
   // YASU FORENSIC T4
   static int yasu_t4_count = 0;
   if ((++yasu_t4_count % 100) == 0) {
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU FORENSIC T4 OPUS_DECODE "
         << "duration_us="
         << (yasu_t4_end_us - yasu_t4_start_us)

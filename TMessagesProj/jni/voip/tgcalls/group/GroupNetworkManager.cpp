@@ -625,7 +625,7 @@ void GroupNetworkManager::transportPacketReceived(rtc::PacketTransportInternal *
     // YASU FORENSIC T0: exact packet arrival timestamp.
     static int yasu_t0_count = 0;
     if ((++yasu_t0_count % 100) == 0) {
-        RTC_LOG(LS_INFO)
+        RTC_LOG(LS_VERBOSE)
             << "YASU FORENSIC T0 UDP_RX "
             << "arrival_us=" << timestamp
             << "callback_us=" << udpPacketReceiveTime

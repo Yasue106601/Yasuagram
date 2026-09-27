@@ -1008,6 +1008,13 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
         }
     }
 
+    public void setMeasurementsEnabled(boolean enabled) {
+        NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
+        if (instance != null && instance.isGroup()) {
+            instance.setMeasurementsEnabled(enabled);
+        }
+    }
+
     public void setYasuVoiceMode(int mode) {
         NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
         if (instance != null && instance.isGroup()) {

@@ -51,6 +51,7 @@
 #include "VideoCaptureInterfaceImpl.h"
 #include "platform/PlatformInterface.h"
 #include "LogSinkImpl.h"
+#include "../YasuMeasurementGate.h"
 #include "CodecSelectHelper.h"
 #include "AudioStreamingPart.h"
 #include "VideoStreamingPart.h"
@@ -1387,7 +1388,7 @@ public:
                 
                 const int64_t yasu_decrypt_start_us = rtc::TimeMicros();
 
-                RTC_LOG(LS_INFO)
+                RTC_LOG(LS_VERBOSE)
                     << "YASU E2E TRACE"
                     << " stage=T5_E2E_START"
                     << " time_us=" << yasu_decrypt_start_us
@@ -1398,7 +1399,7 @@ public:
 
                 const int64_t yasu_decrypt_end_us = rtc::TimeMicros();
 
-                RTC_LOG(LS_INFO)
+                RTC_LOG(LS_VERBOSE)
                     << "YASU E2E TRACE"
                     << " stage=T5_E2E_END"
                     << " time_us=" << yasu_decrypt_end_us
@@ -1409,7 +1410,7 @@ public:
 
                 static int yasu_decrypt_count = 0;
                 if ((++yasu_decrypt_count % 100) == 0) {
-                    RTC_LOG(LS_INFO)
+                    RTC_LOG(LS_VERBOSE)
                         << "YASU E2E DECRYPT "
                         << "time_us=" << yasu_decrypt_end_us
                         << "cost_us=" << (yasu_decrypt_end_us - yasu_decrypt_start_us)
@@ -4523,9 +4524,6 @@ GroupInstanceCustomImpl::GroupInstanceCustomImpl(GroupInstanceDescriptor &&descr
         rtc::LogMessage::SetLogToStderr(false);
     }
     rtc::LogMessage::LogToDebug(rtc::LS_INFO);
-    if (_logSink) {
-        rtc::LogMessage::AddLogToStream(_logSink.get(), rtc::LS_INFO);
-    }
 
     _threads = descriptor.threads;
     _internal.reset(new ThreadLocalObject<GroupInstanceCustomInternal>(_threads->getMediaThread(), [descriptor = std::move(descriptor), threads = _threads]() mutable {
@@ -4549,8 +4547,37 @@ std::string GroupInstanceCustomImpl::stopAndGetDebugLog() {
     return future.get();
 }
 
+
+void GroupInstanceCustomImpl::setMeasurementsEnabled(bool enabled) {
+    if (!_logSink) {
+        _measurementsEnabled.store(false, std::memory_order_release);
+        tgcalls::SetYasuMeasurementsEnabled(false);
+        return;
+    }
+
+    const bool old = _measurementsEnabled.exchange(
+        enabled,
+        std::memory_order_acq_rel
+    );
+
+    if (old == enabled) {
+        return;
+    }
+
+    if (enabled) {
+        tgcalls::SetYasuMeasurementsEnabled(true);
+        rtc::LogMessage::AddLogToStream(
+            _logSink.get(),
+            rtc::LS_VERBOSE
+        );
+    } else {
+        rtc::LogMessage::RemoveLogToStream(_logSink.get());
+        tgcalls::SetYasuMeasurementsEnabled(false);
+    }
+}
+
 GroupInstanceCustomImpl::~GroupInstanceCustomImpl() {
-    if (_logSink) {
+    if (_logSink && _measurementsEnabled.exchange(false, std::memory_order_acq_rel)) {
         rtc::LogMessage::RemoveLogToStream(_logSink.get());
     }
     _internal.reset();

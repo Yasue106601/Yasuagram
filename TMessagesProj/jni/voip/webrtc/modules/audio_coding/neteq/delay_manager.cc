@@ -109,7 +109,7 @@ void DelayManager::Update(int arrival_delay_ms, bool reordered) {
 
   static int yasu_target_measure_count = 0;
   if (++yasu_target_measure_count % 100 == 0) {
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU TARGET COMPONENTS "
         << "arrival=" << arrival_delay_ms << "ms "
         << "reordered=" << reordered << " "

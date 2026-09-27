@@ -124,7 +124,7 @@ aaudio_data_callback_result_t DataCallback(AAudioStream* stream,
   // YASU FORENSIC T7
   static int yasu_t7_count = 0;
   if ((++yasu_t7_count % 100) == 0) {
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU FORENSIC T7 AAUDIO_CALLBACK "
         << "time_us=" << current_time
         << "frames=" << num_frames;

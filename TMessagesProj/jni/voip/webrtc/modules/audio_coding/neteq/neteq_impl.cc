@@ -9,6 +9,7 @@
  */
 
 #include "modules/audio_coding/neteq/neteq_impl.h"
+#include "../../../../../tgcalls/YasuMeasurementGate.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -177,9 +178,11 @@ NetEqImpl::NetEqImpl(const NetEq::Config& config,
   RTC_LOG(LS_VERBOSE) << "NetEq config: " << config.ToString();
 
   // YASU FORENSIC: record the actual runtime Field Trial state.
-  RTC_LOG(LS_WARNING)
-      << "YASU FORENSIC FEC_DELAY_ADAPTATION"
-      << " enabled=" << (enable_fec_delay_adaptation_ ? 1 : 0);
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU FORENSIC FEC_DELAY_ADAPTATION"
+        << " enabled=" << (enable_fec_delay_adaptation_ ? 1 : 0);
+  }
   int fs = config.sample_rate_hz;
   if (fs != 8000 && fs != 16000 && fs != 32000 && fs != 48000) {
     RTC_LOG(LS_ERROR) << "Sample rate " << fs
@@ -345,16 +348,18 @@ int NetEqImpl::FilteredCurrentDelayMs() const {
   const int sync_future_samples =
       static_cast<int>(sync_buffer_->FutureLength());
 
-  static int yasu_delay_measure_count = 0;
-  if (++yasu_delay_measure_count <= 300) {
-    RTC_LOG(LS_VERBOSE)
-        << "YASU DELAY COMPONENTS"
-        << " filtered_buffer_ms="
-        << (filtered_buffer_samples * 1000 / fs_hz_)
-        << " sync_future_ms="
-        << (sync_future_samples * 1000 / fs_hz_)
-        << " combined_ms="
-        << ((filtered_buffer_samples + sync_future_samples) * 1000 / fs_hz_);
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    static int yasu_delay_measure_count = 0;
+    if (++yasu_delay_measure_count <= 300) {
+      RTC_LOG(LS_VERBOSE)
+          << "YASU DELAY COMPONENTS"
+          << " filtered_buffer_ms="
+          << (filtered_buffer_samples * 1000 / fs_hz_)
+          << " sync_future_ms="
+          << (sync_future_samples * 1000 / fs_hz_)
+          << " combined_ms="
+          << ((filtered_buffer_samples + sync_future_samples) * 1000 / fs_hz_);
+    }
   }
 
   const int delay_samples =
@@ -385,15 +390,17 @@ NetEqNetworkStatistics NetEqImpl::CurrentNetworkStatisticsInternal() const {
   const size_t total_samples_in_buffers =
       packet_buffer_samples + sync_future_samples;
 
-  RTC_LOG(LS_VERBOSE)
-      << "YASU BUFFER COMPONENTS"
-      << " PacketBuffer="
-      << (packet_buffer_samples * 1000 / fs_hz_)
-      << "ms SyncFuture="
-      << (sync_future_samples * 1000 / fs_hz_)
-      << "ms RawBuffer="
-      << (total_samples_in_buffers * 1000 / fs_hz_)
-      << "ms";
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU BUFFER COMPONENTS"
+        << " PacketBuffer="
+        << (packet_buffer_samples * 1000 / fs_hz_)
+        << "ms SyncFuture="
+        << (sync_future_samples * 1000 / fs_hz_)
+        << "ms RawBuffer="
+        << (total_samples_in_buffers * 1000 / fs_hz_)
+        << "ms";
+  }
 
   RTC_DCHECK(controller_.get());
   stats.preferred_buffer_size_ms = controller_->TargetLevelMs();
@@ -525,18 +532,20 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
   Timestamp receive_time = clock_->CurrentTime();
 
   // YASU FORENSIC T2
-  static int yasu_t2_count = 0;
-  if ((++yasu_t2_count % 100) == 0) {
-    RTC_LOG(LS_VERBOSE)
-        << "YASU FORENSIC T2 NETEQ_INSERT "
-        << "e2e_id=" << rtp_header.ssrc << ":"
-        << rtp_header.sequenceNumber << ":"
-        << rtp_header.timestamp << " "
-        << "time_us=" << rtc::TimeMicros()
-        << "ssrc=" << rtp_header.ssrc
-        << "seq=" << rtp_header.sequenceNumber
-        << "rtp_ts=" << rtp_header.timestamp
-        << "payload=" << payload.size();
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    static int yasu_t2_count = 0;
+    if ((++yasu_t2_count % 100) == 0) {
+      RTC_LOG(LS_VERBOSE)
+          << "YASU FORENSIC T2 NETEQ_INSERT "
+          << "e2e_id=" << rtp_header.ssrc << ":"
+          << rtp_header.sequenceNumber << ":"
+          << rtp_header.timestamp << " "
+          << "time_us=" << rtc::TimeMicros()
+          << "ssrc=" << rtp_header.ssrc
+          << "seq=" << rtp_header.sequenceNumber
+          << "rtp_ts=" << rtp_header.timestamp
+          << "payload=" << payload.size();
+    }
   }
 
   stats_->ReceivedPacket();
@@ -688,14 +697,16 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
           info->GetDecoder()->ParsePayload(std::move(packet.payload),
                                            packet.timestamp);
 
-      static int yasu_parse_log_count = 0;
-      if ((++yasu_parse_log_count % 100) == 0) {
-        RTC_LOG(LS_VERBOSE)
-            << "YASU TRACE PARSE"
-            << " seq=" << packet.sequence_number
-            << " ts=" << packet.timestamp
-            << " payload_type=" << static_cast<int>(packet.payload_type)
-            << " results=" << results.size();
+      if (tgcalls::YasuMeasurementsEnabled()) {
+        static int yasu_parse_log_count = 0;
+        if ((++yasu_parse_log_count % 100) == 0) {
+          RTC_LOG(LS_VERBOSE)
+              << "YASU TRACE PARSE"
+              << " seq=" << packet.sequence_number
+              << " ts=" << packet.timestamp
+              << " payload_type=" << static_cast<int>(packet.payload_type)
+              << " results=" << results.size();
+        }
       }
 
       if (results.empty()) {
@@ -730,14 +741,16 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
   }
 
   // YASU FORENSIC: measure actual primary vs secondary/FEC parsing.
-  RTC_LOG(LS_VERBOSE)
-      << "YASU FORENSIC PARSE_COUNTS"
-      << " seq=" << main_sequence_number
-      << " rtp_ts=" << main_timestamp
-      << " parsed=" << parsed_packet_list.size()
-      << " primary=" << number_of_primary_packets
-      << " secondary="
-      << (parsed_packet_list.size() - number_of_primary_packets);
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU FORENSIC PARSE_COUNTS"
+        << " seq=" << main_sequence_number
+        << " rtp_ts=" << main_timestamp
+        << " parsed=" << parsed_packet_list.size()
+        << " primary=" << number_of_primary_packets
+        << " secondary="
+        << (parsed_packet_list.size() - number_of_primary_packets);
+  }
 
   bool buffer_flush_occured = false;
   for (Packet& packet : parsed_packet_list) {
@@ -746,28 +759,36 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
       buffer_flush_occured = true;
     }
     NetEqController::PacketArrivedInfo info = ToPacketArrivedInfo(packet);
-    const int64_t yasu_t7_start_us = rtc::TimeMicros();
-    const uint16_t yasu_t7_seq = packet.sequence_number;
-    const uint32_t yasu_t7_ssrc = rtp_header.ssrc;
-    const uint32_t yasu_t7_rtp_ts = packet.timestamp;
+    const bool yasu_measurements = tgcalls::YasuMeasurementsEnabled();
+
+    const int64_t yasu_t7_start_us =
+        yasu_measurements ? rtc::TimeMicros() : 0;
+    const uint16_t yasu_t7_seq =
+        yasu_measurements ? packet.sequence_number : 0;
+    const uint32_t yasu_t7_ssrc =
+        yasu_measurements ? rtp_header.ssrc : 0;
+    const uint32_t yasu_t7_rtp_ts =
+        yasu_measurements ? packet.timestamp : 0;
 
     int return_val = packet_buffer_->InsertPacket(std::move(packet));
 
-    const int64_t yasu_t7_end_us = rtc::TimeMicros();
+    if (yasu_measurements) {
+      const int64_t yasu_t7_end_us = rtc::TimeMicros();
 
-    RTC_LOG(LS_VERBOSE)
-        << "YASU E2E TRACE"
-        << " stage=T7_PACKET_BUFFER"
-        << " time_us=" << yasu_t7_end_us
-        << " cost_us=" << (yasu_t7_end_us - yasu_t7_start_us)
-        << " seq=" << yasu_t7_seq
-        << " ssrc=" << yasu_t7_ssrc
-        << " rtp_ts=" << yasu_t7_rtp_ts
-        << " result=" << return_val
-        << " packets=" << packet_buffer_->NumPacketsInBuffer()
-        << " span_ms="
-        << (packet_buffer_->GetSpanSamples(0, fs_hz_, false) /
-            (fs_hz_ / 1000));
+      RTC_LOG(LS_VERBOSE)
+          << "YASU E2E TRACE"
+          << " stage=T7_PACKET_BUFFER"
+          << " time_us=" << yasu_t7_end_us
+          << " cost_us=" << (yasu_t7_end_us - yasu_t7_start_us)
+          << " seq=" << yasu_t7_seq
+          << " ssrc=" << yasu_t7_ssrc
+          << " rtp_ts=" << yasu_t7_rtp_ts
+          << " result=" << return_val
+          << " packets=" << packet_buffer_->NumPacketsInBuffer()
+          << " span_ms="
+          << (packet_buffer_->GetSpanSamples(0, fs_hz_, false) /
+              (fs_hz_ / 1000));
+    }
 
     if (return_val == PacketBuffer::kFlushed) {
       buffer_flush_occured = true;
@@ -824,16 +845,18 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
             yasu_sync_samples +
             packet_buffer_->GetSpanSamples(0, fs_hz_, false);
 
-        RTC_LOG(LS_WARNING)
-            << "YASU HARD_BACKLOG_DROP"
-            << " threshold_ms=130"
-            << " max_discard_packets=3"
-            << " sync_ms=" << (yasu_sync_samples / yasu_ms)
-            << " before_ms="
-            << (yasu_backlog_before_samples / yasu_ms)
-            << " after_ms="
-            << (yasu_backlog_after_samples / yasu_ms)
-            << " discarded_packets=" << yasu_discarded_packets;
+        if (tgcalls::YasuMeasurementsEnabled()) {
+          RTC_LOG(LS_VERBOSE)
+              << "YASU HARD_BACKLOG_DROP"
+              << " threshold_ms=130"
+              << " max_discard_packets=3"
+              << " sync_ms=" << (yasu_sync_samples / yasu_ms)
+              << " before_ms="
+              << (yasu_backlog_before_samples / yasu_ms)
+              << " after_ms="
+              << (yasu_backlog_after_samples / yasu_ms)
+              << " discarded_packets=" << yasu_discarded_packets;
+        }
       }
     }
 
@@ -992,27 +1015,31 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
     *muted = true;
     return 0;
   }
-  const int64_t yasu_t3_start_us = rtc::TimeMicros();
+  const bool yasu_measurements = tgcalls::YasuMeasurementsEnabled();
+  const int64_t yasu_t3_start_us =
+      yasu_measurements ? rtc::TimeMicros() : 0;
 
   int return_value = GetDecision(&operation, &packet_list, &dtmf_event,
                                  &play_dtmf, action_override);
 
-  const int64_t yasu_t3_end_us = rtc::TimeMicros();
+  if (yasu_measurements) {
+    const int64_t yasu_t3_end_us = rtc::TimeMicros();
 
-  // YASU FORENSIC T3
-  static int yasu_t3_count = 0;
-  if ((++yasu_t3_count % 100) == 0) {
-    RTC_LOG(LS_VERBOSE)
-        << "YASU FORENSIC T3 NETEQ_DECISION "
-        << "e2e_id="
-        << (packet_list.empty()
-                ? std::string("NONE")
-                : std::to_string(packet_list.front().sequence_number) + ":"
-                  + std::to_string(packet_list.front().timestamp))
-        << " duration_us="
-        << (yasu_t3_end_us - yasu_t3_start_us)
-        << "operation=" << static_cast<int>(operation)
-        << "packets=" << packet_list.size();
+    // YASU FORENSIC T3
+    static int yasu_t3_count = 0;
+    if ((++yasu_t3_count % 100) == 0) {
+      RTC_LOG(LS_VERBOSE)
+          << "YASU FORENSIC T3 NETEQ_DECISION "
+          << "e2e_id="
+          << (packet_list.empty()
+                  ? std::string("NONE")
+                  : std::to_string(packet_list.front().sequence_number) + ":"
+                    + std::to_string(packet_list.front().timestamp))
+          << " duration_us="
+          << (yasu_t3_end_us - yasu_t3_start_us)
+          << "operation=" << static_cast<int>(operation)
+          << "packets=" << packet_list.size();
+    }
   }
 
   if (return_value != 0) {
@@ -1022,40 +1049,42 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
 
   // YASU FORENSIC: capture the actual NetEq decision and PacketBuffer
   // state immediately after GetDecision(). This is diagnostic only.
-  static uint64_t yasu_neteq_state_count = 0;
-  if ((++yasu_neteq_state_count % 100) == 0) {
-    const size_t yasu_pb_packets = packet_buffer_->NumPacketsInBuffer();
-    const size_t yasu_pb_span_samples =
-        packet_buffer_->GetSpanSamples(0, fs_hz_, false);
-    const int64_t yasu_pb_span_ms =
-        static_cast<int64_t>(yasu_pb_span_samples * 1000 / fs_hz_);
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    static uint64_t yasu_neteq_state_count = 0;
+    if ((++yasu_neteq_state_count % 100) == 0) {
+      const size_t yasu_pb_packets = packet_buffer_->NumPacketsInBuffer();
+      const size_t yasu_pb_span_samples =
+          packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+      const int64_t yasu_pb_span_ms =
+          static_cast<int64_t>(yasu_pb_span_samples * 1000 / fs_hz_);
 
-    const Packet* yasu_oldest_packet = packet_buffer_->PeekNextPacket();
+      const Packet* yasu_oldest_packet = packet_buffer_->PeekNextPacket();
 
-    RTC_LOG(LS_VERBOSE)
-        << "YASU FORENSIC NETEQ_STATE"
-        << " time_us=" << rtc::TimeMicros()
-        << " operation=" << static_cast<int>(operation)
-        << " packet_list=" << packet_list.size()
-        << " packet_buffer_packets=" << yasu_pb_packets
-        << " packet_buffer_span_ms=" << yasu_pb_span_ms
-        << " sync_future_ms="
-        << (sync_buffer_->FutureLength() * 1000 / fs_hz_)
-        << " total_future_ms="
-        << ((yasu_pb_span_samples + sync_buffer_->FutureLength()) *
-            1000 / fs_hz_);
-
-    if (yasu_oldest_packet) {
       RTC_LOG(LS_VERBOSE)
-          << "YASU FORENSIC NETEQ_OLDEST"
-          << " seq=" << yasu_oldest_packet->sequence_number
-          << " rtp_ts=" << yasu_oldest_packet->timestamp
-          << " payload_type="
-          << static_cast<int>(yasu_oldest_packet->payload_type);
-    } else {
-      RTC_LOG(LS_VERBOSE)
-          << "YASU FORENSIC NETEQ_OLDEST"
-          << " empty=1";
+          << "YASU FORENSIC NETEQ_STATE"
+          << " time_us=" << rtc::TimeMicros()
+          << " operation=" << static_cast<int>(operation)
+          << " packet_list=" << packet_list.size()
+          << " packet_buffer_packets=" << yasu_pb_packets
+          << " packet_buffer_span_ms=" << yasu_pb_span_ms
+          << " sync_future_ms="
+          << (sync_buffer_->FutureLength() * 1000 / fs_hz_)
+          << " total_future_ms="
+          << ((yasu_pb_span_samples + sync_buffer_->FutureLength()) *
+              1000 / fs_hz_);
+
+      if (yasu_oldest_packet) {
+        RTC_LOG(LS_VERBOSE)
+            << "YASU FORENSIC NETEQ_OLDEST"
+            << " seq=" << yasu_oldest_packet->sequence_number
+            << " rtp_ts=" << yasu_oldest_packet->timestamp
+            << " payload_type="
+            << static_cast<int>(yasu_oldest_packet->payload_type);
+      } else {
+        RTC_LOG(LS_VERBOSE)
+            << "YASU FORENSIC NETEQ_OLDEST"
+            << " empty=1";
+      }
     }
   }
 
@@ -1069,15 +1098,17 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
   }
 
   // YASU FORENSIC: identify what actually came out of Decode().
-  static uint64_t yasu_decode_reason_count = 0;
-  if ((++yasu_decode_reason_count % 100) == 0) {
-    RTC_LOG(LS_VERBOSE)
-        << "YASU FORENSIC NETEQ_OUTPUT_REASON"
-        << " time_us=" << rtc::TimeMicros()
-        << " operation=" << static_cast<int>(operation)
-        << " speech_type=" << static_cast<int>(speech_type)
-        << " decoded_length=" << length
-        << " packets_after_decode=" << packet_list.size();
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    static uint64_t yasu_decode_reason_count = 0;
+    if ((++yasu_decode_reason_count % 100) == 0) {
+      RTC_LOG(LS_VERBOSE)
+          << "YASU FORENSIC NETEQ_OUTPUT_REASON"
+          << " time_us=" << rtc::TimeMicros()
+          << " operation=" << static_cast<int>(operation)
+          << " speech_type=" << static_cast<int>(speech_type)
+          << " decoded_length=" << length
+          << " packets_after_decode=" << packet_list.size();
+    }
   }
 
   bool sid_frame_available =
@@ -1157,16 +1188,18 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
           yasu_max_accelerate_passes = 10;
         }
 
-        RTC_LOG(LS_VERBOSE)
-            << "YASU ACCELERATION PLAN"
-            << " packet_ms=" << (yasu_packet_samples / yasu_ms)
-            << " sync_ms=" << (yasu_sync_samples / yasu_ms)
-            << " total_ms=" << yasu_backlog_ms
-            << " max_passes=" << yasu_max_accelerate_passes;
+        if (tgcalls::YasuMeasurementsEnabled()) {
+          RTC_LOG(LS_VERBOSE)
+              << "YASU ACCELERATION PLAN"
+              << " packet_ms=" << (yasu_packet_samples / yasu_ms)
+              << " sync_ms=" << (yasu_sync_samples / yasu_ms)
+              << " total_ms=" << yasu_backlog_ms
+              << " max_passes=" << yasu_max_accelerate_passes;
+        }
       }
 
       // YASU: Correlate FastAccelerate execution with actual backlog.
-      if (fast_accelerate) {
+      if (fast_accelerate && tgcalls::YasuMeasurementsEnabled()) {
         static int yasu_fast_accel_trace_count = 0;
         if ((++yasu_fast_accel_trace_count % 20) == 0) {
           const size_t yasu_ms = fs_hz_ / 1000;
@@ -1251,7 +1284,8 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
   const size_t yasu_sync_future_after_cap =
       sync_buffer_->FutureLength();
 
-  if (yasu_sync_future_after_cap > 40 * (fs_hz_ / 1000)) {
+  if (tgcalls::YasuMeasurementsEnabled() &&
+      yasu_sync_future_after_cap > 40 * (fs_hz_ / 1000)) {
     RTC_LOG(LS_VERBOSE)
         << "YASU SYNC BACKLOG_40MS"
         << " future_ms="
@@ -1282,43 +1316,46 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
   // (up to 120 ms). Do not discard the future audio here.
 
 
-  static uint64_t yasu_sync_trace_count = 0;
-  if ((++yasu_sync_trace_count % 50) == 0) {
-    const int yasu_sample_rate = static_cast<int>(fs_hz_);
-    const int yasu_future_before_ms =
-        static_cast<int>(yasu_sync_future_before * 1000 / yasu_sample_rate);
-    const int yasu_pushed_ms =
-        static_cast<int>(yasu_sync_pushed * 1000 / yasu_sample_rate);
-    const int yasu_future_after_push_ms =
-        static_cast<int>(yasu_sync_future_after_cap * 1000 / yasu_sample_rate);
-    const int yasu_future_after_output_ms =
-        static_cast<int>(yasu_sync_future_after_output * 1000 / yasu_sample_rate);
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    static uint64_t yasu_sync_trace_count = 0;
+    if ((++yasu_sync_trace_count % 50) == 0) {
+      const int yasu_sample_rate = static_cast<int>(fs_hz_);
+      const int yasu_future_before_ms =
+          static_cast<int>(yasu_sync_future_before * 1000 / yasu_sample_rate);
+      const int yasu_pushed_ms =
+          static_cast<int>(yasu_sync_pushed * 1000 / yasu_sample_rate);
+      const int yasu_future_after_push_ms =
+          static_cast<int>(yasu_sync_future_after_cap * 1000 / yasu_sample_rate);
+      const int yasu_future_after_output_ms =
+          static_cast<int>(yasu_sync_future_after_output * 1000 / yasu_sample_rate);
 
-    RTC_LOG(LS_WARNING)
-        << "YASU SYNC TRACE"
-        << " FutureBefore=" << yasu_future_before_ms << "ms"
-        << " Pushed=" << yasu_pushed_ms << "ms"
-        << " FutureAfterPush=" << yasu_future_after_push_ms << "ms"
-        << " FutureAfterCap="
-        << static_cast<int>(yasu_sync_future_after_cap * 1000 /
-                            yasu_sample_rate)
-        << "ms"
-        << " FutureAfterOutput=" << yasu_future_after_output_ms << "ms";
+      RTC_LOG(LS_VERBOSE)
+          << "YASU SYNC TRACE"
+          << " FutureBefore=" << yasu_future_before_ms << "ms"
+          << " Pushed=" << yasu_pushed_ms << "ms"
+          << " FutureAfterPush=" << yasu_future_after_push_ms << "ms"
+          << " FutureAfterCap="
+          << static_cast<int>(yasu_sync_future_after_cap * 1000 /
+                              yasu_sample_rate)
+          << "ms"
+          << " FutureAfterOutput=" << yasu_future_after_output_ms << "ms";
+    }
   }
 
   // YASU: Measure decoded audio entering and leaving SyncBuffer.
-  static uint64_t yasu_sync_measure_count = 0;
-  static size_t yasu_sync_max_future = 0;
-  static size_t yasu_sync_max_push = 0;
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    static uint64_t yasu_sync_measure_count = 0;
+    static size_t yasu_sync_max_future = 0;
+    static size_t yasu_sync_max_push = 0;
 
-  ++yasu_sync_measure_count;
-  yasu_sync_max_future =
-      std::max(yasu_sync_max_future, yasu_sync_future_after_cap);
-  yasu_sync_max_push =
-      std::max(yasu_sync_max_push, yasu_sync_pushed);
+    ++yasu_sync_measure_count;
+    yasu_sync_max_future =
+        std::max(yasu_sync_max_future, yasu_sync_future_after_cap);
+    yasu_sync_max_push =
+        std::max(yasu_sync_max_push, yasu_sync_pushed);
 
-  if ((yasu_sync_measure_count % 100) == 0) {
-    RTC_LOG(LS_VERBOSE)
+    if ((yasu_sync_measure_count % 100) == 0) {
+      RTC_LOG(LS_VERBOSE)
         << "YASU SYNC BUFFER"
         << " n=" << yasu_sync_measure_count
         << " future_before_ms="
@@ -1540,25 +1577,29 @@ int NetEqImpl::GetDecision(Operation* operation,
   if (yasu_total_backlog_ms >= kYasuHardDrainMs &&
       !status.packet_buffer_info.dtx_or_cng &&
       !status.play_dtmf) {
-    RTC_LOG(LS_VERBOSE)
-        << "YASU AGGRESSIVE_DRAIN_90MS"
-        << " total_ms=" << yasu_total_backlog_ms
-        << " packet_ms=" << yasu_packet_ms
-        << " sync_ms=" << yasu_sync_ms
-        << " packets=" << status.packet_buffer_info.num_packets;
+    if (tgcalls::YasuMeasurementsEnabled()) {
+      RTC_LOG(LS_VERBOSE)
+          << "YASU AGGRESSIVE_DRAIN_90MS"
+          << " total_ms=" << yasu_total_backlog_ms
+          << " packet_ms=" << yasu_packet_ms
+          << " sync_ms=" << yasu_sync_ms
+          << " packets=" << status.packet_buffer_info.num_packets;
+    }
 
     *operation = Operation::kFastAccelerate;
   }
 
-  RTC_LOG(LS_VERBOSE)
-      << "YASU TRACE DECISION"
-      << " controller_op=" << static_cast<int>(yasu_controller_operation)
-      << " op=" << static_cast<int>(*operation)
-      << " packets=" << status.packet_buffer_info.num_packets
-      << " span_ms=" << (status.packet_buffer_info.span_samples * 1000 / fs_hz_)
-      << " wait_ms=" << (status.packet_buffer_info.span_samples_wait_time * 1000 / fs_hz_)
-      << " sync_ms=" << (status.sync_buffer_samples * 1000 / fs_hz_)
-      << " next_packet=" << (packet ? 1 : 0);
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU TRACE DECISION"
+        << " controller_op=" << static_cast<int>(yasu_controller_operation)
+        << " op=" << static_cast<int>(*operation)
+        << " packets=" << status.packet_buffer_info.num_packets
+        << " span_ms=" << (status.packet_buffer_info.span_samples * 1000 / fs_hz_)
+        << " wait_ms=" << (status.packet_buffer_info.span_samples_wait_time * 1000 / fs_hz_)
+        << " sync_ms=" << (status.sync_buffer_samples * 1000 / fs_hz_)
+        << " next_packet=" << (packet ? 1 : 0);
+  }
 
   // Disallow time stretching if this packet is DTX, because such a decision may
   // be based on earlier buffer level estimate, as we do not update buffer level
@@ -1769,17 +1810,20 @@ int NetEqImpl::GetDecision(Operation* operation,
     }
   }
 
+
   // Get packets from buffer.
   int extracted_samples = 0;
   if (packet) {
     sync_buffer_->IncreaseEndTimestamp(packet->timestamp - end_timestamp);
     extracted_samples = ExtractPackets(required_samples, packet_list);
 
-    RTC_LOG(LS_VERBOSE)
-        << "YASU TRACE EXTRACT"
-        << " extracted_samples=" << extracted_samples
-        << " packet_list_size=" << packet_list->size()
-        << " required_samples=" << required_samples;
+    if (tgcalls::YasuMeasurementsEnabled()) {
+      RTC_LOG(LS_VERBOSE)
+          << "YASU TRACE EXTRACT"
+          << " extracted_samples=" << extracted_samples
+          << " packet_list_size=" << packet_list->size()
+          << " required_samples=" << required_samples;
+    }
 
     if (extracted_samples < 0) {
       return kPacketBufferCorruption;
@@ -1808,7 +1852,7 @@ int NetEqImpl::GetDecision(Operation* operation,
   // post-extraction 30ms safety check. The RTP timestamp links this event
   // back to TARGET_LINK for the same packet.
   // Measurement only: no timing/buffering behavior is changed.
-  {
+  if (tgcalls::YasuMeasurementsEnabled()) {
     const size_t yasu_ms = fs_hz_ / 1000;
     const size_t yasu_packet_samples =
         packet_buffer_->GetSpanSamples(0, fs_hz_, false);
@@ -1985,7 +2029,8 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
   // YASU: Measure how much audio NetEq decodes in one batch.
   const size_t yasu_decode_packets = packet_list->size();
   const int yasu_decode_start_samples = *decoded_length;
-  const int64_t yasu_t9_start_us = rtc::TimeMicros();
+  const int64_t yasu_t9_start_us =
+      tgcalls::YasuMeasurementsEnabled() ? rtc::TimeMicros() : 0;
 
   // YASU CORRELATION: identify the RTP packet range represented
   // by this decode batch using sequence, RTP timestamp and SSRC.
@@ -2003,9 +2048,10 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
     yasu_corr_ssrc = 0;
   }
 
-  RTC_LOG(LS_VERBOSE)
-      << "YASU E2E TRACE"
-      << " stage=T9_DECODE_START"
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU E2E TRACE"
+        << " stage=T9_DECODE_START"
       << " time_us=" << yasu_t9_start_us
       << " packets=" << yasu_decode_packets
       << " decoded_start_samples=" << yasu_decode_start_samples
@@ -2015,13 +2061,16 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
       << " first_rtp_ts=" << yasu_corr_first_rtp_ts
       << " last_rtp_ts=" << yasu_corr_last_rtp_ts
       << " ssrc=" << yasu_corr_ssrc;
+  }
 
   // Do decoding.
-  RTC_LOG(LS_VERBOSE)
-      << "YASU TRACE DECODE_IN"
-      << " packets=" << packet_list->size()
-      << " op=" << static_cast<int>(operation)
-      << " decoder=" << (decoder ? 1 : 0);
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU TRACE DECODE_IN"
+        << " packets=" << packet_list->size()
+        << " op=" << static_cast<int>(operation)
+        << " decoder=" << (decoder ? 1 : 0);
+  }
 
   while (!packet_list->empty() && !decoder_database_->IsComfortNoise(
                                       packet_list->front().payload_type)) {
@@ -2046,11 +2095,13 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
     if (opt_result) {
       const auto& result = *opt_result;
 
-      RTC_LOG(LS_VERBOSE)
-          << "YASU TRACE OPUS_DECODE"
-          << " samples=" << result.num_decoded_samples
-          << " channels=" << decoder->Channels()
-          << " speech_type=" << static_cast<int>(result.speech_type);
+      if (tgcalls::YasuMeasurementsEnabled()) {
+        RTC_LOG(LS_VERBOSE)
+            << "YASU TRACE OPUS_DECODE"
+            << " samples=" << result.num_decoded_samples
+            << " channels=" << decoder->Channels()
+            << " speech_type=" << static_cast<int>(result.speech_type);
+      }
 
       *speech_type = result.speech_type;
       if (result.num_decoded_samples > 0) {
@@ -2077,7 +2128,8 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
   }  // End of decode loop.
 
   // YASU: Periodic decode-batch measurement.
-  if (*decoded_length >= yasu_decode_start_samples) {
+  if (tgcalls::YasuMeasurementsEnabled() &&
+      *decoded_length >= yasu_decode_start_samples) {
     const int yasu_decode_samples =
         *decoded_length - yasu_decode_start_samples;
     const int yasu_decode_ms =
@@ -2106,11 +2158,12 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
     }
   }
 
-  const int64_t yasu_t10_end_us = rtc::TimeMicros();
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    const int64_t yasu_t10_end_us = rtc::TimeMicros();
 
-  RTC_LOG(LS_VERBOSE)
-      << "YASU E2E TRACE"
-      << " stage=T10_DECODE_END"
+    RTC_LOG(LS_VERBOSE)
+        << "YASU E2E TRACE"
+        << " stage=T10_DECODE_END"
       << " time_us=" << yasu_t10_end_us
       << " cost_us=" << (yasu_t10_end_us - yasu_t9_start_us)
       << " packets=" << yasu_decode_packets
@@ -2400,7 +2453,7 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
     // YASU FORENSIC FAST_PASS:
     // Exact result of each Accelerate::Process() pass.
     // Measurement only: no timing/buffering behavior is changed.
-    if (fast_accelerate) {
+    if (fast_accelerate && tgcalls::YasuMeasurementsEnabled()) {
       const size_t yasu_ms = fs_hz_ / 1000;
       const size_t yasu_packet_samples =
           packet_buffer_->GetSpanSamples(0, fs_hz_, false);
@@ -2422,7 +2475,6 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
           << " sync_ms=" << (yasu_sync_samples / yasu_ms)
           << " backlog_ms="
           << ((yasu_packet_samples + yasu_sync_samples) / yasu_ms);
-
     }
 
     if (return_code == Accelerate::kNoStretch ||
@@ -2435,7 +2487,7 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
   // YASU FORENSIC FAST_RESULT:
   // Final measurable result of the complete FastAccelerate operation.
   // Measurement only: no timing/buffering behavior is changed.
-  if (fast_accelerate) {
+  if (fast_accelerate && tgcalls::YasuMeasurementsEnabled()) {
     const size_t yasu_ms = fs_hz_ / 1000;
     const size_t yasu_packet_samples =
         packet_buffer_->GetSpanSamples(0, fs_hz_, false);
@@ -2766,15 +2818,17 @@ int NetEqImpl::ExtractPackets(size_t required_samples,
     const uint64_t waiting_time_ms = packet->waiting_time->ElapsedMs();
 
     // YASU FORENSIC T8 - actual NetEq packet waiting time.
-    static int yasu_t8_count = 0;
-    if ((++yasu_t8_count % 100) == 0) {
-      RTC_LOG(LS_VERBOSE)
-          << "YASU FORENSIC T8 NETEQ_WAIT "
-          << "time_us=" << rtc::TimeMicros()
-          << "seq=" << packet->sequence_number
-          << "rtp_ts=" << packet->timestamp
-          << "waiting_ms=" << waiting_time_ms;
-    }
+    if (tgcalls::YasuMeasurementsEnabled()) {
+      static int yasu_t8_count = 0;
+      if ((++yasu_t8_count % 100) == 0) {
+        RTC_LOG(LS_VERBOSE)
+            << "YASU FORENSIC T8 NETEQ_WAIT "
+            << "time_us=" << rtc::TimeMicros()
+            << "seq=" << packet->sequence_number
+            << "rtp_ts=" << packet->timestamp
+            << "waiting_ms=" << waiting_time_ms;
+        }
+      }
 
     stats_->StoreWaitingTime(waiting_time_ms);
     RTC_DCHECK(!packet->empty());
@@ -2837,16 +2891,18 @@ int NetEqImpl::ExtractPackets(size_t required_samples,
     packet_buffer_->DiscardAllOldPackets(timestamp_);
   }
 
-  const int64_t yasu_t8_end_us = rtc::TimeMicros();
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    const int64_t yasu_t8_end_us = rtc::TimeMicros();
 
-  RTC_LOG(LS_VERBOSE)
-      << "YASU E2E TRACE"
-      << " stage=T8_NETEQ_EXTRACT_END"
-      << " time_us=" << yasu_t8_end_us
-      << " cost_us=" << (yasu_t8_end_us - yasu_t8_start_us)
-      << " extracted_samples=" << extracted_samples
-      << " required_samples=" << required_samples
-      << " packets=" << packet_list->size();
+    RTC_LOG(LS_VERBOSE)
+        << "YASU E2E TRACE"
+        << " stage=T8_NETEQ_EXTRACT_END"
+        << " time_us=" << yasu_t8_end_us
+        << " cost_us=" << (yasu_t8_end_us - yasu_t8_start_us)
+        << " extracted_samples=" << extracted_samples
+        << " required_samples=" << required_samples
+        << " packets=" << packet_list->size();
+  }
 
   return rtc::dchecked_cast<int>(extracted_samples);
 }

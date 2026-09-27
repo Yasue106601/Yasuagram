@@ -267,7 +267,7 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
           << " sample_rate=" << aaudio_.sample_rate()
           << " channels=" << aaudio_.channel_count();
     } else {
-      RTC_LOG(LS_WARNING)
+      RTC_LOG(LS_VERBOSE)
           << "YASU FORENSIC AAUDIO_HW"
           << " time_us=" << rtc::TimeMicros()
           << " timestamp_result=" << static_cast<int>(yasu_hw_result)

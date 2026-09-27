@@ -488,6 +488,7 @@ target_include_directories(tgcalls_tp PUBLIC
 add_library(tgcalls STATIC
         voip/tgcalls/CryptoHelper.cpp
         voip/tgcalls/LogSinkImpl.cpp
+        voip/tgcalls/YasuMeasurementGate.cpp
         voip/tgcalls/SctpDataChannelProviderInterfaceImpl.cpp
         voip/tgcalls/CodecSelectHelper.cpp
         voip/tgcalls/Message.cpp

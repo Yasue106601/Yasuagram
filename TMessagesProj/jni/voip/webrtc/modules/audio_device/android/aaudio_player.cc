@@ -157,7 +157,7 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
     int64_t start_us;
     ~YasuT13AAUDIOTraceGuard() {
       const int64_t end_us = rtc::TimeMicros();
-      RTC_LOG(LS_INFO)
+      RTC_LOG(LS_VERBOSE)
           << "YASU E2E TRACE"
           << " stage=T13_AAUDIO_END"
           << " time_us=" << end_us
@@ -239,7 +239,7 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
   // YASU: Lightweight AAudio playout latency trace. Measurement only.
   static uint32_t yasu_aaudio_callback_count = 0;
   if (++yasu_aaudio_callback_count % 100 == 0) {
-  RTC_LOG(LS_WARNING)
+  RTC_LOG(LS_VERBOSE)
       << "YASU AAUDIO LIVE"
       << " latency_ms=" << latency_millis_
       << " buffer_frames=" << AAudioStream_getBufferSizeInFrames(aaudio_.stream())
@@ -278,7 +278,7 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
 
     const int64_t yasu_fab_end_us = rtc::TimeMicros();
 
-    RTC_LOG(LS_INFO)
+    RTC_LOG(LS_VERBOSE)
         << "YASU E2E FINE_BUFFER"
         << " stage=FINE_AUDIO_BUFFER_PLAYOUT"
         << " callback_id=" << yasu_t13_id

@@ -201,7 +201,7 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
       yasu_total_backlog_ms >= kYasuAccelerateMs;
 
   if (yasu_fast_accelerate) {
-    RTC_LOG(LS_WARNING)
+    RTC_LOG(LS_VERBOSE)
         << "YASU MAX_FAST_ACCELERATE"
         << " sync_ms=" << yasu_sync_buffer_ms
         << " span_ms=" << yasu_packet_buffer_ms
@@ -210,7 +210,7 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
   }
 
   if (yasu_accelerate) {
-    RTC_LOG(LS_WARNING)
+    RTC_LOG(LS_VERBOSE)
         << "YASU ACCELERATE_30MS"
         << " sync_ms=" << yasu_sync_buffer_ms
         << " span_ms=" << yasu_packet_buffer_ms
@@ -372,7 +372,7 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
       status.next_packet->timestamp == status.target_timestamp &&
       status.last_mode != NetEq::Mode::kExpand &&
       !status.play_dtmf) {
-    RTC_LOG(LS_WARNING)
+    RTC_LOG(LS_VERBOSE)
         << "YASU EARLY_RELEASE"
         << " packet_ts=" << status.next_packet->timestamp
         << " target_ts=" << status.target_timestamp
@@ -400,7 +400,7 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
     constexpr int kYasuAccelerateLimitMs = 10;
     constexpr int kYasuFastAccelerateLimitMs = 40;
 
-    RTC_LOG(LS_WARNING)
+    RTC_LOG(LS_VERBOSE)
         << "YASU DELAY DECISION"
         << " target_ms=" << low_limit
         << " sync_buffer_ms=" << sync_buffer_ms
@@ -487,7 +487,7 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
     uint32_t timestamp_leap =
         status.next_packet->timestamp - status.target_timestamp;
 
-    RTC_LOG(LS_WARNING)
+    RTC_LOG(LS_VERBOSE)
         << "YASU FUTURE_PACKET"
         << " leap_ms=" << (timestamp_leap / sample_rate_khz_)
         << " generated_ms="
@@ -516,7 +516,7 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
         sample_rate_khz_;
 
     if (yasu_packet_wait_ms >= kYasuFastAcceleratePacketWaitMs) {
-      RTC_LOG(LS_WARNING)
+      RTC_LOG(LS_VERBOSE)
           << "YASU FORCE_FUTURE_FAST_ACCELERATE"
           << " wait_ms=" << yasu_packet_wait_ms
           << " leap_ms=" << (timestamp_leap / sample_rate_khz_);
@@ -524,7 +524,7 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
     }
 
     if (yasu_packet_wait_ms >= kYasuAcceleratePacketWaitMs) {
-      RTC_LOG(LS_WARNING)
+      RTC_LOG(LS_VERBOSE)
           << "YASU FORCE_FUTURE_ACCELERATE"
           << " wait_ms=" << yasu_packet_wait_ms
           << " leap_ms=" << (timestamp_leap / sample_rate_khz_);
@@ -548,7 +548,7 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
          !yasu_packet_only_slightly_early)) {
       static int yasu_no_packet_count = 0;
       if ((++yasu_no_packet_count % 20) == 0) {
-        RTC_LOG(LS_WARNING)
+        RTC_LOG(LS_VERBOSE)
             << "YASU NO_PACKET_DECISION"
             << " leap_ms=" << (timestamp_leap / sample_rate_khz_)
             << " generated_ms="
@@ -642,7 +642,7 @@ bool DecisionLogic::PacketTooEarly(NetEqController::NetEqStatus status) const {
   const bool too_early = timestamp_leap > status.generated_noise_samples;
   static int yasu_early_count = 0;
   if ((++yasu_early_count % 50) == 0) {
-    RTC_LOG(LS_WARNING)
+    RTC_LOG(LS_VERBOSE)
         << "YASU PACKET_TOO_EARLY"
         << " leap_ms=" << (timestamp_leap / sample_rate_khz_)
         << " generated_ms="

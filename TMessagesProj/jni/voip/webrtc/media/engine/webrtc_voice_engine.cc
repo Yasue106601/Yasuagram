@@ -2588,7 +2588,7 @@ yasu_network_priority_set = true;
       SafeTask(task_safety_.flag(), [this, packet = packet]() mutable {
         RTC_DCHECK_RUN_ON(worker_thread_);
 
-        RTC_LOG(LS_INFO)
+        RTC_LOG(LS_VERBOSE)
             << "YASU E2E TRACE"
             << " stage=T2_WORKER_ENTRY"
             << " time_us=" << rtc::TimeMicros()
@@ -2608,7 +2608,7 @@ yasu_network_priority_set = true;
           packet.set_arrival_time(webrtc::Timestamp::Micros(rtc::TimeMicros()));
         }
 
-        RTC_LOG(LS_INFO)
+        RTC_LOG(LS_VERBOSE)
             << "YASU E2E TRACE"
             << " stage=T3_CALL_RECEIVER"
             << " time_us=" << rtc::TimeMicros()

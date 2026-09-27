@@ -7,6 +7,7 @@
 #include <memory>
 #include <map>
 #include <future>
+#include <atomic>
 
 #include "../Instance.h"
 #include "../LogSinkImpl.h"
@@ -48,6 +49,7 @@ public:
     void setVolume(uint32_t ssrc, double volume);
     void setYasuVoiceEnabled(bool enabled);
     void setYasuVoiceMode(int mode);
+    void setMeasurementsEnabled(bool enabled);
 
     void setRequestedVideoChannels(std::vector<VideoChannelDescription> &&requestedVideoChannels);
 
@@ -58,6 +60,7 @@ private:
     std::shared_ptr<Threads> _threads;
     std::unique_ptr<ThreadLocalObject<GroupInstanceCustomInternal>> _internal;
     std::unique_ptr<LogSinkImpl> _logSink;
+    std::atomic<bool> _measurementsEnabled{false};
 
 };
 

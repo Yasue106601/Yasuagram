@@ -2,6 +2,7 @@
 #define TGCALLS_LOG_SINK_IMPL_H
 
 #include "rtc_base/logging.h"
+#include <atomic>
 #include <fstream>
 
 namespace tgcalls {
