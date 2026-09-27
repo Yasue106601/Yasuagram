@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cstring>
 
-#include "yasu_voice/sherpa-onnx/c-api/c-api.h"
+#include "tgcalls/group/yasu_voice/sherpa-onnx/c-api/c-api.h"
 
 namespace {
 
