@@ -2813,7 +2813,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         yasuFeaturesButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         yasuFeaturesButton.setTextColor(Color.WHITE);
         yasuFeaturesButton.setGravity(Gravity.CENTER);
-        yasuFeaturesButton.setPadding(dp(1), 0, dp(1), 0);
+        yasuFeaturesButton.setPadding(dp(2), 0, dp(2), 0);
         yasuFeaturesButton.setClickable(true);
         yasuFeaturesButton.setFocusable(true);
         yasuFeaturesButton.setMinHeight(0);
@@ -2853,7 +2853,11 @@ public class ChatActivityEnterView extends FrameLayout implements
                 yasuFeaturesButton,
                 LayoutHelper.createLinear(
                         dp(30),
-                        dp(18)
+                        dp(18),
+                        0,
+                        0,
+                        dp(5),
+                        0
                 )
         );
 
@@ -2864,7 +2868,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         yasuVoiceButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         yasuVoiceButton.setTextColor(Color.WHITE);
         yasuVoiceButton.setGravity(Gravity.CENTER);
-        yasuVoiceButton.setPadding(dp(1), 0, dp(1), 0);
+        yasuVoiceButton.setPadding(dp(2), 0, dp(2), 0);
         yasuVoiceButton.setClickable(true);
         yasuVoiceButton.setFocusable(true);
         yasuVoiceButton.setMinHeight(0);
@@ -2909,27 +2913,39 @@ public class ChatActivityEnterView extends FrameLayout implements
             modeLayout.setOrientation(LinearLayout.VERTICAL);
             modeLayout.setGravity(Gravity.CENTER);
             modeLayout.setPadding(
-                    dp(7),
-                    dp(7),
-                    dp(7),
-                    dp(7)
+                    dp(10),
+                    dp(10),
+                    dp(10),
+                    dp(10)
             );
 
             TextView numbersButton = new TextView(getContext());
             numbersButton.setText("تتبع الارقام فقط");
-            numbersButton.setTextSize(13);
+            numbersButton.setTextSize(14);
             numbersButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             numbersButton.setTextColor(Color.WHITE);
             numbersButton.setGravity(Gravity.CENTER);
+            numbersButton.setPadding(
+                    dp(8),
+                    dp(2),
+                    dp(8),
+                    dp(2)
+            );
             numbersButton.setMinHeight(0);
             numbersButton.setMinimumHeight(0);
 
             TextView wordsButton = new TextView(getContext());
             wordsButton.setText("تتبع الكلمات فقط");
-            wordsButton.setTextSize(13);
+            wordsButton.setTextSize(14);
             wordsButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             wordsButton.setTextColor(Color.WHITE);
             wordsButton.setGravity(Gravity.CENTER);
+            wordsButton.setPadding(
+                    dp(8),
+                    dp(2),
+                    dp(8),
+                    dp(2)
+            );
             wordsButton.setMinHeight(0);
             wordsButton.setMinimumHeight(0);
 
@@ -3016,18 +3032,18 @@ public class ChatActivityEnterView extends FrameLayout implements
             modeLayout.addView(
                     numbersButton,
                     LayoutHelper.createLinear(
-                            dp(176),
-                            dp(34)
+                            dp(220),
+                            dp(38)
                     )
             );
 
             modeLayout.addView(
                     wordsButton,
                     LayoutHelper.createLinear(
-                            dp(176),
-                            dp(34),
+                            dp(220),
+                            dp(38),
                             0,
-                            dp(5),
+                            dp(7),
                             0,
                             0
                     )
@@ -3036,8 +3052,8 @@ public class ChatActivityEnterView extends FrameLayout implements
             android.widget.PopupWindow popup =
                     new android.widget.PopupWindow(
                             modeLayout,
-                            dp(190),
-                            dp(90),
+                            dp(240),
+                            dp(110),
                             true
                     );
 
@@ -3061,24 +3077,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             );
         };
 
-        yasuVoiceButton.setOnClickListener(v -> {
-
-            long now = android.os.SystemClock.uptimeMillis();
-
-            if (now - lastVoiceTapTime[0] <= 300) {
-
-                lastVoiceTapTime[0] = 0;
-
-                yasuVoiceHandler.removeCallbacks(
-                        showYasuVoiceModePopup
-                );
-
-                showYasuVoiceModePopup.run();
-
-                return;
-            }
-
-            lastVoiceTapTime[0] = now;
+        final Runnable yasuSingleTapAction = () -> {
 
             yasuVoiceEnabled = !yasuVoiceEnabled;
 
@@ -3099,6 +3098,32 @@ public class ChatActivityEnterView extends FrameLayout implements
                 voipService.setYasuVoiceMode(yasuVoiceMode);
                 voipService.setYasuVoiceEnabled(yasuVoiceEnabled);
             }
+        };
+
+        final Runnable yasuDoubleTapAction = () -> {
+            yasuVoiceHandler.removeCallbacks(yasuSingleTapAction);
+            showYasuVoiceModePopup.run();
+        };
+
+        yasuVoiceButton.setOnClickListener(v -> {
+
+            long now = android.os.SystemClock.uptimeMillis();
+
+            if (lastVoiceTapTime[0] != 0
+                    && now - lastVoiceTapTime[0] <= 300) {
+
+                lastVoiceTapTime[0] = 0;
+                yasuDoubleTapAction.run();
+                return;
+            }
+
+            lastVoiceTapTime[0] = now;
+
+            yasuVoiceHandler.removeCallbacks(yasuSingleTapAction);
+            yasuVoiceHandler.postDelayed(
+                    yasuSingleTapAction,
+                    300
+            );
         });
 
         attachLayout.addView(
@@ -3108,7 +3133,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                         dp(18),
                         0,
                         0,
-                        dp(3),
+                        dp(4),
                         0
                 )
         );

@@ -82,6 +82,7 @@ public class NativeInstance {
         instance.requestCurrentTimeCallback = requestCurrentTimeCallback;
         instance.isGroup = true;
         String yasuVoiceModelDir = instance.prepareYasuVoiceModel();
+        android.util.Log.e("YasuVoiceModel", "prepare returned path=" + yasuVoiceModelDir);
         instance.nativePtr = makeGroupNativeInstance(instance, logPath, SharedConfig.disableVoiceAudioEffects, videoCapturer, screencast, noiseSupression, isConference, yasuVoiceModelDir);
         return instance;
     }
@@ -89,6 +90,7 @@ public class NativeInstance {
     private String prepareYasuVoiceModel() {
         final String assetDir = "yasu_voice/moonshine_ar";
         final java.io.File modelDir = new java.io.File(ApplicationLoader.applicationContext.getFilesDir(), "yasu_voice/moonshine_ar");
+        android.util.Log.e("YasuVoiceModel", "modelDir=" + modelDir.getAbsolutePath());
 
         try {
             if (!modelDir.exists() && !modelDir.mkdirs()) {
@@ -109,9 +111,11 @@ public class NativeInstance {
                 java.io.File outFile = new java.io.File(modelDir, fileName);
 
                 if (outFile.exists() && outFile.length() > 0) {
+                    android.util.Log.e("YasuVoiceModel", "existing " + fileName + " size=" + outFile.length());
                     continue;
                 }
 
+                android.util.Log.e("YasuVoiceModel", "copying " + fileName);
                 try (java.io.InputStream input = assets.open(assetDir + "/" + fileName);
                      java.io.FileOutputStream output = new java.io.FileOutputStream(outFile)) {
 
@@ -124,10 +128,13 @@ public class NativeInstance {
 
                     output.flush();
                 }
+                android.util.Log.e("YasuVoiceModel", "copied " + fileName + " size=" + outFile.length());
             }
 
+            android.util.Log.e("YasuVoiceModel", "READY path=" + modelDir.getAbsolutePath());
             return modelDir.getAbsolutePath();
         } catch (Exception e) {
+            android.util.Log.e("YasuVoiceModel", "FAILED", e);
             FileLog.e(e);
             return null;
         }

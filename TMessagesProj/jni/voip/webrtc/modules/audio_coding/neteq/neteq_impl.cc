@@ -782,7 +782,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     // Above 60ms, discard at most 3 PacketBuffer packets per insertion.
     // This prevents large bursts of packet loss while still trimming
     // excessive backlog.
-    constexpr size_t kYasuHardBacklogMs = 140;
+    constexpr size_t kYasuHardBacklogMs = 130;
     constexpr size_t kYasuMaxDiscardPackets = 3;
     const size_t yasu_ms = fs_hz_ / 1000;
     const size_t yasu_hard_backlog_samples =
@@ -826,7 +826,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
 
         RTC_LOG(LS_WARNING)
             << "YASU HARD_BACKLOG_DROP"
-            << " threshold_ms=140"
+            << " threshold_ms=130"
             << " max_discard_packets=3"
             << " sync_ms=" << (yasu_sync_samples / yasu_ms)
             << " before_ms="
@@ -1149,12 +1149,12 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
         //
         // Do not delete decoded PCM here. The stronger stages
         // drain through the existing Accelerate implementation.
-        if (yasu_backlog_ms >= 110) {
-          yasu_max_accelerate_passes = 17;
-        } else if (yasu_backlog_ms >= 80) {
-          yasu_max_accelerate_passes = 13;
-        } else if (yasu_backlog_ms >= 50) {
-          yasu_max_accelerate_passes = 9;
+        if (yasu_backlog_ms >= 100) {
+          yasu_max_accelerate_passes = 18;
+        } else if (yasu_backlog_ms >= 70) {
+          yasu_max_accelerate_passes = 14;
+        } else if (yasu_backlog_ms >= 40) {
+          yasu_max_accelerate_passes = 10;
         }
 
         RTC_LOG(LS_VERBOSE)
@@ -1749,12 +1749,12 @@ int NetEqImpl::GetDecision(Operation* operation,
 
     size_t yasu_drain_batch_ms = 0;
 
-    if (yasu_backlog_ms >= 90) {
-      yasu_drain_batch_ms = 130;
-    } else if (yasu_backlog_ms >= 70) {
-      yasu_drain_batch_ms = 110;
-    } else if (yasu_backlog_ms >= 40) {
-      yasu_drain_batch_ms = 90;
+    if (yasu_backlog_ms >= 80) {
+      yasu_drain_batch_ms = 140;
+    } else if (yasu_backlog_ms >= 60) {
+      yasu_drain_batch_ms = 120;
+    } else if (yasu_backlog_ms >= 30) {
+      yasu_drain_batch_ms = 100;
     }
 
     if (yasu_drain_batch_ms > 0) {
@@ -2311,7 +2311,7 @@ int NetEqImpl::DoAccelerate(int16_t* decoded_buffer,
   // YASU: Allow normal Accelerate a few passes too, not just one,
   // so gentle compression can clear backlog earlier without needing
   // the stronger, more audible FastAccelerate.
-  constexpr int kYasuNormalAcceleratePasses = 4;
+  constexpr int kYasuNormalAcceleratePasses = 5;
   const int max_passes =
       fast_accelerate ? std::max(1, max_accelerate_passes)
                        : kYasuNormalAcceleratePasses;
