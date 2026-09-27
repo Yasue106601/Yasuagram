@@ -1373,6 +1373,7 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
         << " max_push_ms="
         << (yasu_sync_max_push * 1000 / fs_hz_);
   }
+  }
 
   audio_frame->sample_rate_hz_ = fs_hz_;
   // TODO(bugs.webrtc.org/10757):
