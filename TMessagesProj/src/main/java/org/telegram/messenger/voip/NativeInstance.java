@@ -31,6 +31,7 @@ public class NativeInstance {
     private float[] temp = new float[1];
 
     private boolean isGroup;
+    private int yasuVoiceAccount;
 
     public static class SsrcGroup {
         public String semantics;
@@ -72,7 +73,7 @@ public class NativeInstance {
     public static NativeInstance makeGroup(String logPath, long videoCapturer, boolean screencast, boolean noiseSupression, PayloadCallback payloadCallback, AudioLevelsCallback audioLevelsCallback, VideoSourcesCallback unknownParticipantsCallback, RequestBroadcastPartCallback requestBroadcastPartCallback, RequestBroadcastPartCallback cancelRequestBroadcastPartCallback, RequestCurrentTimeCallback requestCurrentTimeCallback, boolean isConference, int account) {
         ContextUtils.initialize(ApplicationLoader.applicationContext);
         NativeInstance instance = new NativeInstance();
-        final int yasuVoiceAccount = account;
+        instance.yasuVoiceAccount = account;
         instance.payloadCallback = payloadCallback;
         instance.audioLevelsCallback = audioLevelsCallback;
         instance.unknownParticipantsCallback = unknownParticipantsCallback;

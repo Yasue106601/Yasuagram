@@ -568,7 +568,8 @@ public class LivePlayer implements NotificationCenter.NotificationCenterDelegate
                         }
                     }
                 },
-                false
+                false,
+                currentAccount
         );
         instance.setOnStateUpdatedListener(new Instance.OnStateUpdatedListener() {
             @Override
