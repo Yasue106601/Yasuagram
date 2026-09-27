@@ -782,7 +782,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     // Above 60ms, discard at most 3 PacketBuffer packets per insertion.
     // This prevents large bursts of packet loss while still trimming
     // excessive backlog.
-    constexpr size_t kYasuHardBacklogMs = 120;
+    constexpr size_t kYasuHardBacklogMs = 150;
     constexpr size_t kYasuMaxDiscardPackets = 3;
     const size_t yasu_ms = fs_hz_ / 1000;
     const size_t yasu_hard_backlog_samples =
@@ -791,7 +791,8 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     const size_t yasu_sync_samples =
         sync_buffer_->FutureLength();
 
-    if (yasu_sync_samples < yasu_hard_backlog_samples) {
+    if (yasu_sync_samples < yasu_hard_backlog_samples &&
+        packet_buffer_->NumPacketsInBuffer() > 1) {
       size_t yasu_discarded_packets = 0;
       size_t yasu_backlog_before_samples = 0;
 
@@ -825,7 +826,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
 
         RTC_LOG(LS_WARNING)
             << "YASU HARD_BACKLOG_DROP"
-            << " threshold_ms=120"
+            << " threshold_ms=150"
             << " max_discard_packets=3"
             << " sync_ms=" << (yasu_sync_samples / yasu_ms)
             << " before_ms="
@@ -1148,11 +1149,11 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
         //
         // Do not delete decoded PCM here. The stronger stages
         // drain through the existing Accelerate implementation.
-        if (yasu_backlog_ms >= 100) {
-          yasu_max_accelerate_passes = 14;
+        if (yasu_backlog_ms >= 120) {
+          yasu_max_accelerate_passes = 16;
         } else if (yasu_backlog_ms >= 90) {
-          yasu_max_accelerate_passes = 10;
-        } else if (yasu_backlog_ms >= 80) {
+          yasu_max_accelerate_passes = 12;
+        } else if (yasu_backlog_ms >= 60) {
           yasu_max_accelerate_passes = 8;
         }
 

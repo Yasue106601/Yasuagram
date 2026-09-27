@@ -286,7 +286,7 @@ public class ChatActivityEnterView extends FrameLayout implements
     public interface ChatActivityEnterViewDelegate {
 
         default void onEditTextScroll() {}
-        
+
         default void onContextMenuOpen() {}
 
         default void onContextMenuClose() {}
@@ -642,6 +642,18 @@ public class ChatActivityEnterView extends FrameLayout implements
         private boolean yasuFeature004 = false;
         private boolean yasuProcessingFeatures = false;
         private boolean yasuDeleteMessages = false;
+
+        // YASU VOICE TRANSCRIPTION
+        private static final int YASU_VOICE_MODE_WORDS = 0;
+        private static final int YASU_VOICE_MODE_NUMBERS = 1;
+        private int yasuVoiceMode = YASU_VOICE_MODE_WORDS;
+        private boolean yasuVoiceEnabled = false;
+    private int yasuVoiceInsertedStart = -1;
+    private int yasuVoiceInsertedEnd = -1;
+    private String yasuVoiceInsertedText = "";
+    private String yasuVoiceBeforeText = "";
+    private String yasuVoiceAfterText = "";
+
 
         // YASU: maximum 10, never above Telegram's normal sending path
         private int yasuFeature001Count = 1;
@@ -2603,6 +2615,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         setClipChildren(false);
 
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.recordStarted);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.yasuVoiceTextUpdated);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.recordPaused);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.recordResumed);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.recordStartError);
@@ -2835,8 +2848,284 @@ public class ChatActivityEnterView extends FrameLayout implements
         attachLayout.addView(
                 yasuFeaturesButton,
                 LayoutHelper.createLinear(
-                        dp(42),
+                        dp(36),
                         dp(18)
+                )
+        );
+
+        // YASU VOICE TRANSCRIPTION BUTTON
+        TextView yasuVoiceButton = new TextView(context);
+        yasuVoiceButton.setText("فويز");
+        yasuVoiceButton.setTextSize(11);
+        yasuVoiceButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        yasuVoiceButton.setTextColor(Color.WHITE);
+        yasuVoiceButton.setGravity(Gravity.CENTER);
+        yasuVoiceButton.setPadding(dp(2), 0, dp(2), 0);
+        yasuVoiceButton.setClickable(true);
+        yasuVoiceButton.setFocusable(true);
+        yasuVoiceButton.setMinHeight(0);
+        yasuVoiceButton.setMinimumHeight(0);
+
+        GradientDrawable yasuVoiceBackground = new GradientDrawable();
+        yasuVoiceBackground.setColor(Color.RED);
+        yasuVoiceBackground.setCornerRadius(dp(9));
+        yasuVoiceButton.setBackground(yasuVoiceBackground);
+
+        yasuVoiceButton.setForeground(
+                Theme.createSelectorDrawable(
+                        Theme.getColor(Theme.key_listSelector),
+                        1
+                )
+        );
+
+        yasuVoiceButton.setVisibility(
+                yasuFeaturesOnlyGroup ? View.VISIBLE : View.GONE
+        );
+
+        // Restore the selected mode only.
+        yasuVoiceMode = MessagesController.getGlobalMainSettings()
+                .getInt(
+                        "yasu_voice_mode",
+                        YASU_VOICE_MODE_WORDS
+                );
+
+        yasuVoiceEnabled = false;
+
+        final android.os.Handler yasuVoiceHandler =
+                new android.os.Handler(android.os.Looper.getMainLooper());
+
+        final boolean[] waitingForSecondTap = {false};
+
+        final Runnable singleTapAction = new Runnable() {
+            @Override
+            public void run() {
+                waitingForSecondTap[0] = false;
+
+                yasuVoiceEnabled = !yasuVoiceEnabled;
+
+                yasuVoiceButton.setTag(yasuVoiceEnabled);
+
+                yasuVoiceButton.animate()
+                        .scaleX(0.88f)
+                        .scaleY(0.88f)
+                        .alpha(0.75f)
+                        .setDuration(70)
+                        .withEndAction(() -> {
+                            yasuVoiceBackground.setColor(
+                                    yasuVoiceEnabled
+                                            ? Color.rgb(45, 200, 75)
+                                            : Color.RED
+                            );
+
+                            yasuVoiceButton.invalidate();
+
+                            yasuVoiceButton.animate()
+                                    .scaleX(1.0f)
+                                    .scaleY(1.0f)
+                                    .alpha(1.0f)
+                                    .setDuration(130)
+                                    .start();
+                        })
+                        .start();
+
+                VoIPService voipService = VoIPService.getSharedInstance();
+                if (voipService != null) {
+                    voipService.setYasuVoiceMode(yasuVoiceMode);
+                    voipService.setYasuVoiceEnabled(yasuVoiceEnabled);
+                }
+            }
+        };
+
+        yasuVoiceButton.setOnClickListener(v -> {
+
+            if (waitingForSecondTap[0]) {
+                // DOUBLE TAP
+                waitingForSecondTap[0] = false;
+                yasuVoiceHandler.removeCallbacks(singleTapAction);
+
+                if (getContext() == null) {
+                    return;
+                }
+
+                LinearLayout modeLayout = new LinearLayout(getContext());
+                modeLayout.setOrientation(LinearLayout.VERTICAL);
+                modeLayout.setGravity(Gravity.CENTER);
+                modeLayout.setPadding(
+                        dp(4),
+                        dp(4),
+                        dp(4),
+                        dp(4)
+                );
+
+                TextView numbersButton = new TextView(getContext());
+                numbersButton.setText("تتبع الارقام فقط");
+                numbersButton.setTextSize(12);
+                numbersButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+                numbersButton.setTextColor(Color.WHITE);
+                numbersButton.setGravity(Gravity.CENTER);
+                numbersButton.setMinHeight(0);
+                numbersButton.setMinimumHeight(0);
+
+                TextView wordsButton = new TextView(getContext());
+                wordsButton.setText("تتبع الكلمات فقط");
+                wordsButton.setTextSize(12);
+                wordsButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+                wordsButton.setTextColor(Color.WHITE);
+                wordsButton.setGravity(Gravity.CENTER);
+                wordsButton.setMinHeight(0);
+                wordsButton.setMinimumHeight(0);
+
+                GradientDrawable numbersBackground =
+                        new GradientDrawable();
+                numbersBackground.setCornerRadius(dp(7));
+
+                GradientDrawable wordsBackground =
+                        new GradientDrawable();
+                wordsBackground.setCornerRadius(dp(7));
+
+                numbersButton.setBackground(numbersBackground);
+                wordsButton.setBackground(wordsBackground);
+
+                Runnable updateMode = () -> {
+                    numbersBackground.setColor(
+                            yasuVoiceMode == YASU_VOICE_MODE_NUMBERS
+                                    ? Color.rgb(45, 175, 75)
+                                    : Color.rgb(80, 80, 80)
+                    );
+
+                    wordsBackground.setColor(
+                            yasuVoiceMode == YASU_VOICE_MODE_WORDS
+                                    ? Color.rgb(45, 175, 75)
+                                    : Color.rgb(80, 80, 80)
+                    );
+
+                    numbersButton.invalidate();
+                    wordsButton.invalidate();
+                };
+
+                updateMode.run();
+
+                final android.widget.PopupWindow[] popupHolder =
+                        new android.widget.PopupWindow[1];
+
+                numbersButton.setOnClickListener(view -> {
+                    yasuVoiceMode = YASU_VOICE_MODE_NUMBERS;
+
+                    MessagesController.getGlobalMainSettings()
+                            .edit()
+                            .putInt("yasu_voice_mode", yasuVoiceMode)
+                            .apply();
+
+                    /*
+                     * Change the worker mode immediately.
+                     * This does NOT enable voice transcription.
+                     */
+                    VoIPService voipService =
+                            VoIPService.getSharedInstance();
+
+                    if (voipService != null) {
+                        voipService.setYasuVoiceMode(yasuVoiceMode);
+                    }
+
+                    updateMode.run();
+
+                    if (popupHolder[0] != null) {
+                        popupHolder[0].dismiss();
+                    }
+                });
+
+                wordsButton.setOnClickListener(view -> {
+                    yasuVoiceMode = YASU_VOICE_MODE_WORDS;
+
+                    MessagesController.getGlobalMainSettings()
+                            .edit()
+                            .putInt("yasu_voice_mode", yasuVoiceMode)
+                            .apply();
+
+                    /*
+                     * Change the worker mode immediately.
+                     * This does NOT enable voice transcription.
+                     */
+                    VoIPService voipService =
+                            VoIPService.getSharedInstance();
+
+                    if (voipService != null) {
+                        voipService.setYasuVoiceMode(yasuVoiceMode);
+                    }
+
+                    updateMode.run();
+
+                    if (popupHolder[0] != null) {
+                        popupHolder[0].dismiss();
+                    }
+                });
+
+                modeLayout.addView(
+                        numbersButton,
+                        LayoutHelper.createLinear(
+                                dp(150),
+                                dp(28)
+                        )
+                );
+
+                modeLayout.addView(
+                        wordsButton,
+                        LayoutHelper.createLinear(
+                                dp(150),
+                                dp(28),
+                                0,
+                                dp(2),
+                                0,
+                                0
+                        )
+                );
+
+                android.widget.PopupWindow popup =
+                        new android.widget.PopupWindow(
+                                modeLayout,
+                                dp(158),
+                                dp(66),
+                                true
+                        );
+
+                popupHolder[0] = popup;
+
+                popup.setBackgroundDrawable(
+                        new android.graphics.drawable.ColorDrawable(
+                                Color.TRANSPARENT
+                        )
+                );
+
+                popup.setOutsideTouchable(true);
+                popup.setFocusable(true);
+
+                popup.showAsDropDown(
+                        yasuVoiceButton,
+                        -dp(122),
+                        -dp(70)
+                );
+
+                return;
+            }
+
+            // First tap: wait briefly to detect a second tap.
+            waitingForSecondTap[0] = true;
+
+            yasuVoiceHandler.postDelayed(
+                    singleTapAction,
+                    220
+            );
+        });
+
+        attachLayout.addView(
+                yasuVoiceButton,
+                LayoutHelper.createLinear(
+                        dp(36),
+                        dp(18),
+                        0,
+                        0,
+                        dp(3),
+                        0
                 )
         );
 
@@ -6534,6 +6823,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
         destroyed = true;
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.recordStarted);
+        NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.yasuVoiceTextUpdated);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.recordPaused);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.recordResumed);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.recordStartError);
@@ -6721,6 +7011,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             currentAccount = account;
             accountInstance = AccountInstance.getInstance(currentAccount);
             NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.recordStarted);
+        NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.yasuVoiceTextUpdated);
             NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.recordPaused);
             NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.recordResumed);
             NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.recordStartError);
@@ -14158,9 +14449,149 @@ public class ChatActivityEnterView extends FrameLayout implements
         return parentFragment != null && parentFragment.getThreadMessage() != null ? parentFragment.getThreadMessage().getId() : 0;
     }
 
-    @SuppressWarnings("unchecked")
+
+    private void resetYasuVoiceInsertion() {
+        yasuVoiceInsertedStart = -1;
+        yasuVoiceInsertedEnd = -1;
+        yasuVoiceInsertedText = "";
+        yasuVoiceBeforeText = "";
+        yasuVoiceAfterText = "";
+    }
+
+    private void applyYasuVoiceText(String text, boolean isFinal) {
+        if (messageEditText == null || text == null || text.isEmpty()) {
+            return;
+        }
+
+        try {
+            final Editable editable = messageEditText.getText();
+            final int length = editable.length();
+
+            int start = yasuVoiceInsertedStart;
+            int end = yasuVoiceInsertedEnd;
+
+            // FAST PATH: verify only the previous Yasu insertion.
+            boolean fastPath =
+                    start >= 0 &&
+                    end >= start &&
+                    end <= length &&
+                    end - start == yasuVoiceInsertedText.length() &&
+                    editable.subSequence(start, end)
+                            .toString()
+                            .equals(yasuVoiceInsertedText);
+
+            if (!fastPath) {
+                start = messageEditText.getSelectionStart();
+                end = messageEditText.getSelectionEnd();
+
+                if (start < 0) {
+                    start = length;
+                }
+
+                if (end < start) {
+                    int tmp = start;
+                    start = end;
+                    end = tmp;
+                }
+
+                if (end > length) {
+                    end = length;
+                }
+
+                // Slow path: capture surrounding text only for a new insertion.
+                yasuVoiceBeforeText =
+                        editable.subSequence(0, start).toString();
+
+                yasuVoiceAfterText =
+                        editable.subSequence(end, length).toString();
+            }
+
+            editable.replace(start, end, text);
+
+            yasuVoiceInsertedStart = start;
+            yasuVoiceInsertedEnd = start + text.length();
+            yasuVoiceInsertedText = text;
+
+            final int newSelection = yasuVoiceInsertedEnd;
+
+            if (messageEditText.getSelectionStart() != newSelection
+                    || messageEditText.getSelectionEnd() != newSelection) {
+                messageEditText.setSelection(newSelection);
+            }
+
+            if (isFinal) {
+                resetYasuVoiceInsertion();
+            }
+        } catch (Exception e) {
+            FileLog.e(e);
+            resetYasuVoiceInsertion();
+        }
+    }
+
+@SuppressWarnings("unchecked")
     @Override
     public void didReceivedNotification(int id, int account, Object... args) {
+        if (id == NotificationCenter.yasuVoiceTextUpdated) {
+            if (account != currentAccount || messageEditText == null) {
+                return;
+            }
+
+            final String rawText = args.length > 0 && args[0] instanceof String
+                    ? (String) args[0] : "";
+
+            final boolean isFinal = args.length > 1
+                    && args[1] instanceof Boolean
+                    && (Boolean) args[1];
+
+            AndroidUtilities.runOnUIThread(() -> {
+                /*
+                 * FAIL-CLOSED:
+                 * If Yasu Voice is OFF, no stale/racing ASR callback
+                 * is allowed to reach the parser or message field.
+                 */
+                if (!yasuVoiceEnabled) {
+                    resetYasuVoiceInsertion();
+                    return;
+                }
+
+                if (messageEditText == null) {
+                    return;
+                }
+
+                final int mode = yasuVoiceMode;
+                final String output;
+
+                if (mode == YASU_VOICE_MODE_NUMBERS) {
+                    // STRICT NUMBER MODE:
+                    // raw ASR text is NEVER inserted.
+                    output = YasuVoiceTextParser.parseNumbersOnly(rawText);
+
+                    // FINAL FAIL-CLOSED NUMERIC GATE:
+                    // Nothing except a strictly formatted numeric value
+                    // may ever reach the message field in number mode.
+                    if (!YasuVoiceTextParser.isStrictNumericOutput(output)) {
+                        if (isFinal) {
+                            resetYasuVoiceInsertion();
+                        }
+                        return;
+                    }
+
+                } else {
+                    output = YasuVoiceTextParser.cleanWords(rawText);
+
+                    if (output.isEmpty()) {
+                        if (isFinal) {
+                            resetYasuVoiceInsertion();
+                        }
+                        return;
+                    }
+                }
+
+                applyYasuVoiceText(output, isFinal);
+            });
+            return;
+        }
+
         if (id == NotificationCenter.emojiLoaded) {
             if (emojiView != null) {
                 emojiView.invalidateViews();
@@ -16379,7 +16810,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         text.text = message[0].toString();
         return text;
     }
-    
+
     private WindowInsetsInAppController windowInsetsInAppController;
 
     public void setInAppInsetsController(WindowInsetsInAppController inAppInsetsController) {

@@ -657,6 +657,15 @@ if(YASU_AAUDIO_LIB)
     endif()
 endif()
 
+
+# YASU: Sherpa-ONNX C API for incoming voice transcription.
+add_library(yasu_sherpa_onnx_c_api SHARED IMPORTED)
+
+set_target_properties(yasu_sherpa_onnx_c_api PROPERTIES
+    IMPORTED_LOCATION
+    "${CMAKE_CURRENT_LIST_DIR}/../src/main/jniLibs/${ANDROID_ABI}/libsherpa-onnx-c-api.so"
+)
+
 target_link_options(${NATIVE_LIB} PRIVATE "-Wl,-z,max-page-size=16384")
 target_link_options(${NATIVE_LIB} PRIVATE "-Wl,-z,common-page-size=16384")
 
@@ -690,7 +699,8 @@ target_link_libraries(${NATIVE_LIB}
         android
         OpenSLES
         cpufeatures
-        breakpad)
+        breakpad
+        yasu_sherpa_onnx_c_api)
 
 if(YASU_AAUDIO_LIB)
     target_link_libraries(${NATIVE_LIB}

@@ -4,7 +4,9 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.UserConfig;
 import org.webrtc.ContextUtils;
 import org.webrtc.VideoSink;
 
@@ -67,9 +69,10 @@ public class NativeInstance {
         return instance;
     }
 
-    public static NativeInstance makeGroup(String logPath, long videoCapturer, boolean screencast, boolean noiseSupression, PayloadCallback payloadCallback, AudioLevelsCallback audioLevelsCallback, VideoSourcesCallback unknownParticipantsCallback, RequestBroadcastPartCallback requestBroadcastPartCallback, RequestBroadcastPartCallback cancelRequestBroadcastPartCallback, RequestCurrentTimeCallback requestCurrentTimeCallback, boolean isConference) {
+    public static NativeInstance makeGroup(String logPath, long videoCapturer, boolean screencast, boolean noiseSupression, PayloadCallback payloadCallback, AudioLevelsCallback audioLevelsCallback, VideoSourcesCallback unknownParticipantsCallback, RequestBroadcastPartCallback requestBroadcastPartCallback, RequestBroadcastPartCallback cancelRequestBroadcastPartCallback, RequestCurrentTimeCallback requestCurrentTimeCallback, boolean isConference, int account) {
         ContextUtils.initialize(ApplicationLoader.applicationContext);
         NativeInstance instance = new NativeInstance();
+        final int yasuVoiceAccount = account;
         instance.payloadCallback = payloadCallback;
         instance.audioLevelsCallback = audioLevelsCallback;
         instance.unknownParticipantsCallback = unknownParticipantsCallback;
@@ -77,8 +80,76 @@ public class NativeInstance {
         instance.cancelRequestBroadcastPartCallback = cancelRequestBroadcastPartCallback;
         instance.requestCurrentTimeCallback = requestCurrentTimeCallback;
         instance.isGroup = true;
-        instance.nativePtr = makeGroupNativeInstance(instance, logPath, SharedConfig.disableVoiceAudioEffects, videoCapturer, screencast, noiseSupression, isConference);
+        String yasuVoiceModelDir = instance.prepareYasuVoiceModel();
+        instance.nativePtr = makeGroupNativeInstance(instance, logPath, SharedConfig.disableVoiceAudioEffects, videoCapturer, screencast, noiseSupression, isConference, yasuVoiceModelDir);
         return instance;
+    }
+
+    private String prepareYasuVoiceModel() {
+        final String assetDir = "yasu_voice/moonshine_ar";
+        final java.io.File modelDir = new java.io.File(ApplicationLoader.applicationContext.getFilesDir(), "yasu_voice/moonshine_ar");
+
+        try {
+            if (!modelDir.exists() && !modelDir.mkdirs()) {
+                FileLog.e("YasuVoice: failed to create model directory");
+                return null;
+            }
+
+            String[] files = {
+                    "encoder_model.ort",
+                    "decoder_model_merged.ort",
+                    "tokens.txt"
+            };
+
+            android.content.res.AssetManager assets =
+                    ApplicationLoader.applicationContext.getAssets();
+
+            for (String fileName : files) {
+                java.io.File outFile = new java.io.File(modelDir, fileName);
+
+                if (outFile.exists() && outFile.length() > 0) {
+                    continue;
+                }
+
+                try (java.io.InputStream input = assets.open(assetDir + "/" + fileName);
+                     java.io.FileOutputStream output = new java.io.FileOutputStream(outFile)) {
+
+                    byte[] buffer = new byte[1024 * 1024];
+                    int count;
+
+                    while ((count = input.read(buffer)) != -1) {
+                        output.write(buffer, 0, count);
+                    }
+
+                    output.flush();
+                }
+            }
+
+            return modelDir.getAbsolutePath();
+        } catch (Exception e) {
+            FileLog.e(e);
+            return null;
+        }
+    }
+
+    public void setYasuVoiceEnabled(boolean enabled) {
+        if (nativePtr != 0 && isGroup) {
+            setYasuVoiceEnabledNative(enabled);
+        }
+    }
+
+    public void setYasuVoiceMode(int mode) {
+        if (nativePtr != 0 && isGroup) {
+            setYasuVoiceModeNative(mode);
+        }
+    }
+
+    private void onYasuVoiceText(String text, boolean isFinal) {
+        NotificationCenter.getInstance(yasuVoiceAccount).postNotificationName(
+                NotificationCenter.yasuVoiceTextUpdated,
+                text,
+                isFinal
+        );
     }
 
     public int getPeerCapabilities() {
@@ -198,7 +269,10 @@ public class NativeInstance {
         return stopGroupNative();
     }
 
-    private static native long makeGroupNativeInstance(NativeInstance instance, String persistentStateFilePath, boolean highQuality, long videoCapturer, boolean screencast, boolean noiseSupression, boolean conference);
+    private native void setYasuVoiceEnabledNative(boolean enabled);
+    private native void setYasuVoiceModeNative(int mode);
+
+    private static native long makeGroupNativeInstance(NativeInstance instance, String persistentStateFilePath, boolean highQuality, long videoCapturer, boolean screencast, boolean noiseSupression, boolean conference, String yasuVoiceModelDir);
     private static native long makeNativeInstance(String version, NativeInstance instance, Instance.Config config, String persistentStateFilePath, Instance.Endpoint[] endpoints, Instance.Proxy proxy, int networkType, Instance.EncryptionKey encryptionKey, VideoSink remoteSink, long videoCapturer, float aspectRatio);
     public static native long createVideoCapturer(VideoSink localSink, int type);
     public static native void setVideoStateCapturer(long videoCapturer, int videoState);

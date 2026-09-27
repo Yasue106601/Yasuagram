@@ -402,7 +402,11 @@ void initWebRTC(JNIEnv *env) {
 }
 
 extern "C"
-JNIEXPORT jlong JNICALL Java_org_telegram_messenger_voip_NativeInstance_makeGroupNativeInstance(JNIEnv *env, jclass clazz, jobject instanceObj, jstring logFilePath, jboolean highQuality, jlong videoCapturer, jboolean screencast, jboolean noiseSupression, jboolean conference) {
+JNIEXPORT jlong JNICALL Java_org_telegram_messenger_voip_NativeInstance_makeGroupNativeInstance(JNIEnv *env, jclass clazz, jobject instanceObj, jstring logFilePath, jboolean highQuality, jlong videoCapturer, jboolean screencast, jboolean noiseSupression, jboolean conference, jstring yasuVoiceModelDir) {
+    std::string yasuVoiceModelDirString = yasuVoiceModelDir != nullptr
+            ? tgvoip::jni::JavaStringToStdString(env, yasuVoiceModelDir)
+            : std::string();
+
     initWebRTC(env);
 
     std::shared_ptr<VideoCaptureInterface> videoCapture;
@@ -457,6 +461,23 @@ JNIEXPORT jlong JNICALL Java_org_telegram_messenger_voip_NativeInstance_makeGrou
                     env->CallVoidMethod(globalRef, env->GetMethodID(NativeInstanceClass, "onNetworkStateUpdated", "(ZZ)V"), state.isConnected, state.isTransitioningFromBroadcastToRtc);
                 });
             },
+            .yasuVoiceTextUpdated = [platformContext](const std::string &text, bool isFinal) {
+                tgvoip::jni::DoWithJNI([platformContext, text, isFinal](JNIEnv *env) {
+                    jobject globalRef = ((AndroidContext *) platformContext.get())->getJavaGroupInstance();
+                    if (globalRef == nullptr) {
+                        return;
+                    }
+
+                    jstring jText = env->NewStringUTF(text.c_str());
+                    env->CallVoidMethod(
+                        globalRef,
+                        env->GetMethodID(NativeInstanceClass, "onYasuVoiceText", "(Ljava/lang/String;Z)V"),
+                        jText,
+                        isFinal ? JNI_TRUE : JNI_FALSE
+                    );
+                    env->DeleteLocalRef(jText);
+                });
+            },
             .audioLevelsUpdated = [platformContext](GroupLevelsUpdate const &update) {
                 tgvoip::jni::DoWithJNI([platformContext, update](JNIEnv *env) {
                     unsigned int size = update.updates.size();
@@ -489,6 +510,7 @@ JNIEXPORT jlong JNICALL Java_org_telegram_messenger_voip_NativeInstance_makeGrou
             .e2eEncryptDecrypt = e2eEncryptDecrypt,
             .isConference = (bool) conference,
             .platformContext = platformContext,
+            .yasuVoiceModelDir = yasuVoiceModelDirString,
     };
     if (!screencast) {
         descriptor.requestAudioBroadcastPart = [](std::shared_ptr<PlatformContext> platformContext, int64_t timestamp, int64_t duration, std::function<void(BroadcastPart &&)> callback) -> std::shared_ptr<BroadcastPartTask> {
@@ -1048,6 +1070,26 @@ JNIEXPORT jstring JNICALL Java_org_telegram_messenger_voip_NativeInstance_stopGr
     delete instance;
 
     return env->NewStringUTF(debugLog.c_str());
+}
+
+extern "C"
+JNIEXPORT void JNICALL Java_org_telegram_messenger_voip_NativeInstance_setYasuVoiceEnabledNative(JNIEnv *env, jobject obj, jboolean enabled) {
+    InstanceHolder *instance = getInstanceHolder(env, obj);
+    if (instance == nullptr || instance->groupNativeInstance == nullptr) {
+        return;
+    }
+
+    instance->groupNativeInstance->setYasuVoiceEnabled(enabled == JNI_TRUE);
+}
+
+extern "C"
+JNIEXPORT void JNICALL Java_org_telegram_messenger_voip_NativeInstance_setYasuVoiceModeNative(JNIEnv *env, jobject obj, jint mode) {
+    InstanceHolder *instance = getInstanceHolder(env, obj);
+    if (instance == nullptr || instance->groupNativeInstance == nullptr) {
+        return;
+    }
+
+    instance->groupNativeInstance->setYasuVoiceMode(static_cast<int>(mode));
 }
 
 extern "C"

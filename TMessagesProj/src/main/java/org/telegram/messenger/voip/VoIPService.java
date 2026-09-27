@@ -1001,6 +1001,20 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
         return null;
     }
 
+    public void setYasuVoiceEnabled(boolean enabled) {
+        NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
+        if (instance != null && instance.isGroup()) {
+            instance.setYasuVoiceEnabled(enabled);
+        }
+    }
+
+    public void setYasuVoiceMode(int mode) {
+        NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
+        if (instance != null && instance.isGroup()) {
+            instance.setYasuVoiceMode(mode);
+        }
+    }
+
 	public static VoIPService getSharedInstance() {
 		return sharedInstance;
 	}
@@ -3075,7 +3089,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 						tgVoip[type].onRequestTimeComplete(taskPtr, ConnectionsManager.getInstance(currentAccount).getCurrentTimeMillis());
 					}
 				}
-			}, conference != null);
+			}, conference != null, currentAccount);
 			tgVoip[type].setOnStateUpdatedListener((state, inTransition) -> updateConnectionState(type, state, inTransition));
 //			if (captureDevice[type] != 0 && type == 0 && convertingVoip != null && convertingVoip.hasVideoCapturer()) {
 //				tgVoip[type].setupOutgoingVideoCreated(captureDevice[type]);
