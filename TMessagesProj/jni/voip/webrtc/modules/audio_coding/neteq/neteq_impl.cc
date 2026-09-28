@@ -804,7 +804,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     // This prevents large bursts of packet loss while still trimming
     // excessive backlog.
     constexpr size_t kYasuHardBacklogMs = 130;
-    constexpr size_t kYasuMaxDiscardPackets = 3;
+    constexpr size_t kYasuMaxDiscardPackets = 6;
     const size_t yasu_ms = fs_hz_ / 1000;
     const size_t yasu_hard_backlog_samples =
         kYasuHardBacklogMs * yasu_ms;
@@ -1169,10 +1169,16 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
         const size_t yasu_decoded_samples =
             static_cast<size_t>(length) / algorithm_buffer_->Channels();
 
+        // YASU: decoded_ms is logged for visibility only. The just-decoded
+        // frame is not queued backlog -- counting it here made every large
+        // (e.g. 120ms) frame look like a real backlog and over-triggered
+        // the strongest compression tier on completely normal traffic.
         const size_t yasu_total_backlog_samples =
             yasu_packet_samples +
-            yasu_sync_samples +
-            yasu_decoded_samples;
+            yasu_sync_samples;
+
+        const size_t yasu_logged_total_samples =
+            yasu_total_backlog_samples + yasu_decoded_samples;
 
         const size_t yasu_backlog_ms =
             yasu_total_backlog_samples / yasu_ms;
@@ -1200,7 +1206,8 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
               << " packet_ms=" << (yasu_packet_samples / yasu_ms)
               << " sync_ms=" << (yasu_sync_samples / yasu_ms)
               << " decoded_ms=" << (yasu_decoded_samples / yasu_ms)
-              << " total_ms=" << yasu_backlog_ms
+              << " total_ms=" << (yasu_logged_total_samples / yasu_ms)
+              << " tier_ms=" << yasu_backlog_ms
               << " max_passes=" << yasu_max_accelerate_passes;
         }
       }

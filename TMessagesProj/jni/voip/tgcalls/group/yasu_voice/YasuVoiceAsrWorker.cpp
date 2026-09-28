@@ -902,11 +902,27 @@ void YasuVoiceAsrWorker::decodeSnapshot(
             }
 
             /*
-             * Emit only changed partial text.
-             * Final is explicitly emitted even if identical.
+             * FAIL-CLOSED ASR OUTPUT:
+             *
+             * Moonshine is an offline recognizer and may produce
+             * plausible-looking text from weak/ambiguous audio.
+             * Never forward an unstable partial hypothesis.
+             *
+             * A partial result must survive at least two identical
+             * recognition states before it reaches the UI.
+             * Final results are allowed through because they represent
+             * the completed speech segment.
+             *
+             * IMPORTANT:
+             * The recognized text itself is never rewritten,
+             * corrected, translated, or invented here.
              */
-            if (isFinal ||
-                text != _partialLastText) {
+            const bool partialStableEnough =
+                isFinal ||
+                _asrStableRepeats >= 2;
+
+            if (partialStableEnough &&
+                (isFinal || text != _partialLastText)) {
 
                 _partialLastText = text;
 
@@ -915,6 +931,13 @@ void YasuVoiceAsrWorker::decodeSnapshot(
                     text,
                     isFinal
                 );
+            } else {
+                RTC_LOG(LS_INFO)
+                    << "[YASU ASR DROP UNSTABLE]"
+                    << " request=" << requestId
+                    << " final=" << isFinal
+                    << " repeats=" << _asrStableRepeats
+                    << " text_chars=" << text.size();
             }
         }
 
