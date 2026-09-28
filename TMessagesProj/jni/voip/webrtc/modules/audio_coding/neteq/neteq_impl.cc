@@ -2178,6 +2178,7 @@ int NetEqImpl::DecodeLoop(PacketList* packet_list,
       << " first_rtp_ts=" << yasu_corr_first_rtp_ts
       << " last_rtp_ts=" << yasu_corr_last_rtp_ts
       << " ssrc=" << yasu_corr_ssrc;
+    }
 
   // If the list is not empty at this point, either a decoding error terminated
   // the while-loop, or list must hold exactly one CNG packet.
