@@ -1164,9 +1164,15 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
         const size_t yasu_sync_samples =
             sync_buffer_->FutureLength();
 
+        // YASU: packets were already decoded into decoded_buffer_ here,
+        // so the decoded block must be counted or the tiers never fire.
+        const size_t yasu_decoded_samples =
+            static_cast<size_t>(length) / algorithm_buffer_->Channels();
+
         const size_t yasu_total_backlog_samples =
             yasu_packet_samples +
-            yasu_sync_samples;
+            yasu_sync_samples +
+            yasu_decoded_samples;
 
         const size_t yasu_backlog_ms =
             yasu_total_backlog_samples / yasu_ms;
@@ -1193,6 +1199,7 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
               << "YASU ACCELERATION PLAN"
               << " packet_ms=" << (yasu_packet_samples / yasu_ms)
               << " sync_ms=" << (yasu_sync_samples / yasu_ms)
+              << " decoded_ms=" << (yasu_decoded_samples / yasu_ms)
               << " total_ms=" << yasu_backlog_ms
               << " max_passes=" << yasu_max_accelerate_passes;
         }

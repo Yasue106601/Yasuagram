@@ -4444,6 +4444,21 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
                 false,
                 false
         );
+        VoIPService measurementsService = VoIPService.getSharedInstance();
+        if (measurementsService != null) {
+            measurementsEnabled = measurementsService.getMeasurementsEnabled();
+        }
+
+        measurementsButton.setData(
+                0,
+                Color.WHITE,
+                measurementsEnabled ? Color.GREEN : Color.RED,
+                1f,
+                true,
+                measurementsEnabled ? "تعطيل القياسات" : "تفعيل القياسات",
+                false,
+                false
+        );
         measurementsButton.showText(true, false);
 
         measurementsButton.setOnClickListener(v -> {

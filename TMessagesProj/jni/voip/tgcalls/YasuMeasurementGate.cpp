@@ -1,5 +1,7 @@
 #include "YasuMeasurementGate.h"
 
+extern "C" void yasu_set_telemetry_enabled(bool enabled);
+
 namespace tgcalls {
 
 namespace {
@@ -12,6 +14,7 @@ bool YasuMeasurementsEnabled() {
 
 void SetYasuMeasurementsEnabled(bool enabled) {
     g_yasu_measurements_enabled.store(enabled, std::memory_order_relaxed);
+    yasu_set_telemetry_enabled(enabled);
 }
 
 } // namespace tgcalls

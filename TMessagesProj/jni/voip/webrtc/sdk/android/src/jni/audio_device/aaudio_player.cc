@@ -203,10 +203,37 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
   // at the expense of an increased latency.
   // TODO(henrika): enable possibility to disable and/or tune the algorithm.
   const int32_t underrun_count = aaudio_.xrun_count();
+  // YASU: the output buffer used to only grow. Shrink it back one burst
+  // at a time after a quiet period, down to 2 bursts (10 ms).
+  static int64_t yasu_last_underrun_us = rtc::TimeMicros();
+  static int64_t yasu_last_shrink_us = rtc::TimeMicros();
   if (underrun_count > underrun_count_) {
     RTC_LOG(LS_ERROR) << "Underrun detected: " << underrun_count;
     underrun_count_ = underrun_count;
+    yasu_last_underrun_us = rtc::TimeMicros();
     aaudio_.IncreaseOutputBufferSize();
+    RTC_LOG(LS_VERBOSE) << "YASU AAUDIO_UNDERRUN time_us="
+                        << yasu_last_underrun_us
+                        << " xruns=" << underrun_count
+                        << " buffer_frames="
+                        << AAudioStream_getBufferSizeInFrames(
+                               aaudio_.stream());
+  } else {
+    const int64_t yasu_now_us = rtc::TimeMicros();
+    if (yasu_now_us - yasu_last_underrun_us > 5000000 &&
+        yasu_now_us - yasu_last_shrink_us > 1000000) {
+      const int32_t yasu_burst = aaudio_.frames_per_burst();
+      const int32_t yasu_size =
+          AAudioStream_getBufferSizeInFrames(aaudio_.stream());
+      if (yasu_burst > 0 && yasu_size - yasu_burst >= 2 * yasu_burst) {
+        const int32_t yasu_new_size = AAudioStream_setBufferSizeInFrames(
+            aaudio_.stream(), yasu_size - yasu_burst);
+        RTC_LOG(LS_VERBOSE) << "YASU AAUDIO_SHRINK time_us=" << yasu_now_us
+                            << " from_frames=" << yasu_size
+                            << " to_frames=" << yasu_new_size;
+      }
+      yasu_last_shrink_us = yasu_now_us;
+    }
   }
 
   // Estimate latency between writing an audio frame to the output stream and

@@ -9,6 +9,7 @@
  */
 
 #include "rtc_base/logging.h"
+#include <atomic>
 
 #include <string.h>
 
@@ -203,12 +204,34 @@ LogMessage::LogMessage(const char* file,
 }
 #endif
 
+// YASU: telemetry gate owned by rtc_base (no dependency on tgcalls).
+static std::atomic<bool> g_yasu_telemetry_enabled{false};
+
+extern "C" void yasu_set_telemetry_enabled(bool enabled) {
+  g_yasu_telemetry_enabled.store(enabled, std::memory_order_relaxed);
+}
+
+extern "C" bool yasu_is_telemetry_enabled() {
+  return g_yasu_telemetry_enabled.load(std::memory_order_relaxed);
+}
+
 LogMessage::~LogMessage() {
   FinishPrintStream();
 
   log_line_.set_message(print_stream_.Release());
 
-  if (log_line_.severity() >= g_dbg_sev) {
+  // YASU: telemetry lines are dropped unless measurements are enabled,
+  // and never go to logcat (they are captured in the measurement file).
+  const bool yasu_line =
+      log_line_.message().find("YASU ") != std::string::npos ||
+      log_line_.message().find("YASUAGRAM HARDWARE TIMESTAMP") !=
+          std::string::npos;
+  if (yasu_line &&
+      !g_yasu_telemetry_enabled.load(std::memory_order_relaxed)) {
+    return;
+  }
+
+  if (!yasu_line && log_line_.severity() >= g_dbg_sev) {
     OutputToDebug(log_line_);
   }
 

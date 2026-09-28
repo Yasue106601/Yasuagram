@@ -1008,11 +1008,18 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
         }
     }
 
+    private boolean measurementsEnabled = false;
+
     public void setMeasurementsEnabled(boolean enabled) {
+        measurementsEnabled = enabled;
         NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
         if (instance != null && instance.isGroup()) {
             instance.setMeasurementsEnabled(enabled);
         }
+    }
+
+    public boolean getMeasurementsEnabled() {
+        return measurementsEnabled;
     }
 
     public void setYasuVoiceMode(int mode) {
@@ -5591,6 +5598,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 			FileLog.d("Call " + getCallID() + " ended");
 		}
 		isCallEnded = true;
+           measurementsEnabled = false;
 		if (groupCall != null && (!playedConnectedSound || onDestroyRunnable != null)) {
 			needPlayEndSound = false;
 		}

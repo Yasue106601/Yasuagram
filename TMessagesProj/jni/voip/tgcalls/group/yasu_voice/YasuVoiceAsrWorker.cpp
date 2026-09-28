@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <chrono>
 
 #include "tgcalls/group/yasu_voice/sherpa-onnx/c-api/c-api.h"
 
@@ -12,9 +13,95 @@ namespace {
 
 constexpr int kModelSampleRate = 16000;
 
+constexpr size_t kYasuFastPartialDecodeSamples =
+    kModelSampleRate * 50 / 1000;
+
+constexpr size_t kYasuNormalPartialDecodeSamples =
+    kModelSampleRate * 80 / 1000;
+
+constexpr size_t kYasuSlowPartialDecodeSamples =
+    kModelSampleRate * 140 / 1000;
+
 static float clampFloat(float value) {
     return std::max(-1.0f, std::min(1.0f, value));
 }
+
+static size_t yasuWordCount(const std::string &text) {
+    size_t count = 0;
+    bool inWord = false;
+
+    for (unsigned char c : text) {
+        const bool space =
+            c == ' ' ||
+            c == '\n' ||
+            c == '\t' ||
+            c == '\r';
+
+        if (space) {
+            inWord = false;
+        } else if (!inWord) {
+            inWord = true;
+            ++count;
+        }
+    }
+
+    return count;
+}
+
+static std::string yasuStableWordPrefix(
+    const std::string &previous,
+    const std::string &current
+) {
+    const size_t limit =
+        std::min(previous.size(), current.size());
+
+    size_t i = 0;
+
+    while (i < limit &&
+           previous[i] == current[i]) {
+        ++i;
+    }
+
+    /*
+     * Never cut a UTF-8 character.
+     */
+    while (i > 0 &&
+           i < current.size() &&
+           (static_cast<unsigned char>(current[i]) & 0xC0) == 0x80) {
+        --i;
+    }
+
+    /*
+     * Only keep complete words. The last word may still
+     * be changing while Moonshine is decoding a partial.
+     */
+    if (i == current.size()) {
+        const size_t lastSpace =
+            current.rfind(' ');
+
+        if (lastSpace == std::string::npos) {
+            return "";
+        }
+
+        return current.substr(
+            0,
+            lastSpace
+        );
+    }
+
+    const size_t boundary =
+        current.rfind(' ', i);
+
+    if (boundary == std::string::npos) {
+        return "";
+    }
+
+    return current.substr(
+        0,
+        boundary
+    );
+}
+
 
 } // namespace
 
@@ -69,7 +156,7 @@ bool YasuVoiceAsrWorker::initializeRecognizer(
     config.model_config.tokens =
         tokensPath.c_str();
 
-    config.model_config.num_threads = 2;
+    config.model_config.num_threads = 3;
     config.model_config.debug = 0;
     config.model_config.provider = "cpu";
 
@@ -110,22 +197,58 @@ void YasuVoiceAsrWorker::start() {
         return;
     }
 
+    {
+        std::lock_guard<std::mutex> lock(
+            _partialMutex
+        );
+
+        _partialStop = false;
+        _partialPending = false;
+        _partialInFlight = false;
+        _partialIsFinal = false;
+
+        _partialAudio.clear();
+        _partialSsrc = 0;
+        _partialGeneration = 0;
+        _partialRequestId = 0;
+        _partialCompletedRequestId = 0;
+
+        _partialLastGeneration = 0;
+        _partialLastText.clear();
+    }
+
+    _partialDecodeThread = std::thread([this]() {
+        runPartialDecoder();
+    });
+
     _thread = std::thread([this]() {
         run();
     });
 }
 
 void YasuVoiceAsrWorker::stop() {
-    if (!_running.exchange(false)) {
-        return;
+    _running.store(
+        false,
+        std::memory_order_relaxed
+    );
+
+    {
+        std::lock_guard<std::mutex> lock(
+            _partialMutex
+        );
+
+        _partialStop = true;
     }
 
-    /*
-     * The queue is stopped by GroupInstanceCustomInternal
-     * during complete group teardown. This wakes pop().
-     */
+    _partialCondition.notify_all();
+    _partialDoneCondition.notify_all();
+
     if (_thread.joinable()) {
         _thread.join();
+    }
+
+    if (_partialDecodeThread.joinable()) {
+        _partialDecodeThread.join();
     }
 }
 
@@ -295,10 +418,19 @@ void YasuVoiceAsrWorker::resetRecognitionState(
         decodePartial(true);
     }
 
+    _segmentGeneration.fetch_add(
+        1,
+        std::memory_order_acq_rel
+    );
+
     _audioBuffer.clear();
     _preRollBuffer.clear();
 
     _lastText.clear();
+
+    _asrPreviousText.clear();
+    _asrStablePrefix.clear();
+    _asrStableRepeats = 0;
 
     _activeSsrc = 0;
     _candidateSsrc = 0;
@@ -307,6 +439,16 @@ void YasuVoiceAsrWorker::resetRecognitionState(
     _candidateStartSample = 0;
 
     _samplesSinceDecode = 0;
+
+    /*
+     * Reset adaptive partial timing for the next speech segment.
+     * The new segment must not inherit the speech-rate estimate
+     * from the previous segment.
+     */
+    _adaptivePartialDecodeSamples =
+        kYasuNormalPartialDecodeSamples;
+    _lastDecodedAudioSamples = 0;
+    _lastDecodedTextBytes = 0;
 
     /*
      * Do NOT reset _streamTimeSamples here.
@@ -324,9 +466,18 @@ void YasuVoiceAsrWorker::finishCurrentSegment() {
         decodePartial(true);
     }
 
+    _segmentGeneration.fetch_add(
+        1,
+        std::memory_order_acq_rel
+    );
+
     _audioBuffer.clear();
     _preRollBuffer.clear();
     _lastText.clear();
+
+    _asrPreviousText.clear();
+    _asrStablePrefix.clear();
+    _asrStableRepeats = 0;
 
     _activeSsrc = 0;
     _candidateSsrc = 0;
@@ -335,6 +486,14 @@ void YasuVoiceAsrWorker::finishCurrentSegment() {
     _candidateStartSample = 0;
 
     _samplesSinceDecode = 0;
+
+    /*
+     * Reset adaptive partial timing for the next speech segment.
+     */
+    _adaptivePartialDecodeSamples =
+        kYasuNormalPartialDecodeSamples;
+    _lastDecodedAudioSamples = 0;
+    _lastDecodedTextBytes = 0;
 }
 
 void YasuVoiceAsrWorker::decodePartial(
@@ -346,23 +505,179 @@ void YasuVoiceAsrWorker::decodePartial(
         return;
     }
 
-    const SherpaOnnxOfflineRecognizer *recognizer =
-        static_cast<const SherpaOnnxOfflineRecognizer *>(
-            _recognizer
+    const uint64_t generation =
+        _segmentGeneration.load(
+            std::memory_order_acquire
         );
 
+    std::unique_lock<std::mutex> lock(
+        _partialMutex
+    );
+
+    if (_partialStop) {
+        return;
+    }
+
+    /*
+     * A final request has priority over partial requests.
+     */
+    if (!isFinal && _partialIsFinal) {
+        return;
+    }
+
+    const uint64_t requestId =
+        ++_partialRequestId;
+
+    /*
+     * Copy only the current audio snapshot.
+     * Moonshine inference happens on the dedicated
+     * decoder thread, never on the PCM/audio worker.
+     */
+    _partialAudio = _audioBuffer;
+    _partialSsrc = _activeSsrc;
+    _partialGeneration = generation;
+    _partialIsFinal = isFinal;
+    _partialPending = true;
+
+    _partialCondition.notify_one();
+
+    if (isFinal) {
+        /*
+         * Final output must be completed before the
+         * current recognition segment is destroyed.
+         */
+        _partialDoneCondition.wait(
+            lock,
+            [this, requestId]() {
+                return _partialCompletedRequestId >= requestId ||
+                       _partialStop;
+            }
+        );
+    }
+}
+
+void YasuVoiceAsrWorker::runPartialDecoder() {
+    while (true) {
+        std::vector<float> audio;
+        uint32_t ssrc = 0;
+        uint64_t generation = 0;
+        uint64_t requestId = 0;
+        bool isFinal = false;
+
+        {
+            std::unique_lock<std::mutex> lock(
+                _partialMutex
+            );
+
+            _partialCondition.wait(
+                lock,
+                [this]() {
+                    return _partialStop ||
+                           _partialPending;
+                }
+            );
+
+            if (_partialStop &&
+                !_partialPending) {
+                break;
+            }
+
+            audio = std::move(_partialAudio);
+            _partialAudio.clear();
+
+            ssrc = _partialSsrc;
+            generation = _partialGeneration;
+            requestId = _partialRequestId;
+            isFinal = _partialIsFinal;
+
+            _partialPending = false;
+            _partialInFlight = true;
+
+            /*
+             * Important:
+             * clear the final flag after taking the request.
+             * Otherwise every later partial request would be
+             * rejected after the first final decode.
+             */
+            _partialIsFinal = false;
+        }
+
+        decodeSnapshot(
+            audio,
+            ssrc,
+            generation,
+            isFinal,
+            requestId
+        );
+
+        {
+            std::lock_guard<std::mutex> lock(
+                _partialMutex
+            );
+
+            _partialInFlight = false;
+
+            if (requestId >
+                _partialCompletedRequestId) {
+                _partialCompletedRequestId =
+                    requestId;
+            }
+        }
+
+        _partialDoneCondition.notify_all();
+    }
+}
+
+void YasuVoiceAsrWorker::decodeSnapshot(
+    const std::vector<float> &audio,
+    uint32_t ssrc,
+    uint64_t generation,
+    bool isFinal,
+    uint64_t requestId
+) {
+    if (!_recognizer ||
+        audio.empty() ||
+        ssrc == 0) {
+        return;
+    }
+
+    /*
+     * Do not waste CPU decoding an already-invalid segment.
+     */
+    if (generation !=
+            _segmentGeneration.load(
+                std::memory_order_acquire
+            ) ||
+        !_enabled.load(
+            std::memory_order_relaxed
+        )) {
+        return;
+    }
+
+    const SherpaOnnxOfflineRecognizer *recognizer =
+        static_cast<
+            const SherpaOnnxOfflineRecognizer *
+        >(_recognizer);
+
     const SherpaOnnxOfflineStream *stream =
-        SherpaOnnxCreateOfflineStream(recognizer);
+        SherpaOnnxCreateOfflineStream(
+            recognizer
+        );
 
     if (!stream) {
         return;
     }
 
+    const auto yasuDecodeStart =
+        std::chrono::steady_clock::now();
+
     SherpaOnnxAcceptWaveformOffline(
         stream,
         kModelSampleRate,
-        _audioBuffer.data(),
-        static_cast<int32_t>(_audioBuffer.size())
+        audio.data(),
+        static_cast<int32_t>(
+            audio.size()
+        )
     );
 
     SherpaOnnxDecodeOfflineStream(
@@ -370,38 +685,251 @@ void YasuVoiceAsrWorker::decodePartial(
         stream
     );
 
+    const auto yasuDecodeEnd =
+        std::chrono::steady_clock::now();
+
+    const int64_t yasuDecodeMs =
+        std::chrono::duration_cast<
+            std::chrono::milliseconds
+        >(
+            yasuDecodeEnd -
+            yasuDecodeStart
+        ).count();
+
+    RTC_LOG(LS_INFO)
+        << "[YASU VOICE] decode"
+        << " audio_ms="
+        << (audio.size() * 1000 /
+            kModelSampleRate)
+        << " decode_ms="
+        << yasuDecodeMs
+        << " final="
+        << isFinal
+        << " async=1"
+        << " request="
+        << requestId;
+
     const SherpaOnnxOfflineRecognizerResult *result =
-        SherpaOnnxGetOfflineStreamResult(stream);
+        SherpaOnnxGetOfflineStreamResult(
+            stream
+        );
 
     if (result &&
         result->text &&
         result->text[0] != '\0' &&
         _resultCallback) {
 
-        const std::string text(result->text);
+        const std::string text(
+            result->text
+        );
 
-        static std::atomic<bool> loggedFirstResult{false};
-        bool expectedFirstResult = false;
-        if (loggedFirstResult.compare_exchange_strong(
-                expectedFirstResult, true)) {
-            RTC_LOG(LS_INFO)
-                << "[YASU VOICE] First ASR result: " << text;
+        /*
+         * Adaptive partial timing.
+         *
+         * Moonshine is offline and receives the complete current
+         * segment. We therefore use the growth of its hypothesis
+         * as a speech-rate signal:
+         *
+         *   large text growth -> fast speech -> decode sooner
+         *   small/no growth    -> slow speech -> allow more context
+         *
+         * This changes recognition responsiveness only; it never
+         * changes the ASR engine or its decoding method.
+         */
+        if (!isFinal) {
+            const size_t audioSamples =
+                audio.size();
+
+            const size_t textWords =
+                yasuWordCount(text);
+
+            if (_lastDecodedAudioSamples > 0 &&
+                audioSamples > _lastDecodedAudioSamples) {
+
+                const size_t audioDelta =
+                    audioSamples -
+                    _lastDecodedAudioSamples;
+
+                const size_t previousWords =
+                    yasuWordCount(_asrPreviousText);
+
+                const size_t wordDelta =
+                    textWords >= previousWords
+                        ? textWords - previousWords
+                        : 0;
+
+                /*
+                 * Measure speech growth by words rather than UTF-8
+                 * bytes. This is especially important for Arabic,
+                 * where one character may occupy several bytes.
+                 */
+                const float wordsPerSecond =
+                    static_cast<float>(wordDelta) *
+                    static_cast<float>(kModelSampleRate) /
+                    static_cast<float>(audioDelta);
+
+                if (wordDelta >= 2 ||
+                    wordsPerSecond >= 3.5f) {
+
+                    _adaptivePartialDecodeSamples =
+                        kYasuFastPartialDecodeSamples;
+
+                } else if (wordDelta == 0 ||
+                           wordsPerSecond <= 0.8f) {
+
+                    _adaptivePartialDecodeSamples =
+                        kYasuSlowPartialDecodeSamples;
+
+                } else {
+
+                    _adaptivePartialDecodeSamples =
+                        kYasuNormalPartialDecodeSamples;
+                }
+            }
+
+            _lastDecodedAudioSamples =
+                audioSamples;
+
+            _lastDecodedTextBytes =
+                text.size();
         }
 
         /*
-         * Partial results are emitted only when changed.
-         * A final result is emitted even if it is identical
-         * to the previous partial result, so the UI receives
-         * the final state explicitly.
+         * Build a conservative stable prefix from consecutive
+         * Moonshine partials. This does not replace the raw
+         * transcript yet; it only gives the intelligence layer
+         * a safe state to work from.
          */
-        if (isFinal || text != _lastText) {
-            _lastText = text;
+        if (generation != _partialLastGeneration) {
+            _asrPreviousText.clear();
+            _asrStablePrefix.clear();
+            _asrStableRepeats = 0;
 
-            _resultCallback(
-                _activeSsrc,
-                text,
-                isFinal
+            _partialLastGeneration = generation;
+            _partialLastText.clear();
+        }
+
+        if (text == _asrPreviousText) {
+            /*
+             * Moonshine produced exactly the same hypothesis
+             * twice. The complete text is now a stable word
+             * sequence, including a single-word result.
+             */
+            if (!_asrStablePrefix.empty()) {
+                ++_asrStableRepeats;
+            } else if (!text.empty()) {
+                _asrStablePrefix = text;
+                _asrStableRepeats = 1;
+            }
+        } else {
+            const std::string candidate =
+                yasuStableWordPrefix(
+                    _asrPreviousText,
+                    text
+                );
+
+            if (!candidate.empty()) {
+                if (_asrStablePrefix.empty()) {
+                    /*
+                     * First confirmed stable word sequence.
+                     */
+                    _asrStablePrefix = candidate;
+                    _asrStableRepeats = 1;
+
+                } else if (candidate == _asrStablePrefix) {
+                    /*
+                     * Existing stable prefix survived another
+                     * Moonshine revision.
+                     */
+                    ++_asrStableRepeats;
+
+                } else if (
+                    candidate.size() > _asrStablePrefix.size() &&
+                    candidate.compare(
+                        0,
+                        _asrStablePrefix.size(),
+                        _asrStablePrefix
+                    ) == 0 &&
+                    candidate[_asrStablePrefix.size()] == ' ') {
+
+                    /*
+                     * Stable prefix grew forward.
+                     * It is never allowed to move backwards.
+                     */
+                    _asrStablePrefix = candidate;
+                    _asrStableRepeats = 1;
+                }
+                /*
+                 * Conflicting candidates are ignored here.
+                 * Moonshine may revise its unstable tail freely.
+                 */
+            }
+
+            _asrPreviousText = text;
+        }
+
+        /*
+         * Inference can finish after the segment has
+         * already changed, so validate the generation
+         * again before sending anything to the UI.
+         */
+        const bool generationStillValid =
+            generation ==
+                _segmentGeneration.load(
+                    std::memory_order_acquire
+                ) &&
+            _enabled.load(
+                std::memory_order_relaxed
             );
+
+        if (generationStillValid) {
+
+            RTC_LOG(LS_INFO)
+                << "[YASU ASR INTEL]"
+                << " request=" << requestId
+                << " final=" << isFinal
+                << " repeats=" << _asrStableRepeats
+                << " stable_chars=" << _asrStablePrefix.size()
+                << " text_chars=" << text.size();
+
+            if (generation !=
+                _partialLastGeneration) {
+
+                _partialLastGeneration =
+                    generation;
+
+                _partialLastText.clear();
+            }
+
+            /*
+             * Emit only changed partial text.
+             * Final is explicitly emitted even if identical.
+             */
+            if (isFinal ||
+                text != _partialLastText) {
+
+                _partialLastText = text;
+
+                _resultCallback(
+                    ssrc,
+                    text,
+                    isFinal
+                );
+            }
+        }
+
+        static std::atomic<bool>
+            loggedFirstResult{false};
+
+        bool expectedFirstResult = false;
+
+        if (loggedFirstResult.compare_exchange_strong(
+                expectedFirstResult,
+                true)) {
+
+            RTC_LOG(LS_INFO)
+                << "[YASU VOICE] First ASR result: "
+                << text;
         }
     }
 
@@ -411,7 +939,9 @@ void YasuVoiceAsrWorker::decodePartial(
         );
     }
 
-    SherpaOnnxDestroyOfflineStream(stream);
+    SherpaOnnxDestroyOfflineStream(
+        stream
+    );
 }
 
 void YasuVoiceAsrWorker::processChunk(
@@ -535,6 +1065,19 @@ void YasuVoiceAsrWorker::processChunk(
         _streamTimeSamples += frameSize;
 
         if (_activeSsrc == 0) {
+            /*
+             * Keep recent audio even while no speaker is active.
+             * This gives Moonshine the beginning of short, fast,
+             * quiet, or slightly clipped words and numbers.
+             */
+            for (float sample : frame) {
+                _preRollBuffer.push_back(sample);
+
+                while (_preRollBuffer.size() > kPreRollSamples) {
+                    _preRollBuffer.pop_front();
+                }
+            }
+
             if (!speech) {
                 continue;
             }
@@ -548,14 +1091,17 @@ void YasuVoiceAsrWorker::processChunk(
             _candidateStartSample = 0;
 
             _audioBuffer.clear();
-            _preRollBuffer.clear();
             _lastText.clear();
             _samplesSinceDecode = 0;
 
+            /*
+             * Start with the recent pre-roll instead of only the
+             * first detected speech frame.
+             */
             _audioBuffer.insert(
                 _audioBuffer.end(),
-                frame.begin(),
-                frame.end()
+                _preRollBuffer.begin(),
+                _preRollBuffer.end()
             );
 
             continue;
@@ -594,7 +1140,7 @@ void YasuVoiceAsrWorker::processChunk(
             if (_audioBuffer.size() >=
                     kMinSpeechSamples &&
                 _samplesSinceDecode >=
-                    kPartialDecodeSamples) {
+                    _adaptivePartialDecodeSamples) {
 
                 decodePartial(false);
 
@@ -614,13 +1160,32 @@ void YasuVoiceAsrWorker::processChunk(
             if (_audioBuffer.size() >=
                 kMaxSegmentSamples) {
 
+                /*
+                 * Finalize the current long segment, but keep the
+                 * same active speaker. This prevents long spoken
+                 * numbers/sentences from losing speaker continuity.
+                 */
                 decodePartial(true);
 
+                _segmentGeneration.fetch_add(
+                    1,
+                    std::memory_order_acq_rel
+                );
+
                 _audioBuffer.clear();
-                _preRollBuffer.clear();
                 _lastText.clear();
 
+                _asrPreviousText.clear();
+                _asrStablePrefix.clear();
+                _asrStableRepeats = 0;
+
                 _samplesSinceDecode = 0;
+
+                /*
+                 * _activeSsrc intentionally remains unchanged.
+                 * The next frames belong to the same speaker and
+                 * form a fresh Moonshine segment.
+                 */
             }
 
             continue;

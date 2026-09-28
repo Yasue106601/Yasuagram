@@ -1,10 +1,12 @@
 #pragma once
 
 #include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <deque>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -37,6 +39,8 @@ public:
 private:
     void run();
 
+    void runPartialDecoder();
+
     bool initializeRecognizer(const std::string &modelDir);
 
     void processChunk(
@@ -49,7 +53,19 @@ private:
 
     void resetRecognitionState(bool emitFinal);
     void finishCurrentSegment();
+
+    // Queues a snapshot for the dedicated ASR decoder thread.
+    // Partial requests never block audio capture.
+    // Final requests wait until their decode has completed.
     void decodePartial(bool isFinal);
+
+    void decodeSnapshot(
+        const std::vector<float> &audio,
+        uint32_t ssrc,
+        uint64_t generation,
+        bool isFinal,
+        uint64_t requestId
+    );
 
     bool isSpeech(
         const std::vector<float> &samples
@@ -84,11 +100,42 @@ private:
 
     std::thread _thread;
 
+    // Dedicated Moonshine partial/final decoder thread.
+    // The capture/PCM worker must never block on offline ASR.
+    std::thread _partialDecodeThread;
+    std::mutex _partialMutex;
+    std::condition_variable _partialCondition;
+    std::condition_variable _partialDoneCondition;
+
+    bool _partialStop = false;
+    bool _partialPending = false;
+    bool _partialInFlight = false;
+    bool _partialIsFinal = false;
+
+    std::vector<float> _partialAudio;
+    uint32_t _partialSsrc = 0;
+    uint64_t _partialGeneration = 0;
+    uint64_t _partialRequestId = 0;
+    uint64_t _partialCompletedRequestId = 0;
+
+    // Owned only by the partial decoder thread.
+    uint64_t _partialLastGeneration = 0;
+    std::string _partialLastText;
+
+    // ASR intelligence state: tracks repeated partials without
+    // freezing Moonshine's raw transcript prematurely.
+    std::string _asrPreviousText;
+    std::string _asrStablePrefix;
+    uint32_t _asrStableRepeats = 0;
+
     void *_recognizer = nullptr;
 
     // Owned only by the ASR worker thread.
     uint32_t _activeSsrc = 0;
     uint32_t _candidateSsrc = 0;
+
+    // Invalidates late ASR results from old segments.
+    std::atomic<uint64_t> _segmentGeneration{0};
 
     int _inputSampleRate = 0;
 
@@ -106,6 +153,15 @@ private:
 
     size_t _samplesSinceDecode = 0;
 
+    /*
+     * Adaptive Moonshine partial interval.
+     * It changes according to how quickly the recognized
+     * hypothesis grows, instead of using one fixed interval.
+     */
+    size_t _adaptivePartialDecodeSamples = 1920;
+    size_t _lastDecodedAudioSamples = 0;
+    size_t _lastDecodedTextBytes = 0;
+
     std::deque<float> _preRollBuffer;
 
     static constexpr int kModelSampleRate = 16000;
@@ -113,27 +169,27 @@ private:
     // 32 ms at 16 kHz.
     static constexpr size_t kVadFrameSamples = 512;
 
-    // 400 ms pre-roll.
-    static constexpr size_t kPreRollSamples = 6400;
+    // 600 ms pre-roll.
+    static constexpr size_t kPreRollSamples = 9600;
 
-    // Partial recognition interval: ~200 ms.
-    static constexpr size_t kPartialDecodeSamples = 3200;
+    // Partial recognition interval: ~120 ms.
+    static constexpr size_t kPartialDecodeSamples = 1920;
 
-    // Maximum continuous recognition segment: 8 seconds.
+    // Maximum continuous recognition segment: 20 seconds.
     static constexpr size_t kMaxSegmentSamples =
-        kModelSampleRate * 8;
+        kModelSampleRate * 20;
 
-    // Finalize after ~350 ms of silence.
+    // Finalize after ~550 ms of silence.
     static constexpr size_t kSilenceToFinalizeSamples =
-        kModelSampleRate * 350 / 1000;
+        kModelSampleRate * 550 / 1000;
 
-    // Speaker-switch hysteresis: ~220 ms.
+    // Speaker-switch hysteresis: ~250 ms.
     static constexpr size_t kSpeakerSwitchSamples =
-        kModelSampleRate * 220 / 1000;
+        kModelSampleRate * 250 / 1000;
 
-    // Ignore extremely short noise bursts.
+    // Ignore only extremely short noise bursts.
     static constexpr size_t kMinSpeechSamples =
-        kModelSampleRate * 120 / 1000;
+        kModelSampleRate * 50 / 1000;
 
     // Absolute RMS floor.
     static constexpr float kAbsoluteSpeechRms = 0.008f;

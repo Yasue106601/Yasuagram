@@ -24,6 +24,8 @@
 #include "rtc_base/time_utils.h"
 #include "rtc_base/trace_event.h"
 
+extern "C" bool yasu_is_telemetry_enabled();
+
 namespace webrtc {
 
 namespace {
@@ -311,10 +313,30 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
   mixer_->Mix(nChannels, &mixed_frame_);
   const int64_t yasu_mix_us = rtc::TimeMicros() - yasu_mix_start_us;
 
+  // YASU: tail capture. Log every mixed packet whose NetEq-insert -> mix
+  // latency is >= 40 ms, so latency events are never lost to sampling.
+  if (yasu_is_telemetry_enabled()) {
+    const int64_t yasu_tail_now_us = rtc::TimeMicros();
+    for (const auto& yasu_tail_info : mixed_frame_.packet_infos_) {
+      const int64_t yasu_tail_receive_us = yasu_tail_info.receive_time().us();
+      const int64_t yasu_tail_rx_to_mix_us =
+          yasu_tail_now_us - yasu_tail_receive_us;
+      if (yasu_tail_rx_to_mix_us >= 40000) {
+        RTC_LOG(LS_VERBOSE)
+            << "YASU E2E LATENCY_EVENT"
+            << " time_us=" << yasu_tail_now_us
+            << " ssrc=" << yasu_tail_info.ssrc()
+            << " rtp_ts=" << yasu_tail_info.rtp_timestamp()
+            << " receive_us=" << yasu_tail_receive_us
+            << " rx_to_mix_us=" << yasu_tail_rx_to_mix_us;
+      }
+    }
+  }
+
   // YASU E2E: correlate T12 mixed frame with T11 RTP contributors.
   // Diagnostic only: does not modify PCM, timing, or buffer behavior.
   static int yasu_packet_trace_count = 0;
-  if ((++yasu_packet_trace_count % 100) == 0) {
+  if ((++yasu_packet_trace_count % 10) == 0) {
     const int64_t yasu_t12_meta_us = rtc::TimeMicros();
 
     RTC_LOG(LS_VERBOSE)
