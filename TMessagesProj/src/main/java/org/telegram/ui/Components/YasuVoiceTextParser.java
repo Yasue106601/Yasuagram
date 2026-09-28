@@ -1005,6 +1005,90 @@ public final class YasuVoiceTextParser {
         return result.toString();
     }
 
+    private static int parseStreamingChunk(List<String> tokens) {
+        return parseStreamNumberChunk(tokens);
+    }
+
+    private static String formatStreamingGroup(int value, boolean hasPreviousGroup) {
+        if (value < 0 || value > 999) {
+            return "";
+        }
+
+        if (!hasPreviousGroup) {
+            return Integer.toString(value);
+        }
+
+        return String.format(java.util.Locale.US, "%03d", value);
+    }
+
+    private static String[] normalizeVocabulary(String[] vocabulary) {
+        String[] normalized = new String[vocabulary.length];
+        for (int i = 0; i < vocabulary.length; i++) {
+            normalized[i] = compact(normalizeWord(vocabulary[i]));
+        }
+        return normalized;
+    }
+
+    public static String cleanWords(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return "";
+        }
+
+        String[] raw = input.split("\\s+");
+        StringBuilder out = new StringBuilder(input.length());
+
+        for (String item : raw) {
+            String token = stripPunctuation(item);
+
+            if (token.isEmpty()) {
+                continue;
+            }
+
+            String normalized = compact(normalizeWord(token));
+
+            if (normalized.isEmpty()) {
+                continue;
+            }
+
+            boolean hasDigit = false;
+            for (int i = 0; i < normalized.length(); i++) {
+                if (Character.isDigit(normalized.charAt(i))) {
+                    hasDigit = true;
+                    break;
+                }
+            }
+
+            if (hasDigit) {
+                continue;
+            }
+
+            if (isStreamingNumericComponent(normalized)
+                    || isMiya(normalized)
+                    || isNumericRankToken(normalized)) {
+                continue;
+            }
+
+            if (normalized.length() > 1
+                    && normalized.charAt(0) == 'و') {
+                String rest = normalized.substring(1);
+
+                if (isStreamingNumericComponent(rest)
+                        || isMiya(rest)
+                        || isNumericRankToken(rest)) {
+                    continue;
+                }
+            }
+
+            if (out.length() > 0) {
+                out.append(' ');
+            }
+
+            out.append(token);
+        }
+
+        return out.toString().trim();
+    }
+
     private static boolean isStreamingNumericComponent(String token) {
         if (token == null || token.isEmpty()) {
             return false;
