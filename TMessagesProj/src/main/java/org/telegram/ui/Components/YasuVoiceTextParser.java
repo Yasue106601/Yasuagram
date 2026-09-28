@@ -27,6 +27,8 @@ public final class YasuVoiceTextParser {
      * entry. Higher ranks remain separate structural tokens.
      */
     private static final Map<String, Integer> IRAQI_NUMBER_WORDS = new HashMap<>();
+    private static final Map<String, Integer> FUSHA_NUMBER_WORDS = new HashMap<>();
+    private static final Map<String, Integer> FUSHA_SINGLE_NUMBER_WORDS = new HashMap<>();
 
     private static final Map<String, BigInteger> SCALE = new HashMap<>();
 
@@ -45,40 +47,60 @@ public final class YasuVoiceTextParser {
      * Do NOT add ordinary Arabic words here.
      */
     private static final String[] YASU_NUMERIC_RANK_VOCABULARY = {
-            // ألف
-            "الف", "ألف", "آلف", "الاف", "آلاف",
-            "الفين", "ألفين",
+            // ديشليار
+            "ديشليار", "ديشليارات", "ديشلياره", "ديشليارين",
+            "ديشليون", "ديشليونات", "ديشليونه", "ديشليونين",
 
-            // مليون
-            "مليون", "ملايين", "مليونه",
-            "ميليون", "ميليونه", "مليونين",
+            // تيفليار
+            "تيفليار", "تيفليارات", "تيفلياره", "تيفليارين",
+            "تيفليون", "تيفليونات", "تيفليونه", "تيفليونين",
+
+            // ويتليار
+            "ويتليار", "ويتليارات", "ويتلياره", "ويتليارين",
+            "ويتليون", "ويتليونات", "ويتليونه", "ويتليونين",
+
+            // سيتليار
+            "سيتليار", "سيتليارات", "سيتلياره", "سيتليارين",
+            "سيتليون", "سيتليونات", "سيتليونه", "سيتليونين",
+
+            // سيزليار
+            "سيزليار", "سيزليارات", "سيزلياره", "سيزليارين",
+            "سيزيلون", "سيزيلونات", "سيزيلونه", "سيزيلونين",
+            "سيزليون", "سيزليونات", "سيزليونه", "سيزليونين",
+
+            // سكليار
+            "سكليار", "سكليارات", "سكلياره", "سكليارين",
+            "سكليون", "سكليونات", "سكليونه", "سكليونين",
+
+            // كرليار
+            "كرليار", "كرليارات", "كرلياره", "كرليارين",
+            "كرليون", "كرليونات", "كرليونه", "كرليونين",
+
+            // ترليار / ترليون
+            "ترليار", "ترليارات", "ترلياره", "ترليارين",
+            "ترليون", "ترليونات", "ترليونه", "ترليونين",
+
+            // تريليار / تريليون
+            "تريليار", "تريليارات", "تريلياره", "تريليارين",
+            "تريليون", "تريليونات", "تريليونه", "تريليونين",
+
+            // بليار
+            "بليار", "بليارات", "بلياره", "بليارين",
+            "بليون", "بليونات", "بليونه", "بليونين",
 
             // مليار
-            "مليار", "مليارات", "ملياره",
-            "ميليار", "ميليارات", "ميلياره",
+            "مليار", "مليارات", "ملياره", "مليارين",
+            "ميليار", "ميليارات", "ميلياره", "ميليارين",
 
-            // بليون / بليار
-            "بليون", "بليونات", "بليونه",
-            "بليونين",
-            "بليار", "بليارات", "بلياره",
-            "بليارين",
+            // مليون
+            "مليون", "ملايين", "مليونه", "مليونا", "مليونين",
+            "ميليون", "ميليونه", "ميليونات", "ميليونين",
 
-            // تريليون / ترليون
-            "تريليون", "تريليونات", "تريليونه",
-            "ترليون", "ترليونات", "ترليونه",
+            // ألف
+            "ألف", "الف", "آلف", "الاف", "آلاف",
+            "الفين", "ألفين",
 
-            // مراتب ASR الكبيرة التي طلبها المستخدم.
-            "ديشليار", "ديشليون",
-            "تيفليار", "تيفليون",
-            "ويتليار", "ويتليون",
-            "سيتليار", "سيتليون",
-            "سيزليار", "سيزيلون", "سيزليون",
-            "سكليار", "سكليون",
-            "كرليار", "كرليون",
-            "ترليار", "ترليون",
-
-            // و = رابط عددي فقط.
-            "و"
+            // الرابط العددي
     };
 
     private static final String[] YASU_NUMERIC_RANK_VOCABULARY_NORMALIZED =
@@ -227,6 +249,7 @@ public final class YasuVoiceTextParser {
          * 1000.
          */
         addIraqiNumber(1000, "الف");
+        buildFushaNumberDictionary();
 
         /*
          * Real numeric ranks.
@@ -272,11 +295,407 @@ public final class YasuVoiceTextParser {
         );
     }
 
+    /*
+     * Standard Arabic / Fusha number vocabulary.
+     *
+     * This mirrors the complete 1..1000 numeric vocabulary supplied
+     * for NUMBER mode. It is kept separate from the Iraqi dictionary
+     * so both dialects can be recognized independently.
+     */
+    private static void buildFushaNumberDictionary() {
+        String[] units = {
+                "",
+                "واحد",
+                "اثنان",
+                "ثلاثة",
+                "أربعة",
+                "خمسة",
+                "ستة",
+                "سبعة",
+                "ثمانية",
+                "تسعة"
+        };
+
+        String[] teens = {
+                "",
+                "أحد عشر",
+                "اثنا عشر",
+                "ثلاثة عشر",
+                "أربعة عشر",
+                "خمسة عشر",
+                "ستة عشر",
+                "سبعة عشر",
+                "ثمانية عشر",
+                "تسعة عشر"
+        };
+
+        String[] tens = {
+                "",
+                "",
+                "عشرون",
+                "ثلاثون",
+                "أربعون",
+                "خمسون",
+                "ستون",
+                "سبعون",
+                "ثمانون",
+                "تسعون"
+        };
+
+        String[] hundreds = {
+                "",
+                "مائة",
+                "مائتان",
+                "ثلاثمائة",
+                "أربعمائة",
+                "خمسمائة",
+                "ستمائة",
+                "سبعمائة",
+                "ثمانمائة",
+                "تسعمائة"
+        };
+
+        /*
+         * 1..10
+         */
+        for (int n = 1; n <= 10; n++) {
+            addFushaNumber(n, n == 10 ? "عشرة" : units[n]);
+        }
+
+        /*
+         * 11..19
+         */
+        for (int n = 11; n <= 19; n++) {
+            addFushaNumber(n, teens[n - 10]);
+        }
+
+        /*
+         * 20,30,...90
+         */
+        for (int n = 20; n <= 90; n += 10) {
+            addFushaNumber(n, tens[n / 10]);
+        }
+
+        /*
+         * 21..99
+         *
+         * Keep the supplied Fusha forms:
+         * "اثنان وعشرون", "ثلاثة وثلاثون", etc.
+         */
+        for (int n = 21; n <= 99; n++) {
+            if (n % 10 != 0) {
+                int unit = n % 10;
+                int ten = n / 10;
+
+                addFushaNumber(
+                        n,
+                        units[unit] + " و" + tens[ten]
+                );
+            }
+        }
+
+        /*
+         * Exact hundreds.
+         */
+        for (int h = 1; h <= 9; h++) {
+            addFushaNumber(h * 100, hundreds[h]);
+        }
+
+        /*
+         * 101..999
+         */
+        for (int n = 101; n <= 999; n++) {
+            int h = n / 100;
+            int rest = n % 100;
+
+            if (rest == 0) {
+                continue;
+            }
+
+            addFushaNumber(
+                    n,
+                    hundreds[h] + " و" + getFushaBaseNumber(rest, units, teens, tens)
+            );
+        }
+
+        /*
+         * 1000
+         */
+        addFushaNumber(1000, "ألف");
+    }
+
+    private static void addFushaNumber(int value, String phrase) {
+        String normalized = compact(normalizeWord(phrase));
+
+        FUSHA_NUMBER_WORDS.put(
+                normalized,
+                value
+        );
+
+        /*
+         * Keep only genuine single-word Fusha forms for token-level
+         * fuzzy matching. Composite phrases such as "واحد وعشرون"
+         * are handled by the streaming parser component-by-component.
+         */
+        if (phrase.indexOf(' ') < 0) {
+            FUSHA_SINGLE_NUMBER_WORDS.put(
+                    normalized,
+                    value
+            );
+        }
+    }
+
+    private static String getFushaBaseNumber(
+            int n,
+            String[] units,
+            String[] teens,
+            String[] tens
+    ) {
+        if (n >= 1 && n <= 9) {
+            return units[n];
+        }
+
+        if (n == 10) {
+            return "عشرة";
+        }
+
+        if (n >= 11 && n <= 19) {
+            return teens[n - 10];
+        }
+
+        if (n % 10 == 0) {
+            return tens[n / 10];
+        }
+
+        return units[n % 10] + " و" + tens[n / 10];
+    }
+
     private static void addIraqiNumber(int value, String phrase) {
         IRAQI_NUMBER_WORDS.put(
                 compact(normalizeWord(phrase)),
                 value
         );
+    }
+
+    /*
+     * Streaming number parser primitives.
+     *
+     * These are intentionally small building blocks, not a dictionary
+     * containing every possible number.  Composite numbers are built
+     * from these components at runtime.
+     */
+    private static final Map<String, Integer> YASU_STREAM_UNITS = new HashMap<>();
+    private static final Map<String, Integer> YASU_STREAM_TENS = new HashMap<>();
+    private static final Map<String, Integer> YASU_STREAM_HUNDREDS = new HashMap<>();
+
+    static {
+        addStreamValue(YASU_STREAM_UNITS, 1,
+                "واحد", "وحده");
+        addStreamValue(YASU_STREAM_UNITS, 2,
+                "اثنين", "اثنين");
+        addStreamValue(YASU_STREAM_UNITS, 3,
+                "كلاثة", "ثلاثة", "ثلاثه");
+        addStreamValue(YASU_STREAM_UNITS, 4,
+                "اربعة", "أربعة", "اربعه", "أربعه");
+        addStreamValue(YASU_STREAM_UNITS, 5,
+                "خمسة", "خمسه");
+        addStreamValue(YASU_STREAM_UNITS, 6,
+                "ستة", "سته");
+        addStreamValue(YASU_STREAM_UNITS, 7,
+                "سبعة", "سبعه");
+        addStreamValue(YASU_STREAM_UNITS, 8,
+                "ثمانية", "ثمانيه");
+        addStreamValue(YASU_STREAM_UNITS, 9,
+                "تسعة", "تسعه");
+
+        addStreamValue(YASU_STREAM_TENS, 20,
+                "عشرين");
+        addStreamValue(YASU_STREAM_TENS, 30,
+                "كلاثين", "ثلاثين");
+        addStreamValue(YASU_STREAM_TENS, 40,
+                "اربعين", "أربعين");
+        addStreamValue(YASU_STREAM_TENS, 50,
+                "خمسين");
+        addStreamValue(YASU_STREAM_TENS, 60,
+                "ستين");
+        addStreamValue(YASU_STREAM_TENS, 70,
+                "سبعين");
+        addStreamValue(YASU_STREAM_TENS, 80,
+                "ثمانين");
+        addStreamValue(YASU_STREAM_TENS, 90,
+                "تسعين");
+
+        addStreamValue(YASU_STREAM_HUNDREDS, 100,
+                "مية", "ميه", "ميا", "مئه", "مائه", "مئة", "مائة");
+        addStreamValue(YASU_STREAM_HUNDREDS, 200,
+                "ميتين", "مئتين", "مائتين");
+        addStreamValue(YASU_STREAM_HUNDREDS, 300,
+                "كلاثمية", "ثلاثمية", "ثلاثمئة", "ثلاثمائة");
+        addStreamValue(YASU_STREAM_HUNDREDS, 400,
+                "اربعمية", "أربعمية", "أربعمئة", "أربعمائة");
+        addStreamValue(YASU_STREAM_HUNDREDS, 500,
+                "خمسمية", "خمسمئة", "خمسمائة");
+        addStreamValue(YASU_STREAM_HUNDREDS, 600,
+                "ستمية", "ستمئة", "ستمائة");
+        addStreamValue(YASU_STREAM_HUNDREDS, 700,
+                "سبعمية", "سبعمئة", "سبعمائة");
+        addStreamValue(YASU_STREAM_HUNDREDS, 800,
+                "ثمنمية", "ثمانمية", "ثمانمئة", "ثمانمائة");
+        addStreamValue(YASU_STREAM_HUNDREDS, 900,
+                "تسعمية", "تسعمئة", "تسعمائة");
+    }
+
+    /*
+     * Parse one spoken numeric chunk in the range 0..999.
+     *
+     * The parser is compositional:
+     *   hundreds + tens + units
+     *
+     * The word "و" is optional because ASR/speech may omit it.
+     */
+    private static int parseStreamNumberChunk(List<String> tokens) {
+        if (tokens == null || tokens.isEmpty()) {
+            return -1;
+        }
+
+        int value = 0;
+        boolean found = false;
+
+        for (String raw : tokens) {
+            String token = compact(normalizeWord(raw));
+
+            if (token.isEmpty() || token.equals("و")) {
+                continue;
+            }
+
+            Integer hundred = YASU_STREAM_HUNDREDS.get(token);
+            if (hundred != null) {
+                value += hundred;
+                found = true;
+                continue;
+            }
+
+            Integer ten = YASU_STREAM_TENS.get(token);
+            if (ten != null) {
+                value += ten;
+                found = true;
+                continue;
+            }
+
+            Integer unit = YASU_STREAM_UNITS.get(token);
+            if (unit != null) {
+                value += unit;
+                found = true;
+                continue;
+            }
+
+            /*
+             * Exact dictionary confirmation.
+             *
+             * The old dictionary is not used to generate the parser's
+             * vocabulary. It only confirms an already numeric-looking
+             * spoken token.
+             */
+            Integer confirmed = IRAQI_NUMBER_WORDS.get(token);
+            if (confirmed != null && confirmed >= 1 && confirmed <= 999) {
+                value += confirmed;
+                found = true;
+                continue;
+            }
+
+            /*
+             * "عشرة" is kept separate because it is the base of the
+             * 11..19 family and is useful as a standalone component.
+             */
+            if (token.equals("عشرة")) {
+                value += 10;
+                found = true;
+                continue;
+            }
+
+            /*
+             * Common Iraqi spoken teen forms.
+             * These remain a small component vocabulary, not a
+             * dictionary of every composite number.
+             */
+            Integer teen = parseStreamTeen(token);
+            if (teen != null) {
+                value += teen;
+                found = true;
+                continue;
+            }
+
+            return -1;
+        }
+
+        if (!found || value < 0 || value > 999) {
+            return -1;
+        }
+
+        return value;
+    }
+
+    private static Integer parseStreamTeen(String token) {
+        if (token == null) {
+            return null;
+        }
+
+        String n = compact(normalizeWord(token));
+
+        switch (n) {
+            case "اهدعش":
+            case "احدعش":
+            case "احدعشر":
+                return 11;
+
+            case "اثنعش":
+            case "اثنعشر":
+                return 12;
+
+            case "كلطعش":
+            case "ثلطعش":
+            case "ثلاثطعش":
+                return 13;
+
+            case "اربعطعش":
+            case "اربعتعش":
+                return 14;
+
+            case "خمسطعش":
+            case "خمستعش":
+                return 15;
+
+            case "صطعش":
+            case "ستطعش":
+            case "ستتعش":
+                return 16;
+
+            case "سبعطعش":
+            case "سبعتعش":
+                return 17;
+
+            case "ثمنطعش":
+            case "ثمنتعش":
+            case "ثمانطعش":
+                return 18;
+
+            case "تسعطعش":
+            case "تسعتعش":
+                return 19;
+
+            default:
+                return null;
+        }
+    }
+
+    private static void addStreamValue(
+            Map<String, Integer> map,
+            int value,
+            String... words
+    ) {
+        for (String word : words) {
+            map.put(compact(normalizeWord(word)), value);
+        }
     }
 
     private static String getIraqiBaseNumber(
@@ -334,45 +753,63 @@ public final class YasuVoiceTextParser {
             return false;
         }
 
-        final int length = value.length();
-        int groupDigits = 0;
+        /*
+         * Streaming numeric output may temporarily end with '.':
+         *
+         *   120.
+         *   120.150.
+         *
+         * The trailing dot means that the previous 3-digit group
+         * has been committed and the next rank/group is still being
+         * spoken.
+         */
+        boolean trailingDot = value.charAt(value.length() - 1) == '.';
 
-        for (int i = 0; i < length; i++) {
-            char c = value.charAt(i);
+        String checked = trailingDot
+                ? value.substring(0, value.length() - 1)
+                : value;
 
-            if (c >= '0' && c <= '9') {
-                groupDigits++;
-                continue;
-            }
-
-            if (c != '.') {
-                return false;
-            }
-
-            if (groupDigits == 0 || i + 3 >= length) {
-                return false;
-            }
-
-            char c1 = value.charAt(i + 1);
-            char c2 = value.charAt(i + 2);
-            char c3 = value.charAt(i + 3);
-
-            if (c1 < '0' || c1 > '9'
-                    || c2 < '0' || c2 > '9'
-                    || c3 < '0' || c3 > '9') {
-                return false;
-            }
-
-            if (i + 4 < length && value.charAt(i + 4) != '.') {
-                return false;
-            }
-
-            // The validated group contains exactly 3 digits.
-            groupDigits = 3;
-            i += 3;
+        if (checked.isEmpty()) {
+            return false;
         }
 
-        return groupDigits > 0;
+        String[] groups = checked.split("\\.", -1);
+
+        if (groups.length == 0) {
+            return false;
+        }
+
+        /*
+         * First group: 1..3 digits.
+         * Following groups: exactly 3 digits.
+         */
+        for (int i = 0; i < groups.length; i++) {
+            String group = groups[i];
+
+            if (group.isEmpty()) {
+                return false;
+            }
+
+            int expected = i == 0 ? 3 : 3;
+
+            if (group.length() > expected) {
+                return false;
+            }
+
+            if (i > 0 && group.length() != 3) {
+                return false;
+            }
+
+            for (int j = 0; j < group.length(); j++) {
+                char c = group.charAt(j);
+
+                if (c < '0' || c > '9') {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     public static String parseNumbersOnly(String input) {
@@ -386,125 +823,57 @@ public final class YasuVoiceTextParser {
          * Explicit digits have the highest confidence.
          */
         String digitRun = extractBestDigitRun(normalized);
-
-        /*
-         * Spoken number parser.
-         */
-        String spoken = parseSpokenNumber(normalized);
-
-        if (digitRun.isEmpty()) {
-            return safeNumericOutput(spoken);
-        }
-
-        if (spoken.isEmpty()) {
+        if (!digitRun.isEmpty()) {
             return safeNumericOutput(digitRun);
         }
 
         /*
-         * Prefer the longer confident numeric representation.
+         * Streaming spoken-number parser.
+         *
+         * The important rule here is that ranks are STRUCTURAL
+         * boundaries only. They do not have invented magnitudes.
+         *
+         * Example:
+         *
+         *   مية وعشرين بليار
+         *   مية وخمسين بليون
+         *   ميتين مليار
+         *
+         * becomes:
+         *
+         *   120.
+         *   120.150
+         *   120.150.200
+         *
+         * The large IRAQI_NUMBER_WORDS dictionary is deliberately
+         * NOT used to construct composite numbers here.
+         * It remains available as a recognition/confirmation aid.
          */
-        if (digitRun.length() >= spoken.length()) {
-            return safeNumericOutput(digitRun);
-        }
-
-        return safeNumericOutput(spoken);
+        return parseStreamingSpokenNumber(normalized);
     }
 
-    public static String cleanWords(String input) {
-        if (input == null || input.trim().isEmpty()) {
-            return "";
-        }
-
-        String[] raw = input.split("\\s+");
-        StringBuilder out = new StringBuilder(input.length());
-
-        for (String item : raw) {
-            String token = stripPunctuation(item);
-
-            if (token.isEmpty()) {
-                continue;
-            }
-
-            /*
-             * WORDS-ONLY STRICT FILTER:
-             * Never allow Arabic-Indic/European digits.
-             */
-            if (containsDigit(token)) {
-                continue;
-            }
-
-            String normalized = normalizeWord(token);
-
-            /*
-             * Remove standalone numeric words/ranks.
-             */
-            if (isKnownNumericToken(normalized)
-                    || isMiya(normalized)
-                    || isNumericRankToken(normalized)) {
-                continue;
-            }
-
-            /*
-             * Handle attached Arabic و:
-             * "وعشرين" -> numeric "و" + "عشرين"
-             * "ومرحبا" remains a normal word.
-             */
-            if (normalized.length() > 1
-                    && normalized.charAt(0) == 'و') {
-
-                String rest = normalized.substring(1);
-
-                if (isKnownNumericToken(rest)
-                        || isMiya(rest)
-                        || isNumericRankToken(rest)) {
-                    continue;
-                }
-            }
-
-            if (out.length() > 0) {
-                out.append(' ');
-            }
-
-            out.append(token);
-        }
-
-        return out.toString().trim();
-    }
-
-    private static boolean containsDigit(String value) {
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-
-            if ((c >= '0' && c <= '9')
-                    || (c >= '٠' && c <= '٩')
-                    || (c >= '۰' && c <= '۹')) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static String parseSpokenNumber(String input) {
+    private static String parseStreamingSpokenNumber(String input) {
         String[] raw = input.split("\\s+");
 
         ArrayList<String> tokens = new ArrayList<>();
 
         for (String item : raw) {
-            String token = normalizeWord(stripPunctuation(item));
+            String token = compact(normalizeWord(stripPunctuation(item)));
 
             if (token.isEmpty()) {
                 continue;
             }
 
             /*
-             * Split an attached Arabic و only when the remaining
-             * part is a known numeric token/rank.
+             * Split attached Arabic و only when the remainder is
+             * a numeric component/rank.
              */
             if (token.length() > 1 && token.charAt(0) == 'و') {
                 String rest = token.substring(1);
 
-                if (isKnownNumericToken(rest)) {
+                if (isStreamingNumericComponent(rest)
+                        || isMiya(rest)
+                        || isNumericRankToken(rest)) {
                     tokens.add("و");
                     tokens.add(rest);
                     continue;
@@ -514,274 +883,451 @@ public final class YasuVoiceTextParser {
             tokens.add(token);
         }
 
-        String best = "";
-        int bestRecognized = 0;
-
-        for (int start = 0; start < tokens.size(); start++) {
-            ParseResult result = parseRegionDetailed(tokens, start);
-
-            if (result.value.isEmpty()) {
-                continue;
-            }
-
-            if (result.recognized > bestRecognized
-                    || (result.recognized == bestRecognized
-                    && result.value.length() > best.length())) {
-
-                best = result.value;
-                bestRecognized = result.recognized;
-            }
+        if (tokens.isEmpty()) {
+            return "";
         }
 
-        return best;
-    }
+        StringBuilder result = new StringBuilder();
+        ArrayList<String> current = new ArrayList<>();
 
-    private static boolean isKnownNumericToken(String token) {
-        String n = compact(normalizeWord(token));
+        boolean hasCommittedRank = false;
+        boolean hasAnyGroup = false;
 
-        return IRAQI_NUMBER_WORDS.containsKey(n)
-                || SCALE.containsKey(n)
-                || isNumericRankToken(n);
-    }
-
-    private static final class ParseResult {
-        final String value;
-        final int recognized;
-
-        ParseResult(String value, int recognized) {
-            this.value = value;
-            this.recognized = recognized;
-        }
-    }
-
-    private static ParseResult parseRegionDetailed(
-            List<String> tokens,
-            int start
-    ) {
-        BigInteger total = BigInteger.ZERO;
-        BigInteger current = BigInteger.ZERO;
-
-        boolean found = false;
-        int recognized = 0;
-
-        for (int i = start; i < tokens.size();) {
-            String token = tokens.get(i);
-
+        for (String token : tokens) {
             if (token.equals("و")) {
-                if (found) {
-                    i++;
-                    continue;
-                }
-                break;
-            }
-
-            /*
-             * Numeric rank has priority over the single-word
-             * dictionary entry.
-             *
-             * Example:
-             * "خمسة ألف" must be 5000, not 1005.
-             * "ألف" is also present as 1000 in the 1..1000
-             * dictionary, so ranks must be checked first.
-             */
-            String normalizedToken = compact(
-                    normalizeWord(token)
-            );
-
-            BigInteger scale = SCALE.get(normalizedToken);
-
-            if (scale == null) {
-                scale = getNumericRankScale(normalizedToken);
-            }
-
-            if (scale != null) {
-                if (current.signum() == 0) {
-                    current = BigInteger.ONE;
-                }
-
-                total = total.add(
-                        current.multiply(scale)
-                );
-
-                current = BigInteger.ZERO;
-                found = true;
-                recognized++;
-                i++;
+                /*
+                 * "و" is only a connector.
+                 */
                 continue;
             }
 
-            /*
-             * A complete Iraqi 1..1000 phrase has priority.
-             */
-            int bestLength = 0;
-            int bestValue = 0;
+            if (isNumericRankToken(token)) {
+                /*
+                 * Rank = hard 3-digit group boundary.
+                 */
+                int value = parseStreamingChunk(current);
 
-            int maxLength = Math.min(5, tokens.size() - i);
+                if (value < 0) {
+                    return "";
+                }
 
-            for (int length = maxLength; length >= 1; length--) {
-                StringBuilder phrase = new StringBuilder();
-
-                for (int j = 0; j < length; j++) {
-                    if (j > 0) {
-                        phrase.append(' ');
+                if (hasAnyGroup) {
+                    /*
+                     * Every group after the first is exactly 3 digits.
+                     */
+                    if (result.length() == 0
+                            || result.charAt(result.length() - 1) != '.') {
+                        result.append('.');
                     }
-                    phrase.append(tokens.get(i + j));
                 }
 
-                String key = compact(
-                        normalizeWord(phrase.toString())
-                );
+                result.append(formatStreamingGroup(value, hasAnyGroup));
 
-                Integer value = IRAQI_NUMBER_WORDS.get(key);
+                /*
+                 * Rank itself is already spoken.
+                 *
+                 * The separator before the next group is added
+                 * when that next group is committed. Do not add
+                 * another separator here, otherwise:
+                 *
+                 *   120..150
+                 *
+                 * would be produced.
+                 */
+                result.append('.');
 
-                if (value != null) {
-                    bestLength = length;
-                    bestValue = value;
-                    break;
-                }
+                hasCommittedRank = true;
+                hasAnyGroup = true;
+                current.clear();
+                continue;
             }
 
-            if (bestLength > 0) {
-                current = current.add(
-                        BigInteger.valueOf(bestValue)
-                );
+            if (isStreamingNumericComponent(token)) {
+                String corrected =
+                        correctStreamingNumericToken(token);
 
-                found = true;
-                recognized++;
-                i += bestLength;
+                current.add(
+                        corrected != null
+                                ? corrected
+                                : token
+                );
                 continue;
             }
 
             /*
-             * Unknown large ranks remain structural only.
+             * Unknown speech ends the numeric candidate.
+             * Never extract a smaller valid substring.
              */
-            if (isForbiddenScale(normalizedToken)) {
-                if (found) {
-                    break;
-                }
-
-                i++;
-                continue;
-            }
-
-            if (isNumericRankToken(normalizedToken)) {
-                found = true;
-                recognized++;
-                i++;
-                continue;
-            }
-
             break;
         }
 
-        if (!found || recognized == 0) {
-            return new ParseResult("", 0);
-        }
-
-        BigInteger result = total.add(current);
-
-        if (result.signum() < 0) {
-            return new ParseResult("", 0);
-        }
-
-        return new ParseResult(
-                result.toString(),
-                recognized
-        );
-    }
-
-    private static BigInteger getNumericRankScale(String n) {
-
         /*
-         * Known ranks whose numeric magnitude is unambiguous
-         * in the current parser.
+         * Final group does not require a rank.
+         *
+         * If a rank was already committed, this becomes:
+         *
+         *   120.150
+         *
+         * instead of:
+         *
+         *   120.150.
          */
-        if (matchesRank(n,
-                "الف", "الاف", "الف", "الاف",
-                "الفين")) {
-            /*
-             * ألفين is two thousand, not one thousand.
-             */
-            if (n.equals("الفين")) {
-                return BigInteger.valueOf(2000L);
+        if (!current.isEmpty()) {
+            int value = parseStreamingChunk(current);
+
+            if (value >= 0) {
+                if (hasAnyGroup) {
+                    /*
+                     * The previous rank already left a trailing dot.
+                     * Do not add another dot.
+                     */
+                    if (result.length() == 0
+                            || result.charAt(result.length() - 1) != '.') {
+                        result.append('.');
+                    }
+                }
+
+                result.append(formatStreamingGroup(value, hasAnyGroup));
+
+                /*
+                 * A final unranked group is complete and therefore
+                 * has no trailing dot.
+                 */
+                hasCommittedRank = false;
+                hasAnyGroup = true;
             }
-            return THOUSAND;
         }
 
-        if (matchesRank(n,
-                "مليون", "ملايين", "مليونه",
-                "ميليون", "ميليونه", "مليونين")) {
-            /*
-             * مليونين is two million.
-             */
-            if (n.equals("مليونين")) {
-                return BigInteger.valueOf(2000000L);
-            }
-            return MILLION;
+        if (result.length() == 0) {
+            return "";
         }
 
-        if (matchesRank(n,
-                "مليار", "مليارات", "ملياره",
-                "ميليار", "ميليارات", "ميلياره",
-                "بليون", "بليونات", "بليونه",
-                "بليونين")) {
-            /*
-             * Preserve the existing parser meaning of بليون
-             * as the billion rank.
-             */
-            if (n.equals("بليونين")) {
-                return BigInteger.valueOf(2000000000L);
-            }
-            return BILLION;
-        }
-
-        if (matchesRank(n,
-                "تريليون", "تريليونات", "تريليونه",
-                "ترليون", "ترليونات", "ترليونه")) {
-            return TRILLION;
-        }
-
-        /*
-         * Other YASU rank vocabulary is recognized as a rank
-         * by isNumericRankToken(), but its magnitude is intentionally
-         * not invented here.
-         */
-        return null;
+        return result.toString();
     }
 
-    private static boolean matchesRank(
-            String token,
-            String... variants
-    ) {
-        for (String variant : variants) {
-            if (token.equals(compact(normalizeWord(variant)))) {
-                return true;
-            }
+    private static boolean isStreamingNumericComponent(String token) {
+        if (token == null || token.isEmpty()) {
+            return false;
         }
-        return false;
-    }
 
-    private static boolean isNumericRankToken(String token) {
         String n = compact(normalizeWord(token));
 
         if (n.equals("و")) {
             return true;
         }
 
-        for (String candidate : YASU_NUMERIC_RANK_VOCABULARY_NORMALIZED) {
+        if (YASU_STREAM_UNITS.containsKey(n)
+                || YASU_STREAM_TENS.containsKey(n)
+                || YASU_STREAM_HUNDREDS.containsKey(n)) {
+            return true;
+        }
+
+        if (n.equals("عشرة")) {
+            return true;
+        }
+
+        if (parseStreamTeen(n) != null) {
+            return true;
+        }
+
+        /*
+         * Moonshine can produce small spelling/phonetic errors,
+         * especially with fast, clipped, or noisy speech.
+         *
+         * In NUMBER mode only, allow one conservative edit against
+         * the existing numeric vocabulary. We never compare against
+         * ordinary Arabic words.
+         */
+        return correctStreamingNumericToken(n) != null;
+    }
+
+    /*
+     * Return the canonical numeric token for a conservative fuzzy
+     * match, or null when there is no sufficiently safe match.
+     *
+     * Minimum length of 4 prevents very short Arabic words from being
+     * accidentally interpreted as numbers.
+     */
+    private static String correctStreamingNumericToken(String token) {
+        if (token == null || token.isEmpty()) {
+            return null;
+        }
+
+        String n = compact(normalizeWord(token));
+
+        if (n.isEmpty() || n.equals("و")) {
+            return null;
+        }
+
+        /*
+         * NUMBER mode is numeric-only.
+         *
+         * Rank words (ألف، مليون، مليار, etc.) are structural
+         * and must NEVER become numeric components.
+         *
+         * Check them before fuzzy numeric matching so a misspelled
+         * rank cannot accidentally match an ordinary number word.
+         */
+        if (isNumericRankToken(n) || isForbiddenScale(n)) {
+            return null;
+        }
+
+        /*
+         * Exact numeric vocabulary always wins.
+         */
+        if (YASU_STREAM_UNITS.containsKey(n)
+                || YASU_STREAM_TENS.containsKey(n)
+                || YASU_STREAM_HUNDREDS.containsKey(n)
+                || n.equals("عشرة")
+                || parseStreamTeen(n) != null) {
+            return n;
+        }
+
+        /*
+         * Strong fuzzy matching.
+         *
+         * Short words stay conservative.
+         * Longer number words can tolerate up to two edits:
+         * missing character, extra character, substitution, etc.
+         *
+         * We compare ONLY against existing numeric dictionaries.
+         * No ordinary Arabic vocabulary is ever used.
+         */
+        int maxDistance;
+
+        if (n.length() <= 5) {
+            maxDistance = 1;
+        } else {
+            maxDistance = 2;
+        }
+
+        String best = null;
+        int bestDistance = maxDistance + 1;
+        boolean ambiguous = false;
+
+        /*
+         * Numeric component dictionaries.
+         */
+        String[][] dictionaries = {
+                YASU_STREAM_UNITS.keySet().toArray(new String[0]),
+                YASU_STREAM_TENS.keySet().toArray(new String[0]),
+                YASU_STREAM_HUNDREDS.keySet().toArray(new String[0])
+        };
+
+        for (String[] dictionary : dictionaries) {
+            for (String candidate : dictionary) {
+                if (candidate == null || candidate.isEmpty()) {
+                    continue;
+                }
+
+                /*
+                 * Never allow a fuzzy match to a rank.
+                 */
+                if (isNumericRankToken(candidate)
+                        || isForbiddenScale(candidate)) {
+                    continue;
+                }
+
+                int allowed = Math.min(
+                        maxDistance,
+                        Math.max(1, candidate.length() / 4)
+                );
+
+                if (Math.abs(n.length() - candidate.length()) > allowed) {
+                    continue;
+                }
+
+                int distance = levenshtein(n, candidate, allowed);
+
+                if (distance > allowed) {
+                    continue;
+                }
+
+                if (distance < bestDistance) {
+                    best = candidate;
+                    bestDistance = distance;
+                    ambiguous = false;
+                } else if (distance == bestDistance
+                        && best != null
+                        && !best.equals(candidate)) {
+                    /*
+                     * Two different numeric words are equally close.
+                     * Do not guess in an ambiguous case.
+                     */
+                    ambiguous = true;
+                }
+            }
+        }
+
+        /*
+         * Fusha + Iraqi generated number dictionaries.
+         *
+         * Both dictionaries participate in the same fuzzy search.
+         * The parser works token-by-token, so composite Fusha phrases
+         * containing the Arabic connector "و" are not used here.
+         */
+        Map<String, Integer>[] numberDictionaries = new Map[] {
+                FUSHA_SINGLE_NUMBER_WORDS,
+                YASU_STREAM_UNITS,
+                YASU_STREAM_TENS,
+                YASU_STREAM_HUNDREDS
+        };
+
+        for (Map<String, Integer> dictionary : numberDictionaries) {
+            for (String candidate : dictionary.keySet()) {
+                Integer value = dictionary.get(candidate);
+
+                if (value == null || value < 1 || value > 999) {
+                    continue;
+                }
+
+                if (candidate == null || candidate.isEmpty()) {
+                    continue;
+                }
+
+                if (isNumericRankToken(candidate)
+                        || isForbiddenScale(candidate)) {
+                    continue;
+                }
+
+                int allowed = Math.min(
+                        maxDistance,
+                        Math.max(1, candidate.length() / 4)
+                );
+
+                if (Math.abs(n.length() - candidate.length()) > allowed) {
+                    continue;
+                }
+
+                int distance = levenshtein(n, candidate, allowed);
+
+                if (distance > allowed) {
+                    continue;
+                }
+
+                if (distance < bestDistance) {
+                    best = candidate;
+                    bestDistance = distance;
+                    ambiguous = false;
+                } else if (distance == bestDistance
+                        && best != null
+                        && !best.equals(candidate)) {
+                    /*
+                     * Equal-distance different numeric words are unsafe.
+                     */
+                    ambiguous = true;
+                }
+            }
+        }
+
+        /*
+         * No numeric candidate = emit nothing.
+         *
+         * Ambiguous candidate = emit nothing.
+         *
+         * NUMBER mode must prefer an empty result over inventing
+         * a number from ordinary or uncertain speech.
+         */
+        if (best == null || ambiguous) {
+            return null;
+        }
+
+        return best;
+    }
+
+    /*
+     * Numeric rank detection.
+     *
+     * Rank words are structural markers:
+     * ألف / مليون / مليار / ... .
+     *
+     * They must NEVER enter the numeric-component fuzzy matcher.
+     * We therefore check forbidden scale artifacts first, then
+     * the complete existing rank vocabulary.
+     */
+    /*
+     * Iraqi spoken "hundred" component.
+     *
+     * These forms are numeric components and are handled separately
+     * from the normal unit/ten/hundred vocabulary because "مية"
+     * can be followed by another numeric component.
+     */
+    private static boolean isMiya(String token) {
+        if (token == null || token.isEmpty()) {
+            return false;
+        }
+
+        String n = compact(normalizeWord(token));
+
+        return n.equals("مية")
+                || n.equals("ميه")
+                || n.equals("مئة")
+                || n.equals("مائة")
+                || n.equals("مائه");
+    }
+
+    private static boolean isNumericRankToken(String token) {
+        if (token == null || token.isEmpty()) {
+            return false;
+        }
+
+        String n = compact(normalizeWord(token));
+
+        if (n.isEmpty() || n.equals("و")) {
+            return false;
+        }
+
+        /*
+         * Forbidden scale artifacts always win the exclusion.
+         */
+        if (isForbiddenScale(n)) {
+            return false;
+        }
+
+        /*
+         * Exact rank match.
+         */
+        for (String candidate :
+                YASU_NUMERIC_RANK_VOCABULARY_NORMALIZED) {
+
             if (n.equals(candidate)) {
                 return true;
             }
+        }
 
-            /*
-             * Very conservative ASR tolerance:
-             * allow one edit only for long rank words.
-             * Never use substring matching because that could
-             * turn ordinary Arabic words into numeric ranks.
-             */
-            if (n.length() >= 6
-                    && Math.abs(n.length() - candidate.length()) <= 1
-                    && levenshtein(n, candidate, 1) <= 1) {
+        /*
+         * Strong-but-controlled ASR tolerance for ranks.
+         *
+         * Short rank words: 1 edit.
+         * Longer rank words: up to 2 edits.
+         *
+         * This happens BEFORE numeric fuzzy matching, so a word
+         * resembling "مليون" or "مليار" is treated as a rank,
+         * not as an ordinary number.
+         */
+        int maxDistance = n.length() <= 5 ? 1 : 2;
+
+        for (String candidate :
+                YASU_NUMERIC_RANK_VOCABULARY_NORMALIZED) {
+
+            if (candidate == null || candidate.isEmpty()) {
+                continue;
+            }
+
+            if (isForbiddenScale(candidate)) {
+                continue;
+            }
+
+            int allowed = Math.min(
+                    maxDistance,
+                    Math.max(1, candidate.length() / 4)
+            );
+
+            if (Math.abs(n.length() - candidate.length()) > allowed) {
+                continue;
+            }
+
+            if (levenshtein(n, candidate, allowed) <= allowed) {
                 return true;
             }
         }
@@ -789,53 +1335,53 @@ public final class YasuVoiceTextParser {
         return false;
     }
 
-    private static String[] normalizeVocabulary(String[] vocabulary) {
-        String[] normalized = new String[vocabulary.length];
-
-        for (int i = 0; i < vocabulary.length; i++) {
-            normalized[i] = compact(normalizeWord(vocabulary[i]));
+    /*
+     * Words which must never become numeric ranks.
+     *
+     * Exact and close ASR variants are both blocked.
+     */
+    private static boolean isForbiddenScale(String token) {
+        if (token == null || token.isEmpty()) {
+            return false;
         }
 
-        return normalized;
-    }
+        String n = compact(normalizeWord(token));
 
-    private static boolean isMiya(String token) {
-        return token.equals("مية")
-                || token.equals("ميه")
-                || token.equals("ميا")
-                || token.equals("مئه")
-                || token.equals("مائه")
-                || token.equals("مئة")
-                || token.equals("مائة");
-    }
-
-    private static boolean isForbiddenScale(String token) {
-        String n = compact(token);
+        if (n.isEmpty()) {
+            return false;
+        }
 
         for (String word : FORBIDDEN_SCALE_WORDS) {
-            if (n.equals(compact(word))) {
+            String candidate = compact(normalizeWord(word));
+
+            if (n.equals(candidate)) {
                 return true;
             }
         }
 
         /*
-         * Deliberately conservative fuzzy matching.
-         *
-         * We only compare against known forbidden-scale artifacts,
-         * never against ordinary words.
+         * Strong fuzzy exclusion for the known forbidden scale
+         * vocabulary. Never use ordinary Arabic words here.
          */
-        if (n.length() < 7) {
-            return false;
-        }
+        int maxDistance = n.length() <= 6 ? 1 : 2;
 
         for (String word : FORBIDDEN_SCALE_WORDS) {
-            String candidate = compact(word);
+            String candidate = compact(normalizeWord(word));
 
-            if (Math.abs(n.length() - candidate.length()) > 1) {
+            if (candidate.isEmpty()) {
                 continue;
             }
 
-            if (levenshtein(n, candidate, 1) <= 1) {
+            int allowed = Math.min(
+                    maxDistance,
+                    Math.max(1, candidate.length() / 4)
+            );
+
+            if (Math.abs(n.length() - candidate.length()) > allowed) {
+                continue;
+            }
+
+            if (levenshtein(n, candidate, allowed) <= allowed) {
                 return true;
             }
         }
@@ -1072,5 +1618,59 @@ public final class YasuVoiceTextParser {
                 .replace(" ", "")
                 .replace("-", "")
                 .replace("_", "");
+    }
+
+    public static void yasuDebugNumberTests() {
+        System.out.println("[YASU NUMBER SMART TEST] =====");
+
+        String[] smartInputs = {
+                "عندي ثلاثمية وسبعة وعشرين كتاب",
+                "ثلاثمية وسبعة وعشرين كتاب",
+                "اشتريت سبعمية وثلاثة عشر قطعة",
+                "سبعمية وثلاثة عشر قطعة",
+                "عندي ألف ومئتين وخمسة وأربعين",
+                "ألف ومئتين وخمسة وأربعين",
+                "أريد مية وخمسة وعشرين دولار",
+                "مية وخمسة وعشرين دولار",
+                "اليوم الجو حلو والشارع مزدحم",
+                "هذا اختبار للكلمات العادية"
+        };
+
+        for (String input : smartInputs) {
+            System.out.println(
+                    "[YASU SMART] "
+                            + input
+                            + " -> "
+                            + parseNumbersOnly(input)
+            );
+        }
+
+        System.out.println("[YASU NUMBER SMART TEST] =====");
+
+        String[] inputs = {
+                "خمسمية وستين",
+                "مية وعشرين بليار",
+                "مية وعشرين بليار ومية وخمسين بليون",
+                "مية وعشرين بليار ومية وخمسين بليون وميتين مليار",
+                "مية وعشرين بليار ومية وخمسين بليون وميتين مليار وسبعين مليون",
+                "مية وعشرين بليار ومية وخمسين بليون وميتين مليار وسبعين مليون ومية وستين الف ومية وسبعين",
+                "خمسمية وستين مليار",
+                "خمسمية وستين",
+                "خمسمية وستين ملياار",
+                "ميتين وثلاثين مليون",
+                "مية وخمسين بليون",
+                "مليار ألف مليون",
+                "ثمنمية وتسعين",
+                "ثمنميه وتسعين"
+        };
+
+        for (String input : inputs) {
+            System.out.println(
+                    "[YASU NUMBER TEST] "
+                            + input
+                            + " -> "
+                            + parseNumbersOnly(input)
+            );
+        }
     }
 }
