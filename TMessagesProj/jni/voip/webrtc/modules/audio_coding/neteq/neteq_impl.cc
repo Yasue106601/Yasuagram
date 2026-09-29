@@ -803,7 +803,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     // Above 60ms, discard at most 3 PacketBuffer packets per insertion.
     // This prevents large bursts of packet loss while still trimming
     // excessive backlog.
-    constexpr size_t kYasuHardBacklogMs = 100;
+    constexpr size_t kYasuHardBacklogMs = 95;
     constexpr size_t kYasuMaxDiscardPackets = 8;
     const size_t yasu_ms = fs_hz_ / 1000;
     const size_t yasu_hard_backlog_samples =
@@ -848,7 +848,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
         if (tgcalls::YasuMeasurementsEnabled()) {
           RTC_LOG(LS_VERBOSE)
               << "YASU HARD_BACKLOG_DROP"
-              << " threshold_ms=100"
+              << " threshold_ms=95"
               << " max_discard_packets=3"
               << " sync_ms=" << (yasu_sync_samples / yasu_ms)
               << " before_ms="
@@ -1590,6 +1590,7 @@ int NetEqImpl::GetDecision(Operation* operation,
       yasu_packet_ms + yasu_sync_ms;
 
   if (yasu_total_backlog_ms >= kYasuHardDrainMs &&
+      status.packet_buffer_info.num_packets > 1 &&
       !status.packet_buffer_info.dtx_or_cng &&
       !status.play_dtmf) {
     if (tgcalls::YasuMeasurementsEnabled()) {
