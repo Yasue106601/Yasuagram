@@ -1577,6 +1577,14 @@ public:
         return _activityTimestamp;
     }
 
+    // YASU: triggers AudioReceiveStream::GetStats() -> ChannelReceive::
+    // GetNetworkStatistics(), which logs YASU RTT REPORT and 7 other
+    // forensic reports. Must be called on the worker thread.
+    void logNetworkStats() {
+        cricket::VoiceMediaReceiveInfo yasuVoiceInfo;
+        _audioChannel->receive_channel()->GetStats(&yasuVoiceInfo, false);
+    }
+
 private:
     void OnSentPacket_w(const rtc::SentPacket& sent_packet) {
         _call->OnSentPacket(sent_packet);
@@ -2385,6 +2393,13 @@ public:
             }
 
             auto stats = strong->_call->GetStats();
+
+            // YASU: activate the 8 dormant per-channel forensic reports
+            // (RTT REPORT included) once per second, per incoming speaker.
+            for (const auto &it : strong->_incomingAudioChannels) {
+                it.second->logNetworkStats();
+            }
+
             float sendBitrateKbps = ((float)stats.send_bandwidth_bps / 1000.0f);
 
             strong->_threads->getMediaThread()->PostTask([weak, sendBitrateKbps]() {
