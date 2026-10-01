@@ -9,6 +9,8 @@
 #include "CodecSelectHelper.h"
 #include "Message.h"
 #include "platform/PlatformInterface.h"
+#include <platform/android/AndroidInterface.h>
+#include <platform/android/AndroidContext.h>
 #include "StaticThreads.h"
 #include "GroupNetworkManager.h"
 
