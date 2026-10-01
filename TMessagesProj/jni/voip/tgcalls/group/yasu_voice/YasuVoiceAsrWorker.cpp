@@ -107,10 +107,12 @@ static std::string yasuStableWordPrefix(
 
 YasuVoiceAsrWorker::YasuVoiceAsrWorker(
     std::shared_ptr<YasuVoicePcmQueue> queue,
-    ResultCallback resultCallback
+    ResultCallback resultCallback,
+    ChirpPcmCallback chirpPcmCallback
 ) :
     _queue(std::move(queue)),
-    _resultCallback(std::move(resultCallback)) {
+    _resultCallback(std::move(resultCallback)),
+    _chirpPcmCallback(std::move(chirpPcmCallback)) {
 }
 
 YasuVoiceAsrWorker::~YasuVoiceAsrWorker() {
@@ -217,9 +219,14 @@ void YasuVoiceAsrWorker::start() {
         _partialLastText.clear();
     }
 
-    _partialDecodeThread = std::thread([this]() {
-        runPartialDecoder();
-    });
+    // YASU VOICE: the PCM worker is always required for Chirp 3.
+    // The legacy Sherpa partial decoder must not consume CPU when
+    // no legacy recognizer is initialized.
+    if (_recognizer) {
+        _partialDecodeThread = std::thread([this]() {
+            runPartialDecoder();
+        });
+    }
 
     _thread = std::thread([this]() {
         run();
@@ -967,6 +974,61 @@ void YasuVoiceAsrWorker::decodeSnapshot(
     );
 }
 
+void YasuVoiceAsrWorker::appendChirpPcm(
+    const std::vector<float> &audio16k
+) {
+    if (!_chirpPcmCallback || audio16k.empty()) {
+        return;
+    }
+
+    _chirpPcmBuffer.reserve(
+        _chirpPcmBuffer.size() + audio16k.size()
+    );
+
+    for (float sample : audio16k) {
+        sample = std::max(-1.0f, std::min(1.0f, sample));
+
+        const float scaled =
+            sample >= 0.0f
+                ? sample * 32767.0f
+                : sample * 32768.0f;
+
+        _chirpPcmBuffer.push_back(
+            static_cast<int16_t>(scaled)
+        );
+    }
+
+    while (_chirpPcmBuffer.size() >=
+           kChirpPcmBatchSamples) {
+
+        if (!_chirpPcmCallback(
+                _chirpPcmBuffer.data(),
+                kChirpPcmBatchSamples)) {
+            break;
+        }
+
+        _chirpPcmBuffer.erase(
+            _chirpPcmBuffer.begin(),
+            _chirpPcmBuffer.begin() +
+                kChirpPcmBatchSamples
+        );
+    }
+}
+
+void YasuVoiceAsrWorker::flushChirpPcm() {
+    if (!_chirpPcmCallback ||
+        _chirpPcmBuffer.empty()) {
+        return;
+    }
+
+    _chirpPcmCallback(
+        _chirpPcmBuffer.data(),
+        _chirpPcmBuffer.size()
+    );
+
+    _chirpPcmBuffer.clear();
+}
+
 void YasuVoiceAsrWorker::processChunk(
     uint32_t ssrc,
     const int16_t *samples,
@@ -974,8 +1036,8 @@ void YasuVoiceAsrWorker::processChunk(
     int sampleRate,
     size_t channels
 ) {
-    if (!_recognizer ||
-        !samples ||
+    // Chirp 3 does not require the legacy Sherpa recognizer.
+    if (!samples ||
         sampleCount == 0 ||
         sampleRate <= 0 ||
         channels == 0) {
@@ -1027,6 +1089,39 @@ void YasuVoiceAsrWorker::processChunk(
     if (audio16k.empty()) {
         return;
     }
+
+    // YASU ASR: conservative adaptive gain normalization.
+    // Keeps quiet speech intelligible without aggressively amplifying noise.
+    {
+        float sumSquares = 0.0f;
+        float peak = 0.0f;
+
+        for (float sample : audio16k) {
+            const float a = std::fabs(sample);
+            sumSquares += sample * sample;
+            peak = std::max(peak, a);
+        }
+
+        const float rms = std::sqrt(
+            sumSquares / static_cast<float>(audio16k.size())
+        );
+
+        if (rms > 0.003f && peak > 0.01f) {
+            const float targetRms = 0.10f;
+            float gain = targetRms / rms;
+            gain = std::max(0.75f, std::min(2.5f, gain));
+
+            for (float &sample : audio16k) {
+                sample = std::max(
+                    -1.0f,
+                    std::min(1.0f, sample * gain)
+                );
+            }
+        }
+    }
+
+    // Chirp 3 receives normalized 16 kHz mono PCM.
+    appendChirpPcm(audio16k);
 
     _inputSampleRate = sampleRate;
 
@@ -1165,7 +1260,9 @@ void YasuVoiceAsrWorker::processChunk(
                 _samplesSinceDecode >=
                     _adaptivePartialDecodeSamples) {
 
-                decodePartial(false);
+                if (_recognizer) {
+                    decodePartial(false);
+                }
 
                 _samplesSinceDecode = 0;
             }
@@ -1177,7 +1274,9 @@ void YasuVoiceAsrWorker::processChunk(
             if (silenceSamples >=
                 kSilenceToFinalizeSamples) {
 
-                finishCurrentSegment();
+                if (_recognizer) {
+                    finishCurrentSegment();
+                }
             }
 
             if (_audioBuffer.size() >=
@@ -1188,7 +1287,9 @@ void YasuVoiceAsrWorker::processChunk(
                  * same active speaker. This prevents long spoken
                  * numbers/sentences from losing speaker continuity.
                  */
-                decodePartial(true);
+                if (_recognizer) {
+                    decodePartial(true);
+                }
 
                 _segmentGeneration.fetch_add(
                     1,
@@ -1239,7 +1340,9 @@ void YasuVoiceAsrWorker::processChunk(
                     candidateDuration >=
                         kSpeakerSwitchSamples) {
 
+                    if (_recognizer) {
                     finishCurrentSegment();
+                }
 
                     _activeSsrc = ssrc;
 

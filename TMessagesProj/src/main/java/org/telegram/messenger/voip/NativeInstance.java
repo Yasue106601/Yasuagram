@@ -32,6 +32,7 @@ public class NativeInstance {
 
     private boolean isGroup;
     private int yasuVoiceAccount;
+    private YasuChirp3Client yasuChirp3Client;
 
     public static class SsrcGroup {
         public String semantics;
@@ -138,6 +139,85 @@ public class NativeInstance {
             FileLog.e(e);
             return null;
         }
+    }
+
+    public synchronized boolean initializeYasuChirp3(
+            String host,
+            String accessToken,
+            String recognizer
+    ) {
+        if (yasuChirp3Client == null) {
+            yasuChirp3Client = new YasuChirp3Client();
+        }
+
+        return yasuChirp3Client.initialize(
+                host,
+                accessToken,
+                recognizer
+        );
+    }
+
+    public synchronized void stopYasuChirp3() {
+        if (yasuChirp3Client != null) {
+            yasuChirp3Client.stop();
+            yasuChirp3Client = null;
+        }
+    }
+
+    public synchronized boolean startYasuChirp3Stream(
+            YasuChirp3Client.Listener listener
+    ) {
+        return yasuChirp3Client != null &&
+                yasuChirp3Client.startStream(listener);
+    }
+
+    public synchronized boolean sendYasuChirp3Pcm(
+            byte[] pcm16,
+            int offset,
+            int length
+    ) {
+        return yasuChirp3Client != null &&
+                yasuChirp3Client.sendPcm16(
+                        pcm16,
+                        offset,
+                        length
+                );
+    }
+
+    public synchronized void finishYasuChirp3Stream() {
+        if (yasuChirp3Client != null) {
+            yasuChirp3Client.finishStream();
+        }
+    }
+
+    /*
+     * Chirp 3 native bridge.
+     *
+     * The native audio worker calls these through JNI.
+     * Chirp remains the only production ASR source.
+     */
+    public synchronized boolean sendYasuChirp3Pcm(
+            short[] pcm16,
+            int length
+    ) {
+        if (yasuChirp3Client == null || pcm16 == null || length <= 0) {
+            return false;
+        }
+
+        int safeLength = Math.min(length, pcm16.length);
+        byte[] bytes = new byte[safeLength * 2];
+
+        for (int i = 0; i < safeLength; i++) {
+            short sample = pcm16[i];
+            bytes[i * 2] = (byte) (sample & 0xff);
+            bytes[i * 2 + 1] = (byte) ((sample >>> 8) & 0xff);
+        }
+
+        return yasuChirp3Client.sendPcm16(
+                bytes,
+                0,
+                bytes.length
+        );
     }
 
     public void setYasuVoiceEnabled(boolean enabled) {

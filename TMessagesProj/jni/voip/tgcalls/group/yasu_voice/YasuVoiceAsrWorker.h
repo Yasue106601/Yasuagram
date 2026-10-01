@@ -21,9 +21,15 @@ public:
         bool isFinal
     )>;
 
+    using ChirpPcmCallback = std::function<bool(
+        const int16_t *samples,
+        size_t sampleCount
+    )>;
+
     YasuVoiceAsrWorker(
         std::shared_ptr<YasuVoicePcmQueue> queue,
-        ResultCallback resultCallback
+        ResultCallback resultCallback,
+        ChirpPcmCallback chirpPcmCallback = nullptr
     );
 
     ~YasuVoiceAsrWorker();
@@ -90,9 +96,16 @@ private:
         std::vector<float> &output
     );
 
+    void appendChirpPcm(
+        const std::vector<float> &audio16k
+    );
+
+    void flushChirpPcm();
+
 private:
     std::shared_ptr<YasuVoicePcmQueue> _queue;
     ResultCallback _resultCallback;
+    ChirpPcmCallback _chirpPcmCallback;
 
     std::atomic<bool> _running{false};
     std::atomic<bool> _enabled{false};
@@ -147,6 +160,10 @@ private:
 
     std::vector<float> _audioBuffer;
 
+    // Independent 16 kHz mono PCM buffer for the Chirp 3
+    // streaming path. 80 ms = 1280 samples.
+    std::vector<int16_t> _chirpPcmBuffer;
+
     std::string _lastText;
 
     int _workerMode = 0;
@@ -174,6 +191,9 @@ private:
 
     // Partial recognition interval: ~120 ms.
     static constexpr size_t kPartialDecodeSamples = 1920;
+
+    // Send Chirp PCM in ~80 ms batches to reduce JNI/gRPC call overhead.
+    static constexpr size_t kChirpPcmBatchSamples = 1280;
 
     // Maximum continuous recognition segment: 20 seconds.
     static constexpr size_t kMaxSegmentSamples =

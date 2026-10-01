@@ -220,7 +220,7 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
                                aaudio_.stream());
   } else {
     const int64_t yasu_now_us = rtc::TimeMicros();
-    if (yasu_now_us - yasu_last_underrun_us > 5000000 &&
+    if (yasu_now_us - yasu_last_underrun_us > 2000000 &&
         yasu_now_us - yasu_last_shrink_us > 1000000) {
       const int32_t yasu_burst = aaudio_.frames_per_burst();
       const int32_t yasu_size =

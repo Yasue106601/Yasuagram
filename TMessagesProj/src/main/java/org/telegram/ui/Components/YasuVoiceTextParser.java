@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashSet;
 
 public final class YasuVoiceTextParser {
 
@@ -1907,6 +1908,40 @@ public final class YasuVoiceTextParser {
                 .replace(" ", "")
                 .replace("-", "")
                 .replace("_", "");
+    }
+
+    /**
+     * Canonical numeric vocabulary for Chirp 3 Speech Adaptation.
+     *
+     * This is intentionally generated from the existing Yasu numeric
+     * dictionaries so Chirp and the final Yasu parser do not maintain
+     * separate numeric vocabularies.
+     */
+    public static String[] getChirp3NumericVocabulary() {
+        LinkedHashSet<String> vocabulary = new LinkedHashSet<>();
+
+        // Large numeric rank words: keep the original spoken forms.
+        for (String word : YASU_NUMERIC_RANK_VOCABULARY) {
+            if (word != null && !word.trim().isEmpty()) {
+                vocabulary.add(word.trim());
+            }
+        }
+
+        // Fusha single-word numeric vocabulary is already normalized and
+        // contains only genuine single-word forms.
+        for (String word : FUSHA_SINGLE_NUMBER_WORDS.keySet()) {
+            if (word != null && !word.isEmpty()) {
+                vocabulary.add(word);
+            }
+        }
+
+        // Iraqi streaming primitives. These are the components from which
+        // the parser composes larger Iraqi numbers at runtime.
+        vocabulary.addAll(YASU_STREAM_UNITS.keySet());
+        vocabulary.addAll(YASU_STREAM_TENS.keySet());
+        vocabulary.addAll(YASU_STREAM_HUNDREDS.keySet());
+
+        return vocabulary.toArray(new String[0]);
     }
 
     public static void yasuDebugNumberTests() {

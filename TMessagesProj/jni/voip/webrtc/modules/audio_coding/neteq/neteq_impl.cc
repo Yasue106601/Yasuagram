@@ -804,7 +804,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     // This prevents large bursts of packet loss while still trimming
     // excessive backlog.
     constexpr size_t kYasuHardBacklogMs = 95;
-    constexpr size_t kYasuMaxDiscardPackets = 8;
+    constexpr size_t kYasuMaxDiscardPackets = 20;
     const size_t yasu_ms = fs_hz_ / 1000;
     const size_t yasu_hard_backlog_samples =
         kYasuHardBacklogMs * yasu_ms;
