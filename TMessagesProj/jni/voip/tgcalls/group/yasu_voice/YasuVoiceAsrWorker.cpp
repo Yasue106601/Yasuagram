@@ -217,9 +217,7 @@ void YasuVoiceAsrWorker::start() {
         _partialLastText.clear();
     }
 
-    // YASU VOICE: the PCM worker is always required for Chirp 3.
-    // The legacy Sherpa partial decoder must not consume CPU when
-    // no legacy recognizer is initialized.
+    // The legacy Sherpa partial decoder runs only when a recognizer is initialized.
     if (_recognizer) {
         _partialDecodeThread = std::thread([this]() {
             runPartialDecoder();
@@ -973,18 +971,6 @@ void YasuVoiceAsrWorker::decodeSnapshot(
 }
 
 
-void YasuVoiceAsrWorker::flushChirpPcm() {
-        _chirpPcmBuffer.empty()) {
-        return;
-    }
-
-        _chirpPcmBuffer.data(),
-        _chirpPcmBuffer.size()
-    );
-
-    _chirpPcmBuffer.clear();
-}
-
 void YasuVoiceAsrWorker::processChunk(
     uint32_t ssrc,
     const int16_t *samples,
@@ -992,7 +978,7 @@ void YasuVoiceAsrWorker::processChunk(
     int sampleRate,
     size_t channels
 ) {
-    // Chirp 3 does not require the legacy Sherpa recognizer.
+    // Validate incoming PCM before local ASR processing.
     if (!samples ||
         sampleCount == 0 ||
         sampleRate <= 0 ||
@@ -1076,7 +1062,7 @@ void YasuVoiceAsrWorker::processChunk(
         }
     }
 
-    // Chirp 3 receives normalized 16 kHz mono PCM.
+    // Continue with normalized 16 kHz mono PCM for local ASR.
 
     _inputSampleRate = sampleRate;
 

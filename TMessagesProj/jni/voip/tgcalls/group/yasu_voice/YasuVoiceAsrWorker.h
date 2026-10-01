@@ -90,7 +90,6 @@ private:
         std::vector<float> &output
     );
 
-    void flushChirpPcm();
 
 private:
     std::shared_ptr<YasuVoicePcmQueue> _queue;
@@ -150,7 +149,6 @@ private:
 
     // Independent 16 kHz mono PCM buffer for the Chirp 3
     // streaming path. 80 ms = 1280 samples.
-    std::vector<int16_t> _chirpPcmBuffer;
 
     std::string _lastText;
 
