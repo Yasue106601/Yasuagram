@@ -812,7 +812,31 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     const size_t yasu_sync_samples =
         sync_buffer_->FutureLength();
 
-    if (yasu_sync_samples < yasu_hard_backlog_samples &&
+    // YASU: Catastrophic-outage emergency flush.
+    // A gap this large (network stall, backgrounded app, etc.) means the
+    // whole queued backlog is stale. Discarding it packet-by-packet still
+    // takes several insertions to reach the normal ceiling; flushing it
+    // outright recovers in one step and avoids playing minutes-old audio.
+    constexpr size_t kYasuEmergencyFlushMs = 400;
+    const size_t yasu_emergency_flush_samples =
+        kYasuEmergencyFlushMs * yasu_ms;
+    const size_t yasu_packet_span_before_samples =
+        packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+    const size_t yasu_total_backlog_before_samples =
+        yasu_sync_samples + yasu_packet_span_before_samples;
+
+    if (yasu_total_backlog_before_samples >= yasu_emergency_flush_samples &&
+        packet_buffer_->NumPacketsInBuffer() > 1) {
+      packet_buffer_->Flush();
+
+      if (tgcalls::YasuMeasurementsEnabled()) {
+        RTC_LOG(LS_WARNING)
+            << "YASU EMERGENCY_FLUSH"
+            << " threshold_ms=" << kYasuEmergencyFlushMs
+            << " before_ms="
+            << (yasu_total_backlog_before_samples / yasu_ms);
+      }
+    } else if (yasu_sync_samples < yasu_hard_backlog_samples &&
         packet_buffer_->NumPacketsInBuffer() > 1) {
       size_t yasu_discarded_packets = 0;
       size_t yasu_backlog_before_samples = 0;
