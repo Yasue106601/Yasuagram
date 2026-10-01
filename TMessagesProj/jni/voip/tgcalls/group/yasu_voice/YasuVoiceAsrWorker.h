@@ -21,15 +21,9 @@ public:
         bool isFinal
     )>;
 
-    using ChirpPcmCallback = std::function<bool(
-        const int16_t *samples,
-        size_t sampleCount
-    )>;
-
     YasuVoiceAsrWorker(
         std::shared_ptr<YasuVoicePcmQueue> queue,
-        ResultCallback resultCallback,
-        ChirpPcmCallback chirpPcmCallback = nullptr
+        ResultCallback resultCallback
     );
 
     ~YasuVoiceAsrWorker();
@@ -96,17 +90,11 @@ private:
         std::vector<float> &output
     );
 
-    void appendChirpPcm(
-        const std::vector<float> &audio16k
-    );
-
     void flushChirpPcm();
 
 private:
     std::shared_ptr<YasuVoicePcmQueue> _queue;
     ResultCallback _resultCallback;
-    ChirpPcmCallback _chirpPcmCallback;
-
     std::atomic<bool> _running{false};
     std::atomic<bool> _enabled{false};
     std::atomic<int> _mode{0};

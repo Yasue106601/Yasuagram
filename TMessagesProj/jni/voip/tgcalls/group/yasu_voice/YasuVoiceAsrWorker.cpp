@@ -107,12 +107,10 @@ static std::string yasuStableWordPrefix(
 
 YasuVoiceAsrWorker::YasuVoiceAsrWorker(
     std::shared_ptr<YasuVoicePcmQueue> queue,
-    ResultCallback resultCallback,
-    ChirpPcmCallback chirpPcmCallback
+    ResultCallback resultCallback
 ) :
     _queue(std::move(queue)),
-    _resultCallback(std::move(resultCallback)),
-    _chirpPcmCallback(std::move(chirpPcmCallback)) {
+    _resultCallback(std::move(resultCallback)) {
 }
 
 YasuVoiceAsrWorker::~YasuVoiceAsrWorker() {
@@ -974,54 +972,12 @@ void YasuVoiceAsrWorker::decodeSnapshot(
     );
 }
 
-void YasuVoiceAsrWorker::appendChirpPcm(
-    const std::vector<float> &audio16k
-) {
-    if (!_chirpPcmCallback || audio16k.empty()) {
-        return;
-    }
-
-    _chirpPcmBuffer.reserve(
-        _chirpPcmBuffer.size() + audio16k.size()
-    );
-
-    for (float sample : audio16k) {
-        sample = std::max(-1.0f, std::min(1.0f, sample));
-
-        const float scaled =
-            sample >= 0.0f
-                ? sample * 32767.0f
-                : sample * 32768.0f;
-
-        _chirpPcmBuffer.push_back(
-            static_cast<int16_t>(scaled)
-        );
-    }
-
-    while (_chirpPcmBuffer.size() >=
-           kChirpPcmBatchSamples) {
-
-        if (!_chirpPcmCallback(
-                _chirpPcmBuffer.data(),
-                kChirpPcmBatchSamples)) {
-            break;
-        }
-
-        _chirpPcmBuffer.erase(
-            _chirpPcmBuffer.begin(),
-            _chirpPcmBuffer.begin() +
-                kChirpPcmBatchSamples
-        );
-    }
-}
 
 void YasuVoiceAsrWorker::flushChirpPcm() {
-    if (!_chirpPcmCallback ||
         _chirpPcmBuffer.empty()) {
         return;
     }
 
-    _chirpPcmCallback(
         _chirpPcmBuffer.data(),
         _chirpPcmBuffer.size()
     );
@@ -1121,7 +1077,6 @@ void YasuVoiceAsrWorker::processChunk(
     }
 
     // Chirp 3 receives normalized 16 kHz mono PCM.
-    appendChirpPcm(audio16k);
 
     _inputSampleRate = sampleRate;
 

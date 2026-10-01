@@ -2083,61 +2083,6 @@ public:
                 if (_yasuVoiceTextUpdated) {
                     _yasuVoiceTextUpdated(text, isFinal);
                 }
-            },
-            [platformContext = _platformContext](const int16_t *samples, size_t sampleCount) -> bool {
-                if (!platformContext || samples == nullptr || sampleCount == 0) {
-                    return false;
-                }
-
-                bool sent = false;
-
-                tgvoip::jni::DoWithJNI([&](JNIEnv *env) {
-                    jobject globalRef = ((AndroidContext *) platformContext.get())->getJavaGroupInstance();
-                    if (globalRef == nullptr) {
-                        return;
-                    }
-
-                    jclass clazz = env->GetObjectClass(globalRef);
-                    if (clazz == nullptr) {
-                        return;
-                    }
-
-                    jmethodID method = env->GetMethodID(
-                        clazz,
-                        "sendYasuChirp3Pcm",
-                        "([SI)Z"
-                    );
-
-                    if (method == nullptr) {
-                        env->DeleteLocalRef(clazz);
-                        return;
-                    }
-
-                    jshortArray pcm = env->NewShortArray(static_cast<jsize>(sampleCount));
-                    if (pcm == nullptr) {
-                        env->DeleteLocalRef(clazz);
-                        return;
-                    }
-
-                    env->SetShortArrayRegion(
-                        pcm,
-                        0,
-                        static_cast<jsize>(sampleCount),
-                        reinterpret_cast<const jshort *>(samples)
-                    );
-
-                    sent = env->CallBooleanMethod(
-                        globalRef,
-                        method,
-                        pcm,
-                        static_cast<jint>(sampleCount)
-                    ) == JNI_TRUE;
-
-                    env->DeleteLocalRef(pcm);
-                    env->DeleteLocalRef(clazz);
-                });
-
-                return sent;
             }
         );
 
