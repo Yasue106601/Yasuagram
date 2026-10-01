@@ -11,6 +11,7 @@
 #include "platform/PlatformInterface.h"
 #include <platform/android/AndroidInterface.h>
 #include <platform/android/AndroidContext.h>
+#include "libtgvoip/os/android/JNIUtilities.h"
 #include "StaticThreads.h"
 #include "GroupNetworkManager.h"
 
