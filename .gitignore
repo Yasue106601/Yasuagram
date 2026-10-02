@@ -30,5 +30,3 @@ TMessagesProj/config/release.keystore
 *.keystore
 *.jks
 *.txt
-
-!TMessagesProj/src/main/assets/yasu_voice/moonshine_ar/tokens.txt

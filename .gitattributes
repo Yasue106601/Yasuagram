@@ -1,2 +1,0 @@
-TMessagesProj/src/main/assets/yasu_voice/*.ort filter=lfs diff=lfs merge=lfs -text
-TMessagesProj/src/main/assets/yasu_voice/moonshine_ar/*.ort filter=lfs diff=lfs merge=lfs -text

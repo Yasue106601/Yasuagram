@@ -359,7 +359,6 @@ struct YasuFastAudioCore::Impl {
             // the optimized Yasu audio path.
             opus_decoder_ctl(
                 stream->decoder,
-                OPUS_SET_COMPLEXITY(3));
         }
 
         if (!stream->decoder ||
