@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <string>
 
+#include "api/task_queue/task_queue_base.h"
+
 namespace tgcalls {
 
 class YasuFastAudioCore final {
@@ -21,6 +23,13 @@ public:
                     uint32_t timestamp,
                     const uint8_t* payload,
                     size_t payload_size);
+
+    void ProcessPacket(uint32_t ssrc,
+                        uint16_t sequence,
+                        uint32_t timestamp,
+                        const uint8_t* payload,
+                        size_t payload_size,
+                        uint64_t packet_generation);
 
     int ReadPcm(int16_t* output,
                 int frames,

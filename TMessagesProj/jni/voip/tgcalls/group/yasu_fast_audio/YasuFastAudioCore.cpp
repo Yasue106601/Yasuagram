@@ -1,6 +1,7 @@
 #include "YasuFastAudioCore.h"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -12,6 +13,7 @@
 
 #include <opus.h>
 
+#include "api/task_queue/default_task_queue_factory.h"
 #include "voip/tgcalls/YasuMeasurementGate.h"
 
 namespace tgcalls {
@@ -24,6 +26,10 @@ constexpr int kMaxStreams = 32;
 // We prefer a tiny amount of loss/stutter over waiting for late packets.
 constexpr int kPacketSlots = 2;
 constexpr int kMaxPayload = 1600;
+
+// Fixed packet handoff queue between the WebRTC WorkerThread and the
+// dedicated realtime FAST audio queue. No per-packet heap allocation.
+constexpr int kFastPacketQueueSlots = 64;
 
 // 1024 mono frames ~= 21.3 ms at 48 kHz.
 // If the producer gets ahead, old PCM is dropped to prevent latency growth.
@@ -304,7 +310,53 @@ struct Stats {
 }  // namespace
 
 struct YasuFastAudioCore::Impl {
+    struct QueuedPacket {
+        uint32_t ssrc = 0;
+        uint16_t sequence = 0;
+        uint32_t timestamp = 0;
+        uint16_t size = 0;
+        uint64_t generation = 0;
+        uint8_t data[kMaxPayload]{};
+    };
+
     std::atomic<bool> enabled{false};
+
+    // Every explicit enable/reset advances this generation.
+    // Queued packets from an older Group Call are discarded.
+    std::atomic<uint64_t> generation{0};
+
+    // Dedicated FAST audio worker.
+    // HIGH maps to rtc::ThreadPriority::kRealtime in this build.
+    // This does NOT raise the priority of WebRTC's shared WorkerThread.
+    std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory;
+    std::unique_ptr<webrtc::TaskQueueBase, webrtc::TaskQueueDeleter> fast_queue;
+
+    // Preallocated packet handoff queue.
+    // Producer: WebRTC WorkerThread.
+    // Consumer: dedicated realtime FAST queue.
+    QueuedPacket packet_queue[kFastPacketQueueSlots];
+    uint32_t packet_queue_read = 0;
+    uint32_t packet_queue_write = 0;
+    std::atomic_flag packet_queue_lock = ATOMIC_FLAG_INIT;
+    std::atomic<bool> packet_task_posted{false};
+
+    void LockPacketQueue() {
+        while (packet_queue_lock.test_and_set(
+            std::memory_order_acquire)) {
+        }
+    }
+
+    void UnlockPacketQueue() {
+        packet_queue_lock.clear(std::memory_order_release);
+    }
+
+    bool PacketQueueEmpty() const {
+        return packet_queue_read == packet_queue_write;
+    }
+
+    uint32_t PacketQueueNext(uint32_t index) const {
+        return (index + 1) % kFastPacketQueueSlots;
+    }
 
     // Serializes packet/decode/reset operations.
     // The AAudio callback never takes this lock.
@@ -1047,6 +1099,14 @@ YasuFastAudioCore::Instance() {
 
 YasuFastAudioCore::YasuFastAudioCore()
     : impl_(new Impl()) {
+    impl_->task_queue_factory =
+        webrtc::CreateDefaultTaskQueueFactory();
+
+    impl_->fast_queue =
+        impl_->task_queue_factory->CreateTaskQueue(
+            "yasu-fast-audio",
+            webrtc::TaskQueueFactory::Priority::HIGH);
+
     impl_->stats.Reset();
 }
 
@@ -1095,6 +1155,15 @@ bool YasuFastAudioCore::IsEnabled() const {
 }
 
 void YasuFastAudioCore::Reset() {
+    // Invalidate every queued packet belonging to the previous call.
+    impl_->generation.fetch_add(
+        1,
+        std::memory_order_acq_rel);
+
+    impl_->LockPacketQueue();
+    impl_->packet_queue_read = impl_->packet_queue_write;
+    impl_->UnlockPacketQueue();
+
     impl_->Lock();
 
     for (auto& stream : impl_->streams) {
@@ -1146,6 +1215,137 @@ void YasuFastAudioCore::PushPacket(
         payload == nullptr ||
         payload_size == 0 ||
         payload_size > kMaxPayload) {
+        return;
+    }
+
+    const uint64_t packet_generation =
+        impl_->generation.load(std::memory_order_acquire);
+
+    bool need_post = false;
+
+    impl_->LockPacketQueue();
+
+    if (!impl_->enabled.load(std::memory_order_acquire) ||
+        impl_->generation.load(std::memory_order_acquire) !=
+            packet_generation) {
+        impl_->UnlockPacketQueue();
+        return;
+    }
+
+    const uint32_t write = impl_->packet_queue_write;
+    const uint32_t next = impl_->PacketQueueNext(write);
+
+    // Bounded low-latency policy:
+    // never allow queued packets to accumulate unbounded delay.
+    if (next == impl_->packet_queue_read) {
+        impl_->packet_queue_read =
+            impl_->PacketQueueNext(impl_->packet_queue_read);
+
+        if (YasuMeasurementsEnabled()) {
+            impl_->stats.packets_dropped.fetch_add(1);
+        }
+    }
+
+    auto& queued = impl_->packet_queue[write];
+
+    queued.ssrc = ssrc;
+    queued.sequence = sequence;
+    queued.timestamp = timestamp;
+    queued.size = static_cast<uint16_t>(payload_size);
+    queued.generation = packet_generation;
+
+    std::memcpy(
+        queued.data,
+        payload,
+        payload_size);
+
+    impl_->packet_queue_write = next;
+
+    // Only the transition from idle -> pending posts a task.
+    need_post = !impl_->packet_task_posted.exchange(
+        true,
+        std::memory_order_acq_rel);
+
+    impl_->UnlockPacketQueue();
+
+    if (!need_post) {
+        return;
+    }
+
+    impl_->fast_queue->PostTask(
+        [this]() {
+            for (;;) {
+                Impl::QueuedPacket packet;
+
+                impl_->LockPacketQueue();
+
+                if (impl_->PacketQueueEmpty()) {
+                    // Mark idle while holding the queue lock so a producer
+                    // cannot miss the transition.
+                    impl_->packet_task_posted.store(
+                        false,
+                        std::memory_order_release);
+
+                    // Close producer race before leaving the worker.
+                    if (!impl_->PacketQueueEmpty()) {
+                        impl_->packet_task_posted.store(
+                            true,
+                            std::memory_order_release);
+                        impl_->UnlockPacketQueue();
+                        continue;
+                    }
+
+                    impl_->UnlockPacketQueue();
+                    return;
+                }
+
+                const uint32_t read =
+                    impl_->packet_queue_read;
+
+                packet = impl_->packet_queue[read];
+
+                impl_->packet_queue_read =
+                    impl_->PacketQueueNext(read);
+
+                impl_->UnlockPacketQueue();
+
+                ProcessPacket(
+                    packet.ssrc,
+                    packet.sequence,
+                    packet.timestamp,
+                    packet.data,
+                    packet.size,
+                    packet.generation);
+            }
+        });
+}
+
+void YasuFastAudioCore::ProcessPacket(
+    uint32_t ssrc,
+    uint16_t sequence,
+    uint32_t timestamp,
+    const uint8_t* payload,
+    size_t payload_size,
+    uint64_t packet_generation) {
+
+    if (!IsEnabled() ||
+        payload == nullptr ||
+        payload_size == 0 ||
+        payload_size > kMaxPayload) {
+        return;
+    }
+
+    if (impl_->generation.load(std::memory_order_acquire) !=
+        packet_generation) {
+        return;
+    }
+
+    impl_->Lock();
+
+    if (!impl_->enabled.load(std::memory_order_acquire) ||
+        impl_->generation.load(std::memory_order_acquire) !=
+            packet_generation) {
+        impl_->Unlock();
         return;
     }
 

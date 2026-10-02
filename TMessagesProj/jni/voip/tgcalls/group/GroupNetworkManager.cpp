@@ -404,6 +404,11 @@ void GroupNetworkManager::resetDtlsSrtpTransport() {
 
     auto transportChannel = cricket::P2PTransportChannel::Create("transport", 0, std::move(iceTransportInit));
 
+    // YASU GROUP AUDIO NETWORK PRIORITY:
+    // Mark this Group Call transport as voice traffic (DSCP EF).
+    // This affects only this Group Call transport.
+    transportChannel->SetOption(rtc::Socket::OPT_DSCP, 46);
+
     cricket::IceConfig iceConfig;
     iceConfig.continual_gathering_policy = cricket::GATHER_CONTINUALLY;
     iceConfig.prioritize_most_likely_candidate_pairs = true;
