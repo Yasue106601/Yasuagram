@@ -2045,7 +2045,7 @@ public:
     _initialOutputDeviceId(std::move(descriptor.initialOutputDeviceId)),
     _missingPacketBuffer(50),
     _onMutedSpeechActivityDetected(std::move(descriptor.onMutedSpeechActivityDetected)),
-    _platformContext(descriptor.platformContext),
+    _platformContext(descriptor.platformContext)
  {
         assert(_threads->getMediaThread()->IsCurrent());
 
