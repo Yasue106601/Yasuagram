@@ -357,8 +357,6 @@ struct YasuFastAudioCore::Impl {
         if (stream->decoder && error == OPUS_OK) {
             // Match the low-complexity Opus configuration used by
             // the optimized Yasu audio path.
-            opus_decoder_ctl(
-                stream->decoder,
         }
 
         if (!stream->decoder ||
