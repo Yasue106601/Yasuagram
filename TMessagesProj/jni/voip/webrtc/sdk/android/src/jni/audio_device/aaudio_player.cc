@@ -13,6 +13,7 @@
 #include <memory>
 
 #include "api/array_view.h"
+#include "voip/tgcalls/group/yasu_fast_audio/YasuFastAudioCore.h"
 #include "api/task_queue/task_queue_base.h"
 #include "modules/audio_device/fine_audio_buffer.h"
 #include "rtc_base/checks.h"
@@ -310,6 +311,55 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
                       << ", num_frames: " << num_frames;
   }
 
+  // YASU FAST AUDIO:
+  // This is the actual Group Call AAudio backend. When FAST is enabled,
+  // consume decoded PCM directly from YasuFastAudioCore and completely
+  // bypass FineAudioBuffer/WebRTC playout for this callback.
+  auto& yasu_fast_audio = tgcalls::YasuFastAudioCore::Instance();
+
+  if (yasu_fast_audio.IsEnabled()) {
+    const bool yasu_fast_ok = yasu_fast_audio.ReadPcm(
+        static_cast<int16_t*>(audio_data),
+        num_frames,
+        aaudio_.sample_rate(),
+        aaudio_.channel_count());
+
+    if (!yasu_fast_ok) {
+      memset(audio_data, 0,
+             sizeof(int16_t) * aaudio_.samples_per_frame() * num_frames);
+    }
+
+    static uint64_t yasu_fast_callback_count = 0;
+    if ((++yasu_fast_callback_count % 100) == 0) {
+      RTC_LOG(LS_VERBOSE)
+          << "YASU FAST AAUDIO CALLBACK"
+          << " time_us=" << rtc::TimeMicros()
+          << " frames=" << num_frames
+          << " sample_rate=" << aaudio_.sample_rate()
+          << " channels=" << aaudio_.channel_count()
+          << " pcm_ok=" << yasu_fast_ok
+          << " frames_written=" << aaudio_.frames_written()
+          << " frames_read=" << aaudio_.frames_read()
+          << " xruns=" << aaudio_.xrun_count();
+    }
+
+    const int64_t yasu_t7_end_us = rtc::TimeMicros();
+    if ((yasu_t7_count % 100) == 0) {
+      RTC_LOG(LS_VERBOSE)
+          << "YASU FORENSIC T7 AAUDIO_DONE"
+          << " time_us=" << yasu_t7_end_us
+          << " cost_us=" << (yasu_t7_end_us - yasu_t7_start_us)
+          << " frames_written=" << aaudio_.frames_written()
+          << " frames_read=" << aaudio_.frames_read()
+          << " xruns=" << aaudio_.xrun_count()
+          << " latency_ms=" << latency_millis_
+          << " fast=1";
+    }
+
+    return AAUDIO_CALLBACK_RESULT_CONTINUE;
+  }
+
+  // LEGACY AUDIO PATH:
   // Read audio data from the WebRTC source using the FineAudioBuffer object
   // and write that data into `audio_data` to be played out by AAudio.
   // Prime output with zeros during a short initial phase to avoid distortion.
