@@ -3103,7 +3103,7 @@ public static VoIPService getSharedInstance() {
 						tgVoip[type].onRequestTimeComplete(taskPtr, ConnectionsManager.getInstance(currentAccount).getCurrentTimeMillis());
 					}
 				}
-			}, conference != null, currentAccount);
+			}, conference != null);
 			tgVoip[type].setOnStateUpdatedListener((state, inTransition) -> updateConnectionState(type, state, inTransition));
 //			if (captureDevice[type] != 0 && type == 0 && convertingVoip != null && convertingVoip.hasVideoCapturer()) {
 //				tgVoip[type].setupOutgoingVideoCreated(captureDevice[type]);
