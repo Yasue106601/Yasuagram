@@ -1001,13 +1001,6 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
         return null;
     }
 
-    public void setYasuVoiceEnabled(boolean enabled) {
-        NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
-        if (instance != null && instance.isGroup()) {
-            instance.setYasuVoiceEnabled(enabled);
-        }
-    }
-
     private boolean measurementsEnabled = false;
 
     public void setMeasurementsEnabled(boolean enabled) {
@@ -1022,14 +1015,21 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
         return measurementsEnabled;
     }
 
-    public void setYasuVoiceMode(int mode) {
+    private boolean yasuFastAudioEnabled = false;
+
+    public void setYasuFastAudioEnabled(boolean enabled) {
+        yasuFastAudioEnabled = enabled;
         NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
         if (instance != null && instance.isGroup()) {
-            instance.setYasuVoiceMode(mode);
+            instance.setYasuFastAudioEnabled(enabled);
         }
     }
 
-	public static VoIPService getSharedInstance() {
+    public boolean getYasuFastAudioEnabled() {
+        return yasuFastAudioEnabled;
+    }
+
+public static VoIPService getSharedInstance() {
 		return sharedInstance;
 	}
 
@@ -4234,7 +4234,10 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 			if (tgVoip[CAPTURE_DEVICE_CAMERA].isGroup()) {
 				NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
 				Utilities.globalQueue.postRunnable(() -> {
+                                   String fastAudioLog = instance.getYasuFastAudioMeasurementLog();
                                    String netEqLog = instance.stopGroup();
+                                   instance.resetYasuFastAudio();
+
                                    if (netEqLog != null && !netEqLog.isEmpty()) {
                                            try {
                                                    android.content.ContentValues values = new android.content.ContentValues();
@@ -4260,6 +4263,34 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
                                                    }
                                            } catch (Exception e) {
                                                    FileLog.e("YASU NETEQ: export failed", e);
+                                           }
+                                   }
+
+                                   if (fastAudioLog != null && !fastAudioLog.isEmpty()) {
+                                           try {
+                                                   android.content.ContentValues values = new android.content.ContentValues();
+                                                   values.put(android.provider.MediaStore.Downloads.DISPLAY_NAME,
+                                                           "Yasuagram_FastAudio_" + System.currentTimeMillis() + ".txt");
+                                                   values.put(android.provider.MediaStore.Downloads.MIME_TYPE, "text/plain");
+                                                   values.put(android.provider.MediaStore.Downloads.RELATIVE_PATH,
+                                                           android.os.Environment.DIRECTORY_DOWNLOADS);
+
+                                                   android.net.Uri uri = getContentResolver().insert(
+                                                           android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                                                           values
+                                                   );
+
+                                                   if (uri != null) {
+                                                           try (java.io.OutputStream outputStream = getContentResolver().openOutputStream(uri)) {
+                                                                   if (outputStream != null) {
+                                                                           outputStream.write(fastAudioLog.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                                                                           outputStream.flush();
+                                                                   }
+                                                           }
+                                                           FileLog.e("YASU FAST AUDIO: log exported to Downloads");
+                                                   }
+                                           } catch (Exception e) {
+                                                   FileLog.e("YASU FAST AUDIO: export failed", e);
                                            }
                                    }
                            });

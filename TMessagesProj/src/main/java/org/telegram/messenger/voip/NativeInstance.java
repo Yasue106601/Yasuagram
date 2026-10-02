@@ -31,7 +31,6 @@ public class NativeInstance {
     private float[] temp = new float[1];
 
     private boolean isGroup;
-    private int yasuVoiceAccount;
 
     public static class SsrcGroup {
         public String semantics;
@@ -70,10 +69,9 @@ public class NativeInstance {
         return instance;
     }
 
-    public static NativeInstance makeGroup(String logPath, long videoCapturer, boolean screencast, boolean noiseSupression, PayloadCallback payloadCallback, AudioLevelsCallback audioLevelsCallback, VideoSourcesCallback unknownParticipantsCallback, RequestBroadcastPartCallback requestBroadcastPartCallback, RequestBroadcastPartCallback cancelRequestBroadcastPartCallback, RequestCurrentTimeCallback requestCurrentTimeCallback, boolean isConference, int account) {
+    public static NativeInstance makeGroup(String logPath, long videoCapturer, boolean screencast, boolean noiseSupression, PayloadCallback payloadCallback, AudioLevelsCallback audioLevelsCallback, VideoSourcesCallback unknownParticipantsCallback, RequestBroadcastPartCallback requestBroadcastPartCallback, RequestBroadcastPartCallback cancelRequestBroadcastPartCallback, RequestCurrentTimeCallback requestCurrentTimeCallback, boolean isConference) {
         ContextUtils.initialize(ApplicationLoader.applicationContext);
         NativeInstance instance = new NativeInstance();
-        instance.yasuVoiceAccount = account;
         instance.payloadCallback = payloadCallback;
         instance.audioLevelsCallback = audioLevelsCallback;
         instance.unknownParticipantsCallback = unknownParticipantsCallback;
@@ -81,71 +79,8 @@ public class NativeInstance {
         instance.cancelRequestBroadcastPartCallback = cancelRequestBroadcastPartCallback;
         instance.requestCurrentTimeCallback = requestCurrentTimeCallback;
         instance.isGroup = true;
-        String yasuVoiceModelDir = instance.prepareYasuVoiceModel();
-        android.util.Log.e("YasuVoiceModel", "prepare returned path=" + yasuVoiceModelDir);
-        instance.nativePtr = makeGroupNativeInstance(instance, logPath, SharedConfig.disableVoiceAudioEffects, videoCapturer, screencast, noiseSupression, isConference, yasuVoiceModelDir);
+        instance.nativePtr = makeGroupNativeInstance(instance, logPath, SharedConfig.disableVoiceAudioEffects, videoCapturer, screencast, noiseSupression, isConference);
         return instance;
-    }
-
-    private String prepareYasuVoiceModel() {
-        final String assetDir = "yasu_voice/moonshine_ar";
-        final java.io.File modelDir = new java.io.File(ApplicationLoader.applicationContext.getFilesDir(), "yasu_voice/moonshine_ar");
-        android.util.Log.e("YasuVoiceModel", "modelDir=" + modelDir.getAbsolutePath());
-
-        try {
-            if (!modelDir.exists() && !modelDir.mkdirs()) {
-                FileLog.e("YasuVoice: failed to create model directory");
-                return null;
-            }
-
-            String[] files = {
-                    "encoder_model.ort",
-                    "decoder_model_merged.ort",
-                    "tokens.txt"
-            };
-
-            android.content.res.AssetManager assets =
-                    ApplicationLoader.applicationContext.getAssets();
-
-            for (String fileName : files) {
-                java.io.File outFile = new java.io.File(modelDir, fileName);
-
-                if (outFile.exists() && outFile.length() > 0) {
-                    android.util.Log.e("YasuVoiceModel", "existing " + fileName + " size=" + outFile.length());
-                    continue;
-                }
-
-                android.util.Log.e("YasuVoiceModel", "copying " + fileName);
-                try (java.io.InputStream input = assets.open(assetDir + "/" + fileName);
-                     java.io.FileOutputStream output = new java.io.FileOutputStream(outFile)) {
-
-                    byte[] buffer = new byte[1024 * 1024];
-                    int count;
-
-                    while ((count = input.read(buffer)) != -1) {
-                        output.write(buffer, 0, count);
-                    }
-
-                    output.flush();
-                }
-                android.util.Log.e("YasuVoiceModel", "copied " + fileName + " size=" + outFile.length());
-            }
-
-            android.util.Log.e("YasuVoiceModel", "READY path=" + modelDir.getAbsolutePath());
-            return modelDir.getAbsolutePath();
-        } catch (Exception e) {
-            android.util.Log.e("YasuVoiceModel", "FAILED", e);
-            FileLog.e(e);
-            return null;
-        }
-    }
-
-
-
-    public void setYasuVoiceEnabled(boolean enabled) {
-        if (nativePtr != 0 && isGroup) {
-            setYasuVoiceEnabledNative(enabled);
-        }
     }
 
     public void setMeasurementsEnabled(boolean enabled) {
@@ -154,18 +89,23 @@ public class NativeInstance {
         }
     }
 
-    public void setYasuVoiceMode(int mode) {
+    public void setYasuFastAudioEnabled(boolean enabled) {
         if (nativePtr != 0 && isGroup) {
-            setYasuVoiceModeNative(mode);
+            setYasuFastAudioEnabledNative(enabled);
         }
     }
 
-    private void onYasuVoiceText(String text, boolean isFinal) {
-        NotificationCenter.getInstance(yasuVoiceAccount).postNotificationName(
-                NotificationCenter.yasuVoiceTextUpdated,
-                text,
-                isFinal
-        );
+    public String getYasuFastAudioMeasurementLog() {
+        if (nativePtr != 0 && isGroup) {
+            return getYasuFastAudioMeasurementLogNative();
+        }
+        return "";
+    }
+
+    public void resetYasuFastAudio() {
+        if (nativePtr != 0 && isGroup) {
+            resetYasuFastAudioNative();
+        }
     }
 
     public int getPeerCapabilities() {
@@ -285,11 +225,12 @@ public class NativeInstance {
         return stopGroupNative();
     }
 
-    private native void setYasuVoiceEnabledNative(boolean enabled);
     private native void setMeasurementsEnabledNative(boolean enabled);
-    private native void setYasuVoiceModeNative(int mode);
+    private native void setYasuFastAudioEnabledNative(boolean enabled);
+    private native String getYasuFastAudioMeasurementLogNative();
+    private native void resetYasuFastAudioNative();
 
-    private static native long makeGroupNativeInstance(NativeInstance instance, String persistentStateFilePath, boolean highQuality, long videoCapturer, boolean screencast, boolean noiseSupression, boolean conference, String yasuVoiceModelDir);
+    private static native long makeGroupNativeInstance(NativeInstance instance, String persistentStateFilePath, boolean highQuality, long videoCapturer, boolean screencast, boolean noiseSupression, boolean conference);
     private static native long makeNativeInstance(String version, NativeInstance instance, Instance.Config config, String persistentStateFilePath, Instance.Endpoint[] endpoints, Instance.Proxy proxy, int networkType, Instance.EncryptionKey encryptionKey, VideoSink remoteSink, long videoCapturer, float aspectRatio);
     public static native long createVideoCapturer(VideoSink localSink, int type);
     public static native void setVideoStateCapturer(long videoCapturer, int videoState);

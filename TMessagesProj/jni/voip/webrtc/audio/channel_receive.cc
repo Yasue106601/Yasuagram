@@ -10,6 +10,8 @@
 
 #include "audio/channel_receive.h"
 
+#include "voip/tgcalls/group/yasu_fast_audio/YasuFastAudioCore.h"
+
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -345,6 +347,19 @@ void ChannelReceive::OnReceivedPayloadData(
     }
 
     return;
+  }
+
+  // YASU FAST AUDIO:
+  // Feed the already-transformed Opus payload directly to the experimental
+  // low-latency decoder while keeping the original NetEq path intact.
+  if (rtpHeader.payloadType == 111) {
+    auto& yasu_fast_audio = tgcalls::YasuFastAudioCore::Instance();
+    yasu_fast_audio.PushPacket(
+        rtpHeader.ssrc,
+        rtpHeader.sequenceNumber,
+        rtpHeader.timestamp,
+        payload.data(),
+        payload.size());
   }
 
   // Push the incoming payload (parsed and ready for decoding) into the ACM

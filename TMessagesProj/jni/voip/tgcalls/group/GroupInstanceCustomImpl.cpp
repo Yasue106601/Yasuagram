@@ -72,8 +72,6 @@
 #include <condition_variable>
 #include <deque>
 #include <thread>
-#include "yasu_voice/YasuVoicePcmQueue.h"
-#include "yasu_voice/YasuVoiceAsrWorker.h"
 
 
 #ifndef USE_RNNOISE
@@ -577,12 +575,10 @@ public:
     AudioSinkImpl(std::function<void(Update)> update,
         ChannelId channel_id,
         std::function<void(uint32_t, const AudioFrame &)> onAudioFrame,
-        std::shared_ptr<YasuVoicePcmQueue> yasuVoicePcmQueue = nullptr,
         std::function<void(uint32_t, const int16_t *, size_t, int, size_t)> voicePcmCallback = nullptr) :
     _update(update),
     _channel_id(channel_id),
     _onAudioFrame(std::move(onAudioFrame)),
-    _yasuVoicePcmQueue(std::move(yasuVoicePcmQueue)),
     _voicePcmCallback(std::move(voicePcmCallback)) {
     }
 
@@ -603,21 +599,6 @@ public:
               audio.sample_rate,
               audio.channels
           );
-      }
-
-      // YASU VOICE: copy decoded incoming participant PCM into the
-      // bounded ASR queue. Never run ASR from this audio callback.
-      if (_yasuVoicePcmQueue && audio.data != nullptr &&
-          audio.samples_per_channel > 0 &&
-          audio.channels > 0 &&
-          audio.sample_rate > 0) {
-        _yasuVoicePcmQueue->push(
-            _channel_id.actualSsrc,
-            static_cast<const int16_t *>(audio.data),
-            audio.samples_per_channel * audio.channels,
-            audio.sample_rate,
-            audio.channels
-        );
       }
 
       if (_onAudioFrame) {
@@ -675,9 +656,6 @@ private:
     ChannelId _channel_id;
     std::function<void(uint32_t, const AudioFrame &)> _onAudioFrame;
 
-    // YASU VOICE: decoded incoming participant PCM is copied here.
-    // ASR inference must never execute from AudioSinkImpl::OnData().
-    std::shared_ptr<YasuVoicePcmQueue> _yasuVoicePcmQueue;
     std::function<void(uint32_t, const int16_t *, size_t, int, size_t)> _voicePcmCallback;
 
   int _peakCount = 0;
@@ -1470,7 +1448,6 @@ public:
         std::function<void(AudioSinkImpl::Update)> &&onAudioLevelUpdated,
         std::function<void(uint32_t, const AudioFrame &)> onAudioFrame,
         std::shared_ptr<Threads> threads,
-        std::shared_ptr<YasuVoicePcmQueue> yasuVoicePcmQueue,
         std::function<std::vector<uint8_t>(std::vector<uint8_t> const &, int64_t, bool, int32_t)> e2eEncryptDecrypt,
         std::map<int32_t, FrameTransformerPayloadType> const &payloadTypeMapping,
         std::function<void(uint32_t, uint8_t, bool)> setAudioLevelAndSpeech) :
@@ -1480,7 +1457,7 @@ public:
     _call(call) {
         _creationTimestamp = rtc::TimeMillis();
 
-        threads->getWorkerThread()->BlockingCall([this, rtpTransport, ssrc, onAudioFrame = std::move(onAudioFrame), onAudioLevelUpdated = std::move(onAudioLevelUpdated), yasuVoicePcmQueue, isRawPcm, userId, e2eEncryptDecrypt, payloadTypeMapping, setAudioLevelAndSpeech]() mutable {
+        threads->getWorkerThread()->BlockingCall([this, rtpTransport, ssrc, onAudioFrame = std::move(onAudioFrame), onAudioLevelUpdated = std::move(onAudioLevelUpdated), isRawPcm, userId, e2eEncryptDecrypt, payloadTypeMapping, setAudioLevelAndSpeech]() mutable {
             cricket::AudioOptions audioOptions;
             audioOptions.audio_jitter_buffer_fast_accelerate = true;
             audioOptions.audio_jitter_buffer_min_delay_ms = 0;
@@ -1547,7 +1524,6 @@ public:
                     std::move(onAudioLevelUpdated),
                     _ssrc,
                     std::move(onAudioFrame),
-                    yasuVoicePcmQueue,
                     nullptr
                 ));
                 _audioChannel->receive_channel()->SetRawAudioSink(ssrc.networkSsrc, std::move(audioLevelSink));
@@ -1585,8 +1561,8 @@ public:
     // GetNetworkStatistics(), which logs YASU RTT REPORT and 7 other
     // forensic reports. Must be called on the worker thread.
     void logNetworkStats() {
-        cricket::VoiceMediaReceiveInfo yasuVoiceInfo;
-        _audioChannel->receive_channel()->GetStats(&yasuVoiceInfo, false);
+        cricket::VoiceMediaReceiveInfo receiveInfo;
+        _audioChannel->receive_channel()->GetStats(&receiveInfo, false);
     }
 
 private:
@@ -2070,21 +2046,8 @@ public:
     _missingPacketBuffer(50),
     _onMutedSpeechActivityDetected(std::move(descriptor.onMutedSpeechActivityDetected)),
     _platformContext(descriptor.platformContext),
-    _yasuVoiceTextUpdated(std::move(descriptor.yasuVoiceTextUpdated)),
-    _yasuVoiceModelDir(std::move(descriptor.yasuVoiceModelDir)) {
+ {
         assert(_threads->getMediaThread()->IsCurrent());
-
-        // YASU VOICE: queue only. No ASR work is performed here.
-        _yasuVoicePcmQueue = std::make_shared<YasuVoicePcmQueue>();
-
-        _yasuVoiceAsrWorker = std::make_unique<YasuVoiceAsrWorker>(
-            _yasuVoicePcmQueue,
-            [this](uint32_t ssrc, const std::string &text, bool isFinal) {
-                if (_yasuVoiceTextUpdated) {
-                    _yasuVoiceTextUpdated(text, isFinal);
-                }
-            }
-        );
 
         // Model initialization/start will be wired after lifecycle setup.
 
@@ -2114,12 +2077,6 @@ public:
 
     ~GroupInstanceCustomInternal() {
         // YASU VOICE: wake the ASR worker before destroying the group.
-        if (_yasuVoicePcmQueue) {
-            _yasuVoicePcmQueue->stop();
-        }
-        if (_yasuVoiceAsrWorker) {
-            _yasuVoiceAsrWorker->stop();
-        }
 
         _incomingAudioChannels.clear();
         _incomingVideoChannels.clear();
@@ -2363,13 +2320,6 @@ public:
 
         // YASU VOICE: start the PCM worker independently of the
         // legacy offline ASR model. Chirp 3 is the streaming ASR path.
-        if (_yasuVoiceAsrWorker) {
-            _threads->getWorkerThread()->BlockingCall([this]() {
-                if (_yasuVoiceAsrWorker) {
-                    _yasuVoiceAsrWorker->start();
-                }
-            });
-        }
     }
 
     void beginLogTimer(int delayMs) {
@@ -4074,7 +4024,6 @@ public:
             std::move(onAudioSinkUpdate),
             _onAudioFrame,
             _threads,
-            _yasuVoicePcmQueue,
             _e2eEncryptDecrypt,
             _payloadTypeMapping,
             [weak, threads = _threads](uint32_t ssrc, uint8_t audioLevel, bool hasSpeech) {
@@ -4194,25 +4143,6 @@ public:
         adjustBitratePreferences(false);
     }
 
-    void setYasuVoiceEnabled(bool enabled) {
-        if (!_yasuVoiceAsrWorker) {
-            return;
-        }
-
-        _yasuVoiceAsrWorker->setEnabled(enabled);
-    }
-
-    void setYasuVoiceMode(int mode) {
-        if (!_yasuVoiceAsrWorker) {
-            return;
-        }
-
-        if (mode < 0 || mode > 1) {
-            mode = 0;
-        }
-
-        _yasuVoiceAsrWorker->setMode(mode);
-    }
 
     void setVolume(uint32_t ssrc, double volume) {
         auto current = _volumeBySsrc.find(ssrc);
@@ -4527,10 +4457,6 @@ private:
     std::function<void(bool)> _onMutedSpeechActivityDetected;
     std::shared_ptr<PlatformContext> _platformContext;
 
-    std::shared_ptr<YasuVoicePcmQueue> _yasuVoicePcmQueue;
-    std::function<void(const std::string &, bool)> _yasuVoiceTextUpdated;
-    std::unique_ptr<YasuVoiceAsrWorker> _yasuVoiceAsrWorker;
-    std::string _yasuVoiceModelDir;
 
     std::map<int32_t, FrameTransformerPayloadType> _payloadTypeMapping;
 };
@@ -4695,18 +4621,6 @@ void GroupInstanceCustomImpl::addOutgoingVideoOutput(std::weak_ptr<rtc::VideoSin
 void GroupInstanceCustomImpl::addIncomingVideoOutput(std::string const &endpointId, std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> sink) {
     _internal->perform([endpointId, sink](GroupInstanceCustomInternal *internal) mutable {
         internal->addIncomingVideoOutput(endpointId, sink);
-    });
-}
-
-void GroupInstanceCustomImpl::setYasuVoiceEnabled(bool enabled) {
-    _internal->perform([enabled](GroupInstanceCustomInternal *internal) {
-        internal->setYasuVoiceEnabled(enabled);
-    });
-}
-
-void GroupInstanceCustomImpl::setYasuVoiceMode(int mode) {
-    _internal->perform([mode](GroupInstanceCustomInternal *internal) {
-        internal->setYasuVoiceMode(mode);
     });
 }
 

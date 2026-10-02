@@ -47,8 +47,6 @@ public:
     void addIncomingVideoOutput(std::string const &endpointId, std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> sink);
     
     void setVolume(uint32_t ssrc, double volume);
-    void setYasuVoiceEnabled(bool enabled);
-    void setYasuVoiceMode(int mode);
     void setMeasurementsEnabled(bool enabled);
 
     void setRequestedVideoChannels(std::vector<VideoChannelDescription> &&requestedVideoChannels);

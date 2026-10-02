@@ -188,8 +188,6 @@ struct GroupInstanceDescriptor {
 
     std::shared_ptr<PlatformContext> platformContext;
 
-    std::function<void(const std::string &, bool)> yasuVoiceTextUpdated;
-    std::string yasuVoiceModelDir;
 };
 
 template <typename T>

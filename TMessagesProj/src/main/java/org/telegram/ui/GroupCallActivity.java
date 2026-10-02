@@ -269,7 +269,9 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
     private final VoIPToggleButton leaveButton;
     private final VoIPToggleButton messageButton;
     private VoIPToggleButton measurementsButton;
+    private VoIPToggleButton yasuFastAudioButton;
     private boolean measurementsEnabled = false;
+    private boolean yasuFastAudioEnabled = false;
     private final VoIPToggleButton muteButton;
     private final RLottieImageView muteButtonIcon;
     private final ImageView expandOrMinimizeButton;
@@ -4482,6 +4484,50 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
             );
             measurementsButton.showText(true, true);
         });
+
+        yasuFastAudioButton = new VoIPToggleButton(context, 50f);
+        yasuFastAudioButton.setTextSize(11);
+
+        VoIPService yasuFastAudioService = VoIPService.getSharedInstance();
+        if (yasuFastAudioService != null) {
+            yasuFastAudioEnabled = yasuFastAudioService.getYasuFastAudioEnabled();
+        }
+
+        yasuFastAudioButton.setData(
+                0,
+                Color.WHITE,
+                yasuFastAudioEnabled ? Color.GREEN : Color.RED,
+                1f,
+                true,
+                yasuFastAudioEnabled ? "المسار الجديد" : "المسار القديم",
+                false,
+                false
+        );
+        yasuFastAudioButton.showText(true, false);
+
+        yasuFastAudioButton.setOnClickListener(v -> {
+            VoIPService service = VoIPService.getSharedInstance();
+            if (service == null) {
+                return;
+            }
+
+            yasuFastAudioEnabled = !yasuFastAudioEnabled;
+            service.setYasuFastAudioEnabled(yasuFastAudioEnabled);
+
+            yasuFastAudioButton.setData(
+                    0,
+                    Color.WHITE,
+                    yasuFastAudioEnabled ? Color.GREEN : Color.RED,
+                    1f,
+                    true,
+                    yasuFastAudioEnabled ? "المسار الجديد" : "المسار القديم",
+                    false,
+                    true
+            );
+            yasuFastAudioButton.showText(true, true);
+        });
+
+        buttonsContainer.addButton(yasuFastAudioButton);
 
         messageButton = new VoIPToggleButton(context, 50f);
         messageButton.setCheckable(true);
