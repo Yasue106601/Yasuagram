@@ -350,19 +350,26 @@ void ChannelReceive::OnReceivedPayloadData(
   }
 
   // YASU FAST AUDIO:
-  // Feed the already-transformed Opus payload directly to the experimental
-  // low-latency decoder while keeping the original NetEq path intact.
-  if (rtpHeader.payloadType == 111) {
-    auto& yasu_fast_audio = tgcalls::YasuFastAudioCore::Instance();
-    yasu_fast_audio.PushPacket(
-        rtpHeader.ssrc,
-        rtpHeader.sequenceNumber,
-        rtpHeader.timestamp,
-        payload.data(),
-        payload.size());
+  // When FAST is enabled, this is the complete audio receive path.
+  // The already-transformed Opus payload goes directly to YasuFastAudioCore.
+  // Do not feed it into NetEq, ACM, or the legacy NACK/audio pipeline.
+  auto& yasu_fast_audio = tgcalls::YasuFastAudioCore::Instance();
+
+  if (yasu_fast_audio.IsEnabled()) {
+    if (rtpHeader.payloadType == 111) {
+      yasu_fast_audio.PushPacket(
+          rtpHeader.ssrc,
+          rtpHeader.sequenceNumber,
+          rtpHeader.timestamp,
+          payload.data(),
+          payload.size());
+    }
+
+    return;
   }
 
-  // Push the incoming payload (parsed and ready for decoding) into the ACM
+  // LEGACY AUDIO PATH:
+  // NetEq/ACM/NACK remain completely intact when FAST is disabled.
   if (acm_receiver_.InsertPacket(rtpHeader, payload) != 0) {
     RTC_DLOG(LS_ERROR) << "ChannelReceive::OnReceivedPayloadData() unable to "
                           "push data to the ACM";

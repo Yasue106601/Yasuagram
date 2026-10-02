@@ -22,12 +22,12 @@ constexpr int kMaxStreams = 32;
 
 // Very small packet reorder window.
 // We prefer a tiny amount of loss/stutter over waiting for late packets.
-constexpr int kPacketSlots = 6;
+constexpr int kPacketSlots = 2;
 constexpr int kMaxPayload = 1600;
 
 // 1024 mono frames ~= 21.3 ms at 48 kHz.
 // If the producer gets ahead, old PCM is dropped to prevent latency growth.
-constexpr int kStreamRingFrames = 1024;
+constexpr int kStreamRingFrames = 512;
 
 constexpr int kOutputChunk = 480;
 
@@ -136,6 +136,16 @@ struct Stats {
     std::atomic<uint64_t> pcm_frames_written{0};
     std::atomic<uint64_t> pcm_frames_read{0};
 
+    // YASU REAL PLAYOUT DIAGNOSTICS.
+    // These counters prove whether AAudio actually reaches ReadPcm().
+    std::atomic<uint64_t> readpcm_calls{0};
+    std::atomic<uint64_t> readpcm_enabled_calls{0};
+    std::atomic<uint64_t> readpcm_invalid_calls{0};
+    std::atomic<uint64_t> readpcm_wrong_rate_calls{0};
+    std::atomic<uint64_t> readpcm_zero_source_calls{0};
+    std::atomic<int32_t> readpcm_last_sample_rate{0};
+    std::atomic<int32_t> readpcm_last_channels{0};
+
     // Real callback starvation.
     std::atomic<uint64_t> pcm_underruns{0};
 
@@ -191,6 +201,14 @@ struct Stats {
 
         pcm_frames_written.store(0);
         pcm_frames_read.store(0);
+
+        readpcm_calls.store(0);
+        readpcm_enabled_calls.store(0);
+        readpcm_invalid_calls.store(0);
+        readpcm_wrong_rate_calls.store(0);
+        readpcm_zero_source_calls.store(0);
+        readpcm_last_sample_rate.store(0);
+        readpcm_last_channels.store(0);
 
         pcm_underruns.store(0);
         pcm_overruns.store(0);
@@ -444,20 +462,22 @@ struct YasuFastAudioCore::Impl {
 
         for (int i = 0; i < samples; ++i) {
             uint32_t next =
-                (write + 1) % kStreamRingFrames;
+                (write + 1) & (kStreamRingFrames - 1);
 
             if (next == read) {
                 // Drop the oldest PCM rather than allowing
                 // buffering latency to grow.
                 read =
-                    (read + 1) % kStreamRingFrames;
+                    (read + 1) & (kStreamRingFrames - 1);
 
                 stream->pcm_read.store(
                     read,
                     std::memory_order_release);
 
-                stats.pcm_overruns.fetch_add(1);
-                stats.pcm_overrun_frames.fetch_add(1);
+                if (source_arrival_us != 0) {
+                    stats.pcm_overruns.fetch_add(1);
+                    stats.pcm_overrun_frames.fetch_add(1);
+                }
             }
 
             const int32_t left =
@@ -471,8 +491,10 @@ struct YasuFastAudioCore::Impl {
                 static_cast<int16_t>(
                     (left + right) / 2);
 
-            stream->pcm_time_us[write] =
-                source_arrival_us;
+            if (source_arrival_us != 0) {
+                stream->pcm_time_us[write] =
+                    source_arrival_us;
+            }
 
             write = next;
         }
@@ -481,20 +503,18 @@ struct YasuFastAudioCore::Impl {
             write,
             std::memory_order_release);
 
-        stats.pcm_frames_written.fetch_add(
-            static_cast<uint64_t>(samples));
+        if (source_arrival_us != 0) {
+            stats.pcm_frames_written.fetch_add(
+                static_cast<uint64_t>(samples));
 
-        const uint32_t depth =
-            write >= read
-                ? write - read
-                : kStreamRingFrames - read + write;
+            const uint32_t depth =
+                write >= read
+                    ? write - read
+                    : kStreamRingFrames - read + write;
 
-        Stats::AddMax(
-            stats.max_ring_depth,
-            static_cast<uint64_t>(depth));
-
-        if (source_arrival_us != 0 &&
-            Measurements()) {
+            Stats::AddMax(
+                stats.max_ring_depth,
+                static_cast<uint64_t>(depth));
 
             const uint64_t now = NowUs();
 
@@ -518,7 +538,11 @@ struct YasuFastAudioCore::Impl {
         thread_local int16_t decoded[
             kDecodeSamples * 2];
 
-        const uint64_t start = NowUs();
+        const bool measure =
+            YasuMeasurementsEnabled();
+
+        const uint64_t start =
+            measure ? NowUs() : 0;
 
         const int samples =
             opus_decode(
@@ -529,10 +553,10 @@ struct YasuFastAudioCore::Impl {
                 kDecodeSamples,
                 fec ? 1 : 0);
 
-        const uint64_t cost =
-            NowUs() - start;
+        if (measure) {
+            const uint64_t cost =
+                NowUs() - start;
 
-        if (Measurements()) {
             stats.DecodeCost(cost);
         }
 
@@ -728,6 +752,8 @@ struct YasuFastAudioCore::Impl {
              * stutter for lower playback latency.
              */
             if (gap == 1) {
+                // YASU ZERO-WAIT FEC:
+                // never add artificial jitter delay.
                 const uint16_t sequence =
                     ahead->sequence;
 
@@ -789,6 +815,9 @@ struct YasuFastAudioCore::Impl {
         uint8_t* contributors,
         int frames) {
 
+        const bool measure =
+            YasuMeasurementsEnabled();
+
         uint32_t read =
             stream->pcm_read.load(
                 std::memory_order_relaxed);
@@ -822,7 +851,7 @@ struct YasuFastAudioCore::Impl {
                 }
             }
 
-            if (Measurements() &&
+            if (measure &&
                 stamp != 0) {
 
                 const uint64_t now = NowUs();
@@ -839,7 +868,7 @@ struct YasuFastAudioCore::Impl {
             ++count;
 
             read =
-                (read + 1) % kStreamRingFrames;
+                (read + 1) & (kStreamRingFrames - 1);
         }
 
         stream->pcm_read.store(
@@ -855,27 +884,62 @@ struct YasuFastAudioCore::Impl {
         int channels,
         int sample_rate) {
 
+        const bool measure =
+            YasuMeasurementsEnabled();
+
+        // Diagnostics are completely outside the normal hot path.
+        if (measure) {
+            stats.readpcm_calls.fetch_add(1, std::memory_order_relaxed);
+            stats.readpcm_last_sample_rate.store(
+                sample_rate,
+                std::memory_order_relaxed);
+            stats.readpcm_last_channels.store(
+                channels,
+                std::memory_order_relaxed);
+        }
+
         const uint64_t start =
-            Measurements() ? NowUs() : 0;
+            measure ? NowUs() : 0;
 
         if (!output ||
             frames <= 0 ||
             channels <= 0) {
+
+            if (measure) {
+                stats.readpcm_invalid_calls.fetch_add(
+                    1,
+                    std::memory_order_relaxed);
+            }
+
             return 0;
         }
 
-        const size_t total =
-            static_cast<size_t>(frames) *
-            static_cast<size_t>(channels);
+        const bool is_enabled =
+            enabled.load(std::memory_order_acquire);
 
-        if (!enabled.load(
-                std::memory_order_acquire) ||
+        if (measure) {
+            if (is_enabled) {
+                stats.readpcm_enabled_calls.fetch_add(
+                    1,
+                    std::memory_order_relaxed);
+            }
+
+            if (sample_rate != 48000) {
+                stats.readpcm_wrong_rate_calls.fetch_add(
+                    1,
+                    std::memory_order_relaxed);
+            }
+        }
+
+        if (!is_enabled ||
             sample_rate != 48000) {
 
             std::memset(
                 output,
                 0,
-                total * sizeof(int16_t));
+                static_cast<size_t>(frames) *
+                    static_cast<size_t>(channels) *
+                    sizeof(int16_t));
 
             return 0;
         }
@@ -928,8 +992,15 @@ struct YasuFastAudioCore::Impl {
             }
 
             if (missing_frames != 0) {
-                stats.pcm_underruns.fetch_add(
-                    missing_frames);
+                if (measure) {
+                    stats.readpcm_zero_source_calls.fetch_add(
+                        1,
+                        std::memory_order_relaxed);
+                }
+                if (measure) {
+                    stats.pcm_underruns.fetch_add(
+                        missing_frames);
+                }
             }
 
             for (int i = 0; i < chunk; ++i) {
@@ -948,8 +1019,10 @@ struct YasuFastAudioCore::Impl {
                 }
             }
 
-            stats.pcm_frames_read.fetch_add(
-                static_cast<uint64_t>(chunk));
+            if (measure) {
+                stats.pcm_frames_read.fetch_add(
+                    static_cast<uint64_t>(chunk));
+            }
 
             offset += chunk;
             remaining -= chunk;
@@ -1080,13 +1153,20 @@ void YasuFastAudioCore::PushPacket(
         YasuMeasurementsEnabled();
 
     const uint64_t arrival =
-        NowUs();
+        measure ? NowUs() : 0;
 
     if (measure) {
         impl_->stats.packets_received.fetch_add(1);
     }
 
     impl_->Lock();
+
+    // Reset() may have completed after the initial IsEnabled() check.
+    // Never recreate FAST state after a reset/disable.
+    if (!impl_->enabled.load(std::memory_order_acquire)) {
+        impl_->Unlock();
+        return;
+    }
 
     Stream* stream =
         impl_->Find(ssrc);
@@ -1373,6 +1453,30 @@ YasuFastAudioCore::TakeMeasurementLog() {
     out << "frames_read="
         << impl_->stats.pcm_frames_read.load()
         << "\n";
+
+    out << "\n[REAL_PLAYOUT]\n";
+    out << "readpcm_calls="
+        << impl_->stats.readpcm_calls.load()
+        << "\n";
+    out << "readpcm_enabled_calls="
+        << impl_->stats.readpcm_enabled_calls.load()
+        << "\n";
+    out << "readpcm_invalid_calls="
+        << impl_->stats.readpcm_invalid_calls.load()
+        << "\n";
+    out << "readpcm_wrong_rate_calls="
+        << impl_->stats.readpcm_wrong_rate_calls.load()
+        << "\n";
+    out << "readpcm_zero_source_calls="
+        << impl_->stats.readpcm_zero_source_calls.load()
+        << "\n";
+    out << "last_sample_rate="
+        << impl_->stats.readpcm_last_sample_rate.load()
+        << "\n";
+    out << "last_channels="
+        << impl_->stats.readpcm_last_channels.load()
+        << "\n";
+
     out << "underruns="
         << impl_->stats.pcm_underruns.load()
         << "\n";
