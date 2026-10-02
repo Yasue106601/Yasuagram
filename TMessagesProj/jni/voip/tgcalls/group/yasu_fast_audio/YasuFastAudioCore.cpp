@@ -1359,8 +1359,6 @@ void YasuFastAudioCore::ProcessPacket(
         impl_->stats.packets_received.fetch_add(1);
     }
 
-    impl_->Lock();
-
     // Reset() may have completed after the initial IsEnabled() check.
     // Never recreate FAST state after a reset/disable.
     if (!impl_->enabled.load(std::memory_order_acquire)) {
