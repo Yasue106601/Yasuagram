@@ -203,37 +203,44 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
   // size by adding the size of a burst. It will reduce the risk of underruns
   // at the expense of an increased latency.
   // TODO(henrika): enable possibility to disable and/or tune the algorithm.
-  const int32_t underrun_count = aaudio_.xrun_count();
-  // YASU: the output buffer used to only grow. Shrink it back one burst
-  // at a time after a quiet period, down to 2 bursts (10 ms).
-  static int64_t yasu_last_underrun_us = rtc::TimeMicros();
-  static int64_t yasu_last_shrink_us = rtc::TimeMicros();
-  if (underrun_count > underrun_count_) {
-    RTC_LOG(LS_ERROR) << "Underrun detected: " << underrun_count;
-    underrun_count_ = underrun_count;
-    yasu_last_underrun_us = rtc::TimeMicros();
-    aaudio_.IncreaseOutputBufferSize();
-    RTC_LOG(LS_VERBOSE) << "YASU AAUDIO_UNDERRUN time_us="
-                        << yasu_last_underrun_us
-                        << " xruns=" << underrun_count
-                        << " buffer_frames="
-                        << AAudioStream_getBufferSizeInFrames(
-                               aaudio_.stream());
-  } else {
-    const int64_t yasu_now_us = rtc::TimeMicros();
-    if (yasu_now_us - yasu_last_underrun_us > 2000000 &&
-        yasu_now_us - yasu_last_shrink_us > 1000000) {
-      const int32_t yasu_burst = aaudio_.frames_per_burst();
-      const int32_t yasu_size =
-          AAudioStream_getBufferSizeInFrames(aaudio_.stream());
-      if (yasu_burst > 0 && yasu_size - yasu_burst >= 2 * yasu_burst) {
-        const int32_t yasu_new_size = AAudioStream_setBufferSizeInFrames(
-            aaudio_.stream(), yasu_size - yasu_burst);
-        RTC_LOG(LS_VERBOSE) << "YASU AAUDIO_SHRINK time_us=" << yasu_now_us
-                            << " from_frames=" << yasu_size
-                            << " to_frames=" << yasu_new_size;
+  // LEGACY ONLY: adaptive output-buffer growth/shrink.
+  // FAST keeps the AAudio buffer at the optimized burst size so that
+  // underrun recovery does not silently add playback latency.
+  auto& yasu_fast_audio = tgcalls::YasuFastAudioCore::Instance();
+
+  if (!yasu_fast_audio.IsEnabled()) {
+    const int32_t underrun_count = aaudio_.xrun_count();
+    // YASU: the output buffer used to only grow. Shrink it back one burst
+    // at a time after a quiet period, down to 2 bursts (10 ms).
+    static int64_t yasu_last_underrun_us = rtc::TimeMicros();
+    static int64_t yasu_last_shrink_us = rtc::TimeMicros();
+    if (underrun_count > underrun_count_) {
+      RTC_LOG(LS_ERROR) << "Underrun detected: " << underrun_count;
+      underrun_count_ = underrun_count;
+      yasu_last_underrun_us = rtc::TimeMicros();
+      aaudio_.IncreaseOutputBufferSize();
+      RTC_LOG(LS_VERBOSE) << "YASU AAUDIO_UNDERRUN time_us="
+                          << yasu_last_underrun_us
+                          << " xruns=" << underrun_count
+                          << " buffer_frames="
+                          << AAudioStream_getBufferSizeInFrames(
+                                 aaudio_.stream());
+    } else {
+      const int64_t yasu_now_us = rtc::TimeMicros();
+      if (yasu_now_us - yasu_last_underrun_us > 2000000 &&
+          yasu_now_us - yasu_last_shrink_us > 1000000) {
+        const int32_t yasu_burst = aaudio_.frames_per_burst();
+        const int32_t yasu_size =
+            AAudioStream_getBufferSizeInFrames(aaudio_.stream());
+        if (yasu_burst > 0 && yasu_size - yasu_burst >= 2 * yasu_burst) {
+          const int32_t yasu_new_size = AAudioStream_setBufferSizeInFrames(
+              aaudio_.stream(), yasu_size - yasu_burst);
+          RTC_LOG(LS_VERBOSE) << "YASU AAUDIO_SHRINK time_us=" << yasu_now_us
+                              << " from_frames=" << yasu_size
+                              << " to_frames=" << yasu_new_size;
+        }
+        yasu_last_shrink_us = yasu_now_us;
       }
-      yasu_last_shrink_us = yasu_now_us;
     }
   }
 
@@ -315,16 +322,14 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
   // This is the actual Group Call AAudio backend. When FAST is enabled,
   // consume decoded PCM directly from YasuFastAudioCore and completely
   // bypass FineAudioBuffer/WebRTC playout for this callback.
-  auto& yasu_fast_audio = tgcalls::YasuFastAudioCore::Instance();
-
   if (yasu_fast_audio.IsEnabled()) {
-    const bool yasu_fast_ok = yasu_fast_audio.ReadPcm(
+    const int yasu_fast_frames = yasu_fast_audio.ReadPcm(
         static_cast<int16_t*>(audio_data),
         num_frames,
-        aaudio_.sample_rate(),
-        aaudio_.channel_count());
+        aaudio_.channel_count(),
+        aaudio_.sample_rate());
 
-    if (!yasu_fast_ok) {
+    if (yasu_fast_frames != num_frames) {
       memset(audio_data, 0,
              sizeof(int16_t) * aaudio_.samples_per_frame() * num_frames);
     }
@@ -337,7 +342,7 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
           << " frames=" << num_frames
           << " sample_rate=" << aaudio_.sample_rate()
           << " channels=" << aaudio_.channel_count()
-          << " pcm_ok=" << yasu_fast_ok
+          << " pcm_ok=" << (yasu_fast_frames == num_frames)
           << " frames_written=" << aaudio_.frames_written()
           << " frames_read=" << aaudio_.frames_read()
           << " xruns=" << aaudio_.xrun_count();

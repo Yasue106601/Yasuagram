@@ -17,6 +17,7 @@ public:
     bool IsEnabled() const;
 
     void Reset();
+    void ResetMeasurements();
 
     void PushPacket(uint32_t ssrc,
                     uint16_t sequence,
@@ -29,7 +30,8 @@ public:
                         uint32_t timestamp,
                         const uint8_t* payload,
                         size_t payload_size,
-                        uint64_t packet_generation);
+                        uint64_t packet_generation,
+                        uint64_t packet_arrival_us);
 
     int ReadPcm(int16_t* output,
                 int frames,

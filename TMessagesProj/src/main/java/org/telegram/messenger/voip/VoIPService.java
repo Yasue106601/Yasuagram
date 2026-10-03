@@ -4234,8 +4234,8 @@ public static VoIPService getSharedInstance() {
 			if (tgVoip[CAPTURE_DEVICE_CAMERA].isGroup()) {
 				NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
 				Utilities.globalQueue.postRunnable(() -> {
-                                   String fastAudioLog = instance.getYasuFastAudioMeasurementLog();
                                    String netEqLog = instance.stopGroup();
+                                   String fastAudioLog = instance.getYasuFastAudioMeasurementLog();
                                    instance.resetYasuFastAudio();
 
                                    if (netEqLog != null && !netEqLog.isEmpty()) {

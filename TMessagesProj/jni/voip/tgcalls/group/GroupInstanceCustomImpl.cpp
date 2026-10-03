@@ -1,5 +1,7 @@
 #include "GroupInstanceCustomImpl.h"
 
+#include "yasu_fast_audio/YasuFastAudioCore.h"
+
 #include <memory>
 #include <iomanip>
 
@@ -4510,20 +4512,16 @@ void GroupInstanceCustomImpl::setMeasurementsEnabled(bool enabled) {
     }
 
     if (enabled) {
+        tgcalls::YasuFastAudioCore::Instance().ResetMeasurements();
         tgcalls::SetYasuMeasurementsEnabled(true);
-        rtc::LogMessage::AddLogToStream(
-            _logSink.get(),
-            rtc::LS_VERBOSE
-        );
     } else {
-        rtc::LogMessage::RemoveLogToStream(_logSink.get());
         tgcalls::SetYasuMeasurementsEnabled(false);
     }
 }
 
 GroupInstanceCustomImpl::~GroupInstanceCustomImpl() {
-    if (_logSink && _measurementsEnabled.exchange(false, std::memory_order_acq_rel)) {
-        rtc::LogMessage::RemoveLogToStream(_logSink.get());
+    if (_measurementsEnabled.exchange(false, std::memory_order_acq_rel)) {
+        tgcalls::SetYasuMeasurementsEnabled(false);
     }
     _internal.reset();
 

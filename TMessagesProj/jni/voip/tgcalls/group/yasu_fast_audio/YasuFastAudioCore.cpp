@@ -1,4 +1,5 @@
 #include "YasuFastAudioCore.h"
+#include <thread>
 
 #include <algorithm>
 #include <array>
@@ -8,10 +9,12 @@
 #include <cstring>
 #include <iomanip>
 #include <limits>
+#include <mutex>
 #include <sstream>
 #include <string>
 
 #include <opus.h>
+#include "modules/audio_coding/codecs/opus/opus_interface.h"
 
 #include "api/task_queue/default_task_queue_factory.h"
 #include "voip/tgcalls/YasuMeasurementGate.h"
@@ -29,7 +32,7 @@ constexpr int kMaxPayload = 1600;
 
 // Fixed packet handoff queue between the WebRTC WorkerThread and the
 // dedicated realtime FAST audio queue. No per-packet heap allocation.
-constexpr int kFastPacketQueueSlots = 64;
+constexpr int kFastPacketQueueSlots = 8;
 
 // 1024 mono frames ~= 21.3 ms at 48 kHz.
 // If the producer gets ahead, old PCM is dropped to prevent latency growth.
@@ -39,7 +42,7 @@ constexpr int kOutputChunk = 480;
 
 // Safe maximum Opus frame size.
 // Actual Group Call packets are normally 10 ms = 480 samples.
-constexpr int kDecodeSamples = 5760;
+constexpr int kDecodeSamples = 480;
 
 using Clock = std::chrono::steady_clock;
 
@@ -108,7 +111,7 @@ struct Stream {
 };
 
 struct Stats {
-    uint64_t started_us = 0;
+    std::atomic<uint64_t> started_us{0};
 
     std::atomic<uint64_t> packets_received{0};
     std::atomic<uint64_t> packets_decoded{0};
@@ -118,6 +121,12 @@ struct Stats {
     std::atomic<uint64_t> packets_dropped{0};
     std::atomic<uint64_t> packets_reordered{0};
     std::atomic<uint64_t> packets_decode_failed{0};
+
+    std::atomic<uint64_t> packet_queue_wait_count{0};
+    std::atomic<uint64_t> packet_queue_wait_us{0};
+    std::atomic<uint64_t> packet_queue_wait_min_us{
+        std::numeric_limits<uint64_t>::max()};
+    std::atomic<uint64_t> packet_queue_wait_max_us{0};
 
     std::atomic<uint64_t> decode_count{0};
     std::atomic<uint64_t> decode_cost_us{0};
@@ -176,7 +185,7 @@ struct Stats {
     std::atomic<uint64_t> active_streams_peak{0};
 
     void Reset() {
-        started_us = NowUs();
+        started_us.store(NowUs(), std::memory_order_relaxed);
 
         packets_received.store(0);
         packets_decoded.store(0);
@@ -186,6 +195,12 @@ struct Stats {
         packets_dropped.store(0);
         packets_reordered.store(0);
         packets_decode_failed.store(0);
+
+        packet_queue_wait_count.store(0);
+        packet_queue_wait_us.store(0);
+        packet_queue_wait_min_us.store(
+            std::numeric_limits<uint64_t>::max());
+        packet_queue_wait_max_us.store(0);
 
         decode_count.store(0);
         decode_cost_us.store(0);
@@ -316,10 +331,15 @@ struct YasuFastAudioCore::Impl {
         uint32_t timestamp = 0;
         uint16_t size = 0;
         uint64_t generation = 0;
+        uint64_t arrival_us = 0;
         uint8_t data[kMaxPayload]{};
     };
 
     std::atomic<bool> enabled{false};
+
+    // Number of realtime AAudio callbacks currently inside ReadPcm().
+    // Reset() must wait for these readers before destroying stream state.
+    std::atomic<uint32_t> active_readers{0};
 
     // Every explicit enable/reset advances this generation.
     // Queued packets from an older Group Call are discarded.
@@ -360,19 +380,17 @@ struct YasuFastAudioCore::Impl {
 
     // Serializes packet/decode/reset operations.
     // The AAudio callback never takes this lock.
-    std::atomic_flag processing = ATOMIC_FLAG_INIT;
+    std::mutex processing;
 
     Stream streams[kMaxStreams];
     Stats stats;
 
     void Lock() {
-        while (processing.test_and_set(
-            std::memory_order_acquire)) {
-        }
+        processing.lock();
     }
 
     void Unlock() {
-        processing.clear(std::memory_order_release);
+        processing.unlock();
     }
 
     bool Measurements() const {
@@ -403,17 +421,79 @@ struct YasuFastAudioCore::Impl {
             }
         }
 
-        // If all 32 streams are occupied, replace slot 0.
-        // This is intentionally bounded and allocation-free.
+        // All 32 streams are occupied.
         if (!stream) {
-            stream = &streams[0];
+            // Reclaim only a stream that has been silent for a long time.
+            constexpr uint64_t kStaleStreamTimeoutUs =
+                30ULL * 1000ULL * 1000ULL;
 
-            if (stream->decoder) {
-                opus_decoder_destroy(stream->decoder);
-                stream->decoder = nullptr;
+            const uint64_t now = NowUs();
+            Stream* stale = nullptr;
+
+            for (auto& item : streams) {
+                if (!item.active.load(
+                        std::memory_order_acquire)) {
+                    continue;
+                }
+
+                const uint64_t last =
+                    item.last_packet_us.load(
+                        std::memory_order_acquire);
+
+                if (last == 0 ||
+                    now < last ||
+                    now - last < kStaleStreamTimeoutUs) {
+                    continue;
+                }
+
+                stale = &item;
+                break;
             }
 
-            stats.packets_dropped.fetch_add(1);
+            if (!stale) {
+                stats.packets_dropped.fetch_add(1);
+                return nullptr;
+            }
+
+            // Hide the stale stream from new realtime callbacks.
+            stale->active.store(
+                false,
+                std::memory_order_release);
+
+            // Wait for callbacks that may already be reading this stream.
+            while (active_readers.load(
+                       std::memory_order_acquire) != 0) {
+                std::this_thread::yield();
+            }
+
+            if (stale->decoder) {
+                opus_decoder_destroy(
+                    stale->decoder);
+
+                stale->decoder = nullptr;
+            }
+
+            stale->ssrc = 0;
+
+            stale->have_sequence = false;
+            stale->next_sequence = 0;
+
+            stale->have_timestamp = false;
+            stale->next_timestamp = 0;
+
+            stale->last_packet_us.store(
+                0,
+                std::memory_order_release);
+
+            stale->pcm_read.store(
+                0,
+                std::memory_order_release);
+
+            stale->pcm_write.store(
+                0,
+                std::memory_order_release);
+
+            stream = stale;
         }
 
         int error = OPUS_OK;
@@ -504,69 +584,89 @@ struct YasuFastAudioCore::Impl {
         int samples,
         uint64_t source_arrival_us) {
 
+        if (!stereo || samples <= 0) {
+            return;
+        }
+
         uint32_t write =
             stream->pcm_write.load(
                 std::memory_order_relaxed);
 
-        uint32_t read =
+        const uint32_t read =
             stream->pcm_read.load(
                 std::memory_order_acquire);
 
-        for (int i = 0; i < samples; ++i) {
-            uint32_t next =
-                (write + 1) & (kStreamRingFrames - 1);
+        const uint32_t used =
+            write >= read
+                ? write - read
+                : kStreamRingFrames - read + write;
 
-            if (next == read) {
-                // Drop the oldest PCM rather than allowing
-                // buffering latency to grow.
-                read =
-                    (read + 1) & (kStreamRingFrames - 1);
+        const uint32_t capacity =
+            kStreamRingFrames - 1;
 
-                stream->pcm_read.store(
-                    read,
-                    std::memory_order_release);
+        const uint32_t free_frames =
+            capacity - used;
 
-                if (source_arrival_us != 0) {
-                    stats.pcm_overruns.fetch_add(1);
-                    stats.pcm_overrun_frames.fetch_add(1);
-                }
-            }
+        const uint32_t frames_to_write =
+            std::min(
+                static_cast<uint32_t>(samples),
+                free_frames);
 
+        const uint32_t dropped_frames =
+            static_cast<uint32_t>(samples) -
+            frames_to_write;
+
+        // SPSC rule:
+        // pcm_write is owned by the producer.
+        // pcm_read is owned by the consumer.
+        // Never modify pcm_read from the producer.
+        for (uint32_t i = 0; i < frames_to_write; ++i) {
             const int32_t left =
                 stereo[i * 2];
 
             const int32_t right =
                 stereo[i * 2 + 1];
 
-            // Fast stereo -> mono downmix.
             stream->pcm[write] =
                 static_cast<int16_t>(
                     (left + right) / 2);
 
-            if (source_arrival_us != 0) {
-                stream->pcm_time_us[write] =
-                    source_arrival_us;
-            }
+            stream->pcm_time_us[write] =
+                source_arrival_us;
 
-            write = next;
+            write =
+                (write + 1) &
+                (kStreamRingFrames - 1);
+        }
+
+        if (dropped_frames != 0 &&
+            source_arrival_us != 0) {
+            stats.pcm_overruns.fetch_add(
+                1,
+                std::memory_order_relaxed);
+
+            stats.pcm_overrun_frames.fetch_add(
+                dropped_frames,
+                std::memory_order_relaxed);
         }
 
         stream->pcm_write.store(
             write,
             std::memory_order_release);
 
-        if (source_arrival_us != 0) {
+        if (source_arrival_us != 0 &&
+            frames_to_write != 0) {
             stats.pcm_frames_written.fetch_add(
-                static_cast<uint64_t>(samples));
+                static_cast<uint64_t>(frames_to_write));
 
-            const uint32_t depth =
+            const uint32_t final_depth =
                 write >= read
                     ? write - read
                     : kStreamRingFrames - read + write;
 
             Stats::AddMax(
                 stats.max_ring_depth,
-                static_cast<uint64_t>(depth));
+                static_cast<uint64_t>(final_depth));
 
             const uint64_t now = NowUs();
 
@@ -593,6 +693,32 @@ struct YasuFastAudioCore::Impl {
         const bool measure =
             YasuMeasurementsEnabled();
 
+        // FEC must only be attempted when the packet actually
+        // carries Opus in-band FEC. Otherwise opus_decode(..., 1)
+        // must not be treated as successful recovery.
+        if (fec &&
+            (!data ||
+             size <= 0 ||
+             WebRtcOpus_PacketHasFec(data, static_cast<size_t>(size)) != 1)) {
+            return 0;
+        }
+
+        int decode_frame_size = kDecodeSamples;
+
+        if (fec) {
+            const int fec_frame_size =
+                opus_packet_get_samples_per_frame(
+                    data,
+                    48000);
+
+            if (fec_frame_size <= 0 ||
+                fec_frame_size > kDecodeSamples) {
+                return 0;
+            }
+
+            decode_frame_size = fec_frame_size;
+        }
+
         const uint64_t start =
             measure ? NowUs() : 0;
 
@@ -602,7 +728,7 @@ struct YasuFastAudioCore::Impl {
                 data,
                 size,
                 decoded,
-                kDecodeSamples,
+                decode_frame_size,
                 fec ? 1 : 0);
 
         if (measure) {
@@ -936,6 +1062,23 @@ struct YasuFastAudioCore::Impl {
         int channels,
         int sample_rate) {
 
+        struct RealtimeReaderGuard {
+            Impl* impl;
+
+            explicit RealtimeReaderGuard(Impl* value)
+                : impl(value) {
+                impl->active_readers.fetch_add(
+                    1,
+                    std::memory_order_acq_rel);
+            }
+
+            ~RealtimeReaderGuard() {
+                impl->active_readers.fetch_sub(
+                    1,
+                    std::memory_order_acq_rel);
+            }
+        } reader_guard(this);
+
         const bool measure =
             YasuMeasurementsEnabled();
 
@@ -1154,7 +1297,25 @@ bool YasuFastAudioCore::IsEnabled() const {
         std::memory_order_acquire);
 }
 
+void YasuFastAudioCore::ResetMeasurements() {
+    impl_->Lock();
+    impl_->stats.Reset();
+    impl_->Unlock();
+}
+
 void YasuFastAudioCore::Reset() {
+    // Stop new realtime readers from entering the FAST path.
+    impl_->enabled.store(
+        false,
+        std::memory_order_release);
+
+    // Wait only for callbacks that were already inside ReadPcm().
+    // No mutex is taken by the realtime callback.
+    while (impl_->active_readers.load(
+               std::memory_order_acquire) != 0) {
+        std::this_thread::yield();
+    }
+
     // Invalidate every queued packet belonging to the previous call.
     impl_->generation.fetch_add(
         1,
@@ -1253,6 +1414,7 @@ void YasuFastAudioCore::PushPacket(
     queued.timestamp = timestamp;
     queued.size = static_cast<uint16_t>(payload_size);
     queued.generation = packet_generation;
+    queued.arrival_us = NowUs();
 
     std::memcpy(
         queued.data,
@@ -1315,9 +1477,22 @@ void YasuFastAudioCore::PushPacket(
                     packet.timestamp,
                     packet.data,
                     packet.size,
-                    packet.generation);
+                    packet.generation,
+                    packet.arrival_us);
             }
         });
+}
+
+int YasuFastAudioCore::ReadPcm(
+    int16_t* output,
+    int frames,
+    int channels,
+    int sample_rate) {
+    return impl_->ReadPcm(
+        output,
+        frames,
+        channels,
+        sample_rate);
 }
 
 void YasuFastAudioCore::ProcessPacket(
@@ -1326,7 +1501,8 @@ void YasuFastAudioCore::ProcessPacket(
     uint32_t timestamp,
     const uint8_t* payload,
     size_t payload_size,
-    uint64_t packet_generation) {
+    uint64_t packet_generation,
+    uint64_t packet_arrival_us) {
 
     if (!IsEnabled() ||
         payload == nullptr ||
@@ -1352,11 +1528,28 @@ void YasuFastAudioCore::ProcessPacket(
     const bool measure =
         YasuMeasurementsEnabled();
 
+    const uint64_t now =
+        NowUs();
+
     const uint64_t arrival =
-        measure ? NowUs() : 0;
+        measure ? packet_arrival_us : 0;
 
     if (measure) {
         impl_->stats.packets_received.fetch_add(1);
+
+        if (packet_arrival_us != 0 && now >= packet_arrival_us) {
+            const uint64_t queue_wait =
+                now - packet_arrival_us;
+
+            impl_->stats.packet_queue_wait_count.fetch_add(1);
+            impl_->stats.packet_queue_wait_us.fetch_add(queue_wait);
+            Stats::AddMin(
+                impl_->stats.packet_queue_wait_min_us,
+                queue_wait);
+            Stats::AddMax(
+                impl_->stats.packet_queue_wait_max_us,
+                queue_wait);
+        }
     }
 
     // Reset() may have completed after the initial IsEnabled() check.
@@ -1384,7 +1577,7 @@ void YasuFastAudioCore::ProcessPacket(
     }
 
     stream->last_packet_us.store(
-        arrival,
+        now,
         std::memory_order_release);
 
     if (stream->have_sequence) {
@@ -1467,6 +1660,26 @@ void YasuFastAudioCore::ProcessPacket(
             }
         }
 
+        // If the incoming packet is farther ahead than every packet
+        // already buffered, keep the existing reorder window and drop
+        // the incoming packet instead of replacing a closer packet.
+        if (stream->have_sequence) {
+            const uint16_t incoming_distance =
+                SeqForwardDistance(
+                    sequence,
+                    stream->next_sequence);
+
+            if (!worst ||
+                incoming_distance > worst_distance) {
+                if (measure) {
+                    impl_->stats.packets_dropped.fetch_add(1);
+                }
+
+                impl_->Unlock();
+                return;
+            }
+        }
+
         destination = worst;
 
         if (measure) {
@@ -1503,7 +1716,26 @@ void YasuFastAudioCore::ProcessPacket(
 std::string
 YasuFastAudioCore::TakeMeasurementLog() {
 
-    if (!YasuMeasurementsEnabled()) {
+    // YASU: measurement collection may be turned OFF before the call ends.
+    // Keep already collected statistics exportable after OFF.
+    const bool has_measurement_data =
+        impl_->stats.packets_received.load() != 0 ||
+        impl_->stats.packets_decoded.load() != 0 ||
+        impl_->stats.packets_plc.load() != 0 ||
+        impl_->stats.packets_fec.load() != 0 ||
+        impl_->stats.packets_late.load() != 0 ||
+        impl_->stats.packets_dropped.load() != 0 ||
+        impl_->stats.packets_reordered.load() != 0 ||
+        impl_->stats.packets_decode_failed.load() != 0 ||
+        impl_->stats.decode_count.load() != 0 ||
+        impl_->stats.packet_to_pcm_count.load() != 0 ||
+        impl_->stats.packet_to_play_count.load() != 0 ||
+        impl_->stats.readpcm_calls.load() != 0 ||
+        impl_->stats.callback_count.load() != 0 ||
+        impl_->stats.pcm_frames_written.load() != 0 ||
+        impl_->stats.pcm_frames_read.load() != 0;
+
+    if (!YasuMeasurementsEnabled() && !has_measurement_data) {
         return "";
     }
 
@@ -1511,10 +1743,14 @@ YasuFastAudioCore::TakeMeasurementLog() {
 
     const uint64_t now = NowUs();
 
+    const uint64_t started_us =
+        impl_->stats.started_us.load(
+            std::memory_order_relaxed);
+
     const uint64_t duration =
-        impl_->stats.started_us != 0 &&
-        now >= impl_->stats.started_us
-            ? now - impl_->stats.started_us
+        started_us != 0 &&
+        now >= started_us
+            ? now - started_us
             : 0;
 
     const auto avg =
@@ -1603,6 +1839,28 @@ YasuFastAudioCore::TakeMeasurementLog() {
         << "\n";
     out << "max_us="
         << impl_->stats.decode_cost_max_us.load()
+        << "\n";
+    out << "\n";
+
+    out << "[PACKET_QUEUE_WAIT]\n";
+    const uint64_t packet_queue_wait_count =
+        impl_->stats.packet_queue_wait_count.load();
+
+    out << "count="
+        << packet_queue_wait_count
+        << "\n";
+    out << "avg_us="
+        << avg(
+            impl_->stats.packet_queue_wait_us.load(),
+            packet_queue_wait_count)
+        << "\n";
+    out << "min_us="
+        << (packet_queue_wait_count
+                ? impl_->stats.packet_queue_wait_min_us.load()
+                : 0)
+        << "\n";
+    out << "max_us="
+        << impl_->stats.packet_queue_wait_max_us.load()
         << "\n";
     out << "\n";
 
@@ -1750,7 +2008,7 @@ YasuFastAudioCore::TakeMeasurementLog() {
     out << "callback_cost_us=FAST mixing/read CPU time only\n";
     out << "underruns=callback requested audio but stream had no PCM\n";
     out << "overruns=old PCM discarded to prevent latency growth\n";
-    out << "fec=Opus in-band FEC recovery attempts\n";
+    out << "fec=successful Opus in-band FEC recoveries\n";
     out << "engine_latency_ms_is_not_network_e2e=true\n";
     out << "policy=LOW_LATENCY_FIRST\n";
 
