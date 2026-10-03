@@ -37,7 +37,7 @@ constexpr int kFastPacketQueueSlots = 8;
 
 // Small low-latency PCM ring. Opus decode uses its own larger buffer;
 // this ring remains intentionally small to avoid adding playback latency.
-constexpr int kStreamRingFrames = 512;
+constexpr int kStreamRingFrames = 8192;
 
 constexpr int kOutputChunk = 480;
 

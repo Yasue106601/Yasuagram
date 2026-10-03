@@ -300,7 +300,7 @@ void DecisionLogic::FilterBufferLevel(size_t buffer_size_samples) {
 
     // YASU: Hard-limit the filtered NetEq buffer contribution.
     // Prefer latency growth to be cut rather than carried forward.
-    constexpr int kYasuMaxFilteredBufferMs = 40;
+    constexpr int kYasuMaxFilteredBufferMs = 55;
     const int max_filtered_samples =
         kYasuMaxFilteredBufferMs * sample_rate_khz_;
     if (buffer_level_filter_->filtered_current_level() >

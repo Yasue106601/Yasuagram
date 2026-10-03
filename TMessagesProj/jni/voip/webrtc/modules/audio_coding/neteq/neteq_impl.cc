@@ -803,7 +803,7 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     // Above 60ms, discard at most 3 PacketBuffer packets per insertion.
     // This prevents large bursts of packet loss while still trimming
     // excessive backlog.
-    constexpr size_t kYasuHardBacklogMs = 95;
+    constexpr size_t kYasuHardBacklogMs = 130;
     constexpr size_t kYasuMaxDiscardPackets = 20;
     const size_t yasu_ms = fs_hz_ / 1000;
     const size_t yasu_hard_backlog_samples =
