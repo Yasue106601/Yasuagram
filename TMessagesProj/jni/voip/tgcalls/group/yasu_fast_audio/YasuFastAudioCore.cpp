@@ -1032,9 +1032,9 @@ struct YasuFastAudioCore::Impl {
         // YASU LOW-LATENCY TRIM:
         // Keep the large ring for underrun protection, but never
         // intentionally play a very old backlog. If buffered PCM
-        // exceeds 60 ms, discard only the oldest portion and start
-        // from the newest 60 ms window.
-        constexpr uint32_t kMaxPlaybackBacklogFrames = 2880; // 60 ms @ 48 kHz
+        // exceeds 100 ms, discard only the oldest portion and start
+        // from the newest 100 ms window.
+        constexpr uint32_t kMaxPlaybackBacklogFrames = 4800; // 100 ms @ 48 kHz
 
         const uint32_t used =
             read >= write
