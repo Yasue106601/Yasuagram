@@ -16,6 +16,7 @@
 #include <opus.h>
 #include "modules/audio_coding/codecs/opus/opus_interface.h"
 
+#include "rtc_base/logging.h"
 #include "api/task_queue/default_task_queue_factory.h"
 #include "voip/tgcalls/YasuMeasurementGate.h"
 
