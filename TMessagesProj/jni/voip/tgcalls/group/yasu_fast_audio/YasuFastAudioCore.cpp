@@ -745,7 +745,7 @@ struct YasuFastAudioCore::Impl {
             if (yasu_decode_error_logs < 10) {
                 ++yasu_decode_error_logs;
 
-                RTC_LOG(LS_ERROR)
+                RTC_LOG(rtc::LS_ERROR)
                     << "YASU FAST OPUS DECODE FAILED"
                     << " error=" << samples
                     << " size=" << size
@@ -755,7 +755,7 @@ struct YasuFastAudioCore::Impl {
                     << " decoder=" << static_cast<const void*>(stream->decoder);
 
                 if (data && size > 0) {
-                    RTC_LOG(LS_ERROR)
+                    RTC_LOG(rtc::LS_ERROR)
                         << "YASU FAST OPUS PAYLOAD"
                         << " b0=" << static_cast<int>(data[0])
                         << " b1=" << (size > 1 ? static_cast<int>(data[1]) : -1)
