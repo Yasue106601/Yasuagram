@@ -4467,6 +4467,7 @@ GroupInstanceCustomImpl::GroupInstanceCustomImpl(GroupInstanceDescriptor &&descr
     if (descriptor.config.need_log) {
       _logSink = std::make_unique<LogSinkImpl>(descriptor.config.logPath);
       rtc::LogMessage::SetLogToStderr(true);
+      rtc::LogMessage::AddLogToStream(_logSink.get(), rtc::LS_VERBOSE);
     } else {
         rtc::LogMessage::SetLogToStderr(false);
     }
@@ -4520,6 +4521,10 @@ void GroupInstanceCustomImpl::setMeasurementsEnabled(bool enabled) {
 }
 
 GroupInstanceCustomImpl::~GroupInstanceCustomImpl() {
+    if (_logSink) {
+        rtc::LogMessage::RemoveLogToStream(_logSink.get());
+    }
+
     if (_measurementsEnabled.exchange(false, std::memory_order_acq_rel)) {
         tgcalls::SetYasuMeasurementsEnabled(false);
     }

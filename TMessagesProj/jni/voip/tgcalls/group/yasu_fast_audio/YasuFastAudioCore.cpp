@@ -34,15 +34,15 @@ constexpr int kMaxPayload = 1600;
 // dedicated realtime FAST audio queue. No per-packet heap allocation.
 constexpr int kFastPacketQueueSlots = 8;
 
-// 1024 mono frames ~= 21.3 ms at 48 kHz.
-// If the producer gets ahead, old PCM is dropped to prevent latency growth.
+// Small low-latency PCM ring. Opus decode uses its own larger buffer;
+// this ring remains intentionally small to avoid adding playback latency.
 constexpr int kStreamRingFrames = 512;
 
 constexpr int kOutputChunk = 480;
 
-// Safe maximum Opus frame size.
-// Actual Group Call packets are normally 10 ms = 480 samples.
-constexpr int kDecodeSamples = 480;
+// WebRTC uses a maximum normal Opus decode frame size of 120 ms.
+// At 48 kHz this is 5760 samples per channel.
+constexpr int kDecodeSamples = 5760;
 
 using Clock = std::chrono::steady_clock;
 
@@ -740,6 +740,30 @@ struct YasuFastAudioCore::Impl {
 
         if (samples <= 0) {
             stats.packets_decode_failed.fetch_add(1);
+
+            static int yasu_decode_error_logs = 0;
+            if (yasu_decode_error_logs < 10) {
+                ++yasu_decode_error_logs;
+
+                RTC_LOG(LS_ERROR)
+                    << "YASU FAST OPUS DECODE FAILED"
+                    << " error=" << samples
+                    << " size=" << size
+                    << " fec=" << (fec ? 1 : 0)
+                    << " plc=" << (plc ? 1 : 0)
+                    << " frame_size=" << decode_frame_size
+                    << " decoder=" << static_cast<const void*>(stream->decoder);
+
+                if (data && size > 0) {
+                    RTC_LOG(LS_ERROR)
+                        << "YASU FAST OPUS PAYLOAD"
+                        << " b0=" << static_cast<int>(data[0])
+                        << " b1=" << (size > 1 ? static_cast<int>(data[1]) : -1)
+                        << " b2=" << (size > 2 ? static_cast<int>(data[2]) : -1)
+                        << " b3=" << (size > 3 ? static_cast<int>(data[3]) : -1);
+                }
+            }
+
             return 0;
         }
 
