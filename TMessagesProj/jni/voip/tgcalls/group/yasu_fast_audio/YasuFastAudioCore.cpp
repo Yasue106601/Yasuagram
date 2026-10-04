@@ -47,11 +47,14 @@ static_assert((kStreamRingFrames & (kStreamRingFrames - 1)) == 0,
 
 // Adaptive jitter pad (per stream, derived from measured RTP arrival jitter).
 constexpr uint32_t kPadMinFrames = 960;      // 20 ms
-constexpr uint32_t kPadMaxFrames = 7680;     // 160 ms
-constexpr uint32_t kPadInitialFrames = 2160; // 45 ms until estimator has data
+constexpr uint32_t kPadMaxFrames = 5760;     // 120 ms
+constexpr uint32_t kPadInitialFrames = 1440; // 30 ms until estimator has data
 constexpr int kJitterHistory = 64;
 // Extra headroom above (pad + one packet) before we start trimming backlog.
-constexpr uint32_t kTrimHeadroomFrames = 2880;  // 60 ms
+constexpr uint32_t kTrimHeadroomFrames = 960;   // 20 ms
+// Backlog above (pad + packet + headroom + this) is dropped at once (a short
+// glitch beats hundreds of ms of permanent delay after a network burst).
+constexpr uint32_t kHardTrimExcessFrames = 14400;  // 300 ms
 // Max wait for a reordered packet before concealing it.
 constexpr uint64_t kReorderWaitUs = 15000;
 // Never conceal more than this many consecutive missing packets; resync instead.
@@ -1337,27 +1340,37 @@ struct YasuFastAudioCore::Impl {
         if (used > high) {
             const uint32_t excess = used - high;
 
-            // (a) drop a block that is (almost) silence: inaudible.
-            const uint32_t block =
-                std::min<uint32_t>(
-                    std::min<uint32_t>(excess, 480),
-                    used > 1 ? used - 1 : 0);
+            if (excess > kHardTrimExcessFrames) {
+                // Network burst piled up a huge backlog: jump forward and
+                // keep only (pad + one packet). One click, delay is gone.
+                const uint32_t keep = pad + pkt;
+                read = (write + kStreamRingFrames - keep) &
+                       (kStreamRingFrames - 1);
+            } else {
+                // (a) drop a block that is (almost) silence: inaudible.
+                const uint32_t block =
+                    std::min<uint32_t>(
+                        std::min<uint32_t>(excess, 960),
+                        used > 1 ? used - 1 : 0);
 
-            bool silent = block != 0;
-            for (uint32_t i = 0; silent && i < block; ++i) {
-                const int32_t v =
-                    stream->pcm[(read + i) & (kStreamRingFrames - 1)];
-                if (v > 300 || v < -300) {
-                    silent = false;
+                bool silent = block != 0;
+                for (uint32_t i = 0; silent && i < block; ++i) {
+                    const int32_t v =
+                        stream->pcm[(read + i) & (kStreamRingFrames - 1)];
+                    if (v > 300 || v < -300) {
+                        silent = false;
+                    }
                 }
-            }
 
-            if (silent) {
-                read = (read + block) & (kStreamRingFrames - 1);
-            } else if (excess > 4800) {
-                // (b) > 100 ms over target while speech is playing:
-                // skip 1 sample in 64 (~1.6 % faster, no hard bursts).
-                skip_every = 64;
+                if (silent) {
+                    read = (read + block) & (kStreamRingFrames - 1);
+                } else if (excess > 7200) {
+                    skip_every = 16;   // >150 ms over: ~6 % faster
+                } else if (excess > 2880) {
+                    skip_every = 32;   // >60 ms over: ~3 % faster
+                } else if (excess > 960) {
+                    skip_every = 64;   // >20 ms over: ~1.6 % faster
+                }
             }
         }
 
