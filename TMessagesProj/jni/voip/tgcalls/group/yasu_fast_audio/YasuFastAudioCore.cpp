@@ -1838,6 +1838,4 @@ void YasuFastAudioCore::ProcessPacket(
     impl_->Unlock();
 }
 
-std::string
-
 }  // namespace tgcalls
