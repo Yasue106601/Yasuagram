@@ -37,7 +37,7 @@ constexpr int kFastPacketQueueSlots = 8;
 
 // Small low-latency PCM ring. Opus decode uses its own larger buffer;
 // this ring remains intentionally small to avoid adding playback latency.
-constexpr int kStreamRingFrames = 8192;
+constexpr int kStreamRingFrames = 12288;
 
 constexpr int kOutputChunk = 480;
 
@@ -1032,9 +1032,9 @@ struct YasuFastAudioCore::Impl {
         // YASU LOW-LATENCY TRIM:
         // Keep the large ring for underrun protection, but never
         // intentionally play a very old backlog. If buffered PCM
-        // exceeds 100 ms, discard only the oldest portion and start
-        // from the newest 100 ms window.
-        constexpr uint32_t kMaxPlaybackBacklogFrames = 4800; // 100 ms @ 48 kHz
+        // exceeds 200 ms, discard only the oldest portion and start
+        // from the newest 200 ms window.
+        constexpr uint32_t kMaxPlaybackBacklogFrames = 9600; // 200 ms @ 48 kHz
 
         const uint32_t used =
             read >= write
