@@ -28,7 +28,7 @@ constexpr int kMaxStreams = 32;
 
 // Very small packet reorder window.
 // We prefer a tiny amount of loss/stutter over waiting for late packets.
-constexpr int kPacketSlots = 2;
+constexpr int kPacketSlots = 4;
 constexpr int kMaxPayload = 1600;
 
 // Fixed packet handoff queue between the WebRTC WorkerThread and the
@@ -960,6 +960,16 @@ struct YasuFastAudioCore::Impl {
              * stutter for lower playback latency.
              */
             if (gap == 1) {
+                  // Tiny reorder window for one missing 10 ms packet.
+                  constexpr uint64_t kReorderWaitUs = 6000;
+                  const uint64_t now_us = NowUs();
+
+                  if (ahead->arrival_us != 0 &&
+                      now_us >= ahead->arrival_us &&
+                      now_us - ahead->arrival_us < kReorderWaitUs) {
+                      break;
+                  }
+
                 // YASU ZERO-WAIT FEC:
                 // never add artificial jitter delay.
                 const uint16_t sequence =
@@ -1041,9 +1051,9 @@ struct YasuFastAudioCore::Impl {
         // backlog is above the target. This trades a very small amount
         // of playback-rate acceleration for much lower discontinuity
         // noise than deleting a large PCM block at once.
-        constexpr uint32_t kAdaptiveTargetFrames = 9600;   // 200 ms
-        constexpr uint32_t kAdaptiveHardLimitFrames = 11520; // 240 ms
-        constexpr uint32_t kAdaptiveMaxExtraFrames = 24;   // 0.5 ms/callback
+        constexpr uint32_t kAdaptiveTargetFrames = 1440;    // 30 ms
+        constexpr uint32_t kAdaptiveHardLimitFrames = 2880;  // 60 ms
+        constexpr uint32_t kAdaptiveMaxExtraFrames = 240;    // 5 ms/callback
 
         const uint32_t used =
             read >= write
