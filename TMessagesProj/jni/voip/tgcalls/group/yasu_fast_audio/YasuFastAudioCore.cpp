@@ -18,6 +18,7 @@
 
 #include "rtc_base/logging.h"
 #include "api/task_queue/default_task_queue_factory.h"
+#include "api/units/time_delta.h"
 #include "voip/tgcalls/YasuMeasurementGate.h"
 
 namespace tgcalls {
@@ -37,7 +38,24 @@ constexpr int kFastPacketQueueSlots = 8;
 
 // Small low-latency PCM ring. Opus decode uses its own larger buffer;
 // this ring remains intentionally small to avoid adding playback latency.
-constexpr int kStreamRingFrames = 12288;
+// MUST be a power of two: every index update uses `& (kStreamRingFrames - 1)`.
+// The previous value (12288) is NOT a power of two, so the mask 0x2FFF made the
+// write/read index wrap into [0x2000..0x2FFF] and corrupted occupancy math.
+constexpr int kStreamRingFrames = 16384;
+static_assert((kStreamRingFrames & (kStreamRingFrames - 1)) == 0,
+              "kStreamRingFrames must be a power of two");
+
+// Adaptive jitter pad (per stream, derived from measured RTP arrival jitter).
+constexpr uint32_t kPadMinFrames = 960;      // 20 ms
+constexpr uint32_t kPadMaxFrames = 7680;     // 160 ms
+constexpr uint32_t kPadInitialFrames = 2160; // 45 ms until estimator has data
+constexpr int kJitterHistory = 64;
+// Extra headroom above (pad + one packet) before we start trimming backlog.
+constexpr uint32_t kTrimHeadroomFrames = 2880;  // 60 ms
+// Max wait for a reordered packet before concealing it.
+constexpr uint64_t kReorderWaitUs = 15000;
+// Never conceal more than this many consecutive missing packets; resync instead.
+constexpr uint16_t kMaxConcealPackets = 2;
 
 constexpr int kOutputChunk = 480;
 
@@ -51,6 +69,21 @@ uint64_t NowUs() {
     return static_cast<uint64_t>(
         std::chrono::duration_cast<std::chrono::microseconds>(
             Clock::now().time_since_epoch()).count());
+}
+
+// Soft knee limiter for the multi-speaker sum (avoids hard-clip distortion).
+inline int16_t SoftLimit(int32_t v) {
+    constexpr int32_t kKnee = 24000;
+    constexpr int32_t kRoom = 32767 - kKnee;
+    if (v > -kKnee && v < kKnee) {
+        return static_cast<int16_t>(v);
+    }
+    const bool neg = v < 0;
+    const int32_t a = neg ? -v : v;
+    const int32_t e = a - kKnee;
+    const int32_t o = kKnee + static_cast<int32_t>(
+        static_cast<int64_t>(kRoom) * e / (e + kRoom));
+    return static_cast<int16_t>(neg ? -o : o);
 }
 
 inline bool SeqAhead(uint16_t sequence, uint16_t expected) {
@@ -75,8 +108,11 @@ struct Packet {
     uint32_t timestamp = 0;
     uint16_t size = 0;
 
-    // Real arrival time of the RTP packet.
+    // Arrival time used for diagnostics (0 when measurements are off).
     uint64_t arrival_us = 0;
+
+    // Real arrival time of the RTP packet (always set; drives reorder timer).
+    uint64_t real_arrival_us = 0;
 
     uint8_t data[kMaxPayload]{};
 };
@@ -109,6 +145,38 @@ struct Stream {
 
     // Written by packet path, read only for diagnostics.
     std::atomic<uint64_t> last_packet_us{0};
+
+    // ---- YASU adaptive jitter pad (producer-owned, consumer reads) ----
+    // Real duration of the last decoded packet (frames @48k). Used for PLC
+    // length and trim threshold. Works for 10..120 ms senders.
+    std::atomic<uint32_t> last_packet_frames{960};
+    // Silence inserted before audio when the ring is empty (start/underrun).
+    std::atomic<uint32_t> pad_frames{kPadInitialFrames};
+
+    bool have_jitter_base = false;
+    uint32_t jitter_first_ts = 0;
+    uint64_t jitter_first_arrival_us = 0;
+    int64_t jitter_base_us = 0;
+    int32_t jitter_hist_us[kJitterHistory]{};
+    int jitter_hist_n = 0;
+    int jitter_hist_pos = 0;
+    double pad_smooth = static_cast<double>(kPadInitialFrames);
+
+    // A delayed re-drain is already scheduled for a reordered packet.
+    bool reorder_timer_posted = false;
+
+    void ResetAdaptive() {
+        last_packet_frames.store(960, std::memory_order_relaxed);
+        pad_frames.store(kPadInitialFrames, std::memory_order_relaxed);
+        have_jitter_base = false;
+        jitter_first_ts = 0;
+        jitter_first_arrival_us = 0;
+        jitter_base_us = 0;
+        jitter_hist_n = 0;
+        jitter_hist_pos = 0;
+        pad_smooth = static_cast<double>(kPadInitialFrames);
+        reorder_timer_posted = false;
+    }
 };
 
 struct Stats {
@@ -553,6 +621,7 @@ struct YasuFastAudioCore::Impl {
             std::memory_order_release);
 
         stream->ssrc = ssrc;
+        stream->ResetAdaptive();
 
         stream->have_sequence = false;
         stream->next_sequence = 0;
@@ -602,13 +671,32 @@ struct YasuFastAudioCore::Impl {
             stream->pcm_read.load(
                 std::memory_order_acquire);
 
-        const uint32_t used =
+        uint32_t used =
             write >= read
                 ? write - read
                 : kStreamRingFrames - read + write;
 
         const uint32_t capacity =
             kStreamRingFrames - 1;
+
+        // YASU JITTER PAD: the ring is empty => stream is starting or just
+        // underran. Re-prime with adaptive silence so the next packet that
+        // arrives a little late does not cut the audio again.
+        bool padded = false;
+        if (used == 0) {
+            uint32_t pad = stream->pad_frames.load(
+                std::memory_order_relaxed);
+            if (pad > capacity / 2) {
+                pad = capacity / 2;
+            }
+            for (uint32_t i = 0; i < pad; ++i) {
+                stream->pcm[write] = 0;
+                stream->pcm_time_us[write] = 0;
+                write = (write + 1) & (kStreamRingFrames - 1);
+            }
+            used = pad;
+            padded = pad != 0;
+        }
 
         const uint32_t free_frames =
             capacity - used;
@@ -633,9 +721,13 @@ struct YasuFastAudioCore::Impl {
             const int32_t right =
                 stereo[i * 2 + 1];
 
+            int32_t mono = (left + right) / 2;
+            if (padded && source_arrival_us != 0 && i < 48) {
+                mono = mono * static_cast<int32_t>(i) / 48;  // 1 ms fade-in
+            }
+
             stream->pcm[write] =
-                static_cast<int16_t>(
-                    (left + right) / 2);
+                static_cast<int16_t>(mono);
 
             stream->pcm_time_us[write] =
                 source_arrival_us;
@@ -689,7 +781,8 @@ struct YasuFastAudioCore::Impl {
         int size,
         bool plc,
         bool fec,
-        uint64_t arrival_us) {
+        uint64_t arrival_us,
+        int frame_samples = 0) {
 
         // Only one packet is decoded at a time because the packet
         // path is serialized. thread_local avoids stack churn.
@@ -709,20 +802,40 @@ struct YasuFastAudioCore::Impl {
             return 0;
         }
 
+        // PLC/FEC must be asked for exactly the duration that is missing
+        // (multiple of 2.5 ms). The old code always asked PLC for 120 ms.
         int decode_frame_size = kDecodeSamples;
 
         if (fec) {
-            const int fec_frame_size =
-                opus_packet_get_samples_per_frame(
-                    data,
-                    48000);
+            int fec_frame_size = frame_samples;
+            if (fec_frame_size <= 0) {
+                fec_frame_size =
+                    opus_packet_get_samples_per_frame(
+                        data,
+                        48000);
+            }
 
             if (fec_frame_size <= 0 ||
                 fec_frame_size > kDecodeSamples) {
                 return 0;
             }
 
+            fec_frame_size -= fec_frame_size % 120;
+            if (fec_frame_size <= 0) {
+                return 0;
+            }
+
             decode_frame_size = fec_frame_size;
+        } else if (plc) {
+            int plc_size = frame_samples > 0 ? frame_samples : 960;
+            plc_size -= plc_size % 120;
+            if (plc_size < 120) {
+                plc_size = 120;
+            }
+            if (plc_size > kDecodeSamples) {
+                plc_size = kDecodeSamples;
+            }
+            decode_frame_size = plc_size;
         }
 
         const uint64_t start =
@@ -780,6 +893,10 @@ struct YasuFastAudioCore::Impl {
             stats.packets_decoded.fetch_add(1);
         } else {
             stats.packets_decoded.fetch_add(1);
+            // Remember the real packet duration (works for any ptime).
+            stream->last_packet_frames.store(
+                static_cast<uint32_t>(samples),
+                std::memory_order_relaxed);
         }
 
         PushPcm(
@@ -791,14 +908,24 @@ struct YasuFastAudioCore::Impl {
         return samples;
     }
 
-    void DecodePlc(Stream* stream) {
+    void DecodePlc(Stream* stream, int frame_samples) {
         DecodePacket(
             stream,
             nullptr,
             0,
             true,
             false,
-            0);
+            0,
+            frame_samples);
+    }
+
+    int LastPacketFrames(Stream* stream) const {
+        int n = static_cast<int>(
+            stream->last_packet_frames.load(
+                std::memory_order_relaxed));
+        if (n < 120) n = 960;
+        if (n > kDecodeSamples) n = kDecodeSamples;
+        return n;
     }
 
     Packet* FindExact(
@@ -853,17 +980,132 @@ struct YasuFastAudioCore::Impl {
         return nearest;
     }
 
+    void UpdateJitterPad(
+        Stream* stream,
+        uint32_t timestamp,
+        uint64_t arrival_us) {
+
+        if (!stream->have_jitter_base) {
+            stream->have_jitter_base = true;
+            stream->jitter_first_ts = timestamp;
+            stream->jitter_first_arrival_us = arrival_us;
+            stream->jitter_base_us = 0;
+            return;
+        }
+
+        const int64_t media_us =
+            static_cast<int64_t>(
+                static_cast<int32_t>(
+                    timestamp - stream->jitter_first_ts)) *
+            1000000LL / 48000LL;
+
+        const int64_t wall_us =
+            static_cast<int64_t>(arrival_us) -
+            static_cast<int64_t>(stream->jitter_first_arrival_us);
+
+        const int64_t d = wall_us - media_us;
+
+        // Running minimum with a slow upward drift (clock skew tolerance).
+        if (d < stream->jitter_base_us) {
+            stream->jitter_base_us = d;
+        } else {
+            stream->jitter_base_us += 100;
+        }
+
+        int64_t rel = d - stream->jitter_base_us;
+        if (rel < 0) rel = 0;
+        if (rel > 2000000) rel = 2000000;
+
+        stream->jitter_hist_us[stream->jitter_hist_pos] =
+            static_cast<int32_t>(rel);
+        stream->jitter_hist_pos =
+            (stream->jitter_hist_pos + 1) % kJitterHistory;
+        if (stream->jitter_hist_n < kJitterHistory) {
+            ++stream->jitter_hist_n;
+        }
+
+        if (stream->jitter_hist_n < 8) {
+            return;
+        }
+
+        int32_t sorted[kJitterHistory];
+        std::memcpy(
+            sorted,
+            stream->jitter_hist_us,
+            sizeof(int32_t) * stream->jitter_hist_n);
+        std::sort(sorted, sorted + stream->jitter_hist_n);
+
+        const int idx =
+            (stream->jitter_hist_n * 95) / 100;
+        const int32_t p95_us =
+            sorted[std::min(idx, stream->jitter_hist_n - 1)];
+
+        // 48 frames per ms; +10 ms safety margin.
+        double target =
+            static_cast<double>(p95_us) * 48.0 / 1000.0 + 480.0;
+        target = std::max<double>(target, kPadMinFrames);
+        target = std::min<double>(target, kPadMaxFrames);
+
+        // Fast attack (protect against bursts), slow decay (low latency).
+        if (target > stream->pad_smooth) {
+            stream->pad_smooth = target;
+        } else {
+            stream->pad_smooth =
+                stream->pad_smooth * 0.98 + target * 0.02;
+        }
+
+        stream->pad_frames.store(
+            static_cast<uint32_t>(stream->pad_smooth),
+            std::memory_order_relaxed);
+    }
+
+    // Re-run Drain() for one stream after a short delay. Without this a
+    // packet that is waiting for its reordered predecessor would sit until
+    // the NEXT packet arrives (up to one full packet duration later).
+    void ScheduleReorderDrain(Stream* stream, uint64_t wait_us) {
+        if (stream->reorder_timer_posted || !fast_queue) {
+            return;
+        }
+        stream->reorder_timer_posted = true;
+
+        const uint32_t ssrc = stream->ssrc;
+        const uint64_t gen = generation.load(std::memory_order_acquire);
+        const int64_t delay_us =
+            static_cast<int64_t>(wait_us) + 500;
+
+        fast_queue->PostDelayedTask(
+            [this, ssrc, gen]() {
+                if (resetting.load(std::memory_order_acquire) ||
+                    generation.load(std::memory_order_acquire) != gen) {
+                    return;
+                }
+                Lock();
+                if (!resetting.load(std::memory_order_acquire) &&
+                    generation.load(std::memory_order_acquire) == gen) {
+                    Stream* st = Find(ssrc);
+                    if (st) {
+                        st->reorder_timer_posted = false;
+                        Drain(st);
+                    }
+                }
+                Unlock();
+            },
+            webrtc::TimeDelta::Micros(delay_us));
+    }
+
     void Drain(Stream* stream) {
         if (!stream->have_sequence) {
+            // Start with the OLDEST buffered packet (lowest sequence),
+            // not simply the first occupied slot.
             Packet* first = nullptr;
 
-            // Choose the packet with the lowest forward distance
-            // from any available packet. Since this is startup,
-            // any valid packet is acceptable.
             for (auto& packet : stream->packets) {
-                if (packet.valid) {
+                if (!packet.valid) {
+                    continue;
+                }
+                if (!first ||
+                    SeqBehind(packet.sequence, first->sequence)) {
                     first = &packet;
-                    break;
                 }
             }
 
@@ -871,20 +1113,26 @@ struct YasuFastAudioCore::Impl {
                 return;
             }
 
-            DecodePacket(
-                stream,
-                first->data,
-                first->size,
-                false,
-                false,
-                first->arrival_us);
+            const uint16_t first_sequence = first->sequence;
+            const uint32_t first_timestamp = first->timestamp;
+
+            const int first_samples =
+                DecodePacket(
+                    stream,
+                    first->data,
+                    first->size,
+                    false,
+                    false,
+                    first->arrival_us);
 
             stream->next_sequence =
                 static_cast<uint16_t>(
-                    first->sequence + 1);
+                    first_sequence + 1);
 
             stream->next_timestamp =
-                first->timestamp + 480;
+                first_timestamp +
+                static_cast<uint32_t>(
+                    first_samples > 0 ? first_samples : 960);
 
             stream->have_timestamp = true;
 
@@ -909,13 +1157,14 @@ struct YasuFastAudioCore::Impl {
                 const uint64_t arrival =
                     exact->arrival_us;
 
-                DecodePacket(
-                    stream,
-                    exact->data,
-                    exact->size,
-                    false,
-                    false,
-                    arrival);
+                const int samples =
+                    DecodePacket(
+                        stream,
+                        exact->data,
+                        exact->size,
+                        false,
+                        false,
+                        arrival);
 
                 exact->valid = false;
 
@@ -924,7 +1173,9 @@ struct YasuFastAudioCore::Impl {
                         seq + 1);
 
                 stream->next_timestamp =
-                    timestamp + 480;
+                    timestamp +
+                    static_cast<uint32_t>(
+                        samples > 0 ? samples : 960);
 
                 stream->have_timestamp = true;
 
@@ -944,92 +1195,109 @@ struct YasuFastAudioCore::Impl {
             }
 
             /*
-             * Ultra-low-latency policy:
+             * `gap` packets are missing before `ahead`.
              *
-             * Do NOT wait for a missing packet.
-             *
-             * gap == 1:
-             *   Try Opus in-band FEC from the packet that arrived.
-             *   This can reconstruct the missing 10 ms without adding
-             *   another network wait.
-             *
-             * gap > 1:
-             *   Generate PLC immediately for missing frames.
-             *
-             * This intentionally trades a small amount of possible
-             * stutter for lower playback latency.
+             * 1) Give a reordered packet a short chance to show up
+             *    (timer-driven, never stalls until the next packet).
+             * 2) Conceal each missing packet with the REAL packet
+             *    duration (not a fixed 10 ms / 120 ms guess).
+             * 3) The last missing packet is recovered with Opus in-band
+             *    FEC when the next packet carries it (FEC decodes the
+             *    END of the lost packet, so PLC covers the earlier part).
+             * 4) Never conceal more than kMaxConcealPackets in a row:
+             *    resync instead of queueing seconds of fake audio.
              */
             if (gap == 1) {
-                  // Tiny reorder window for one missing 10 ms packet.
-                  constexpr uint64_t kReorderWaitUs = 6000;
-                  const uint64_t now_us = NowUs();
+                const uint64_t now_us = NowUs();
+                const uint64_t ahead_arrival = ahead->real_arrival_us;
 
-                  if (ahead->arrival_us != 0 &&
-                      now_us >= ahead->arrival_us &&
-                      now_us - ahead->arrival_us < kReorderWaitUs) {
-                      break;
-                  }
-
-                // YASU ZERO-WAIT FEC:
-                // never add artificial jitter delay.
-                const uint16_t sequence =
-                    ahead->sequence;
-
-                const uint32_t timestamp =
-                    ahead->timestamp;
-
-                const uint64_t arrival =
-                    ahead->arrival_us;
-
-                const int fec_samples =
-                    DecodePacket(
+                if (ahead_arrival != 0 &&
+                    now_us >= ahead_arrival &&
+                    now_us - ahead_arrival < kReorderWaitUs) {
+                    ScheduleReorderDrain(
                         stream,
-                        ahead->data,
-                        ahead->size,
-                        false,
-                        true,
-                        arrival);
-
-                if (fec_samples > 0) {
-                    stream->next_sequence =
-                        static_cast<uint16_t>(
-                            stream->next_sequence + 1);
-
-                    stream->next_timestamp += 480;
-                } else {
-                    DecodePlc(stream);
-
-                    stream->next_sequence =
-                        static_cast<uint16_t>(
-                            stream->next_sequence + 1);
-
-                    stream->next_timestamp += 480;
+                        kReorderWaitUs - (now_us - ahead_arrival));
+                    break;
                 }
+            }
 
-                (void)sequence;
-                (void)timestamp;
+            const int lost_frames = LastPacketFrames(stream);
 
-                // The same packet still needs its normal decode.
-                // Marking it untouched here lets the exact lookup
-                // decode it immediately below.
+            if (gap > kMaxConcealPackets) {
+                // Long outage: one short concealment, then resync.
+                DecodePlc(stream, lost_frames);
+                stream->next_sequence = ahead->sequence;
+                stream->next_timestamp = ahead->timestamp;
                 continue;
             }
 
-            // More than one missing packet.
-            // Fill the missing timeline immediately with PLC.
-            DecodePlc(stream);
+            if (gap > 1) {
+                DecodePlc(stream, lost_frames);
+                stream->next_sequence =
+                    static_cast<uint16_t>(
+                        stream->next_sequence + 1);
+                stream->next_timestamp +=
+                    static_cast<uint32_t>(lost_frames);
+                continue;
+            }
+
+            // gap == 1: last missing packet -> FEC (+PLC for the rest).
+            bool recovered = false;
+
+            if (ahead->size > 0 &&
+                WebRtcOpus_PacketHasFec(
+                    ahead->data,
+                    static_cast<size_t>(ahead->size)) == 1) {
+
+                int fec_part =
+                    opus_packet_get_samples_per_frame(
+                        ahead->data,
+                        48000);
+
+                if (fec_part > 0) {
+                    if (fec_part > lost_frames) {
+                        fec_part = lost_frames;
+                    }
+                    fec_part -= fec_part % 120;
+
+                    const int plc_part = lost_frames - fec_part;
+
+                    if (fec_part > 0) {
+                        if (plc_part >= 120) {
+                            DecodePlc(stream, plc_part);
+                        }
+
+                        recovered =
+                            DecodePacket(
+                                stream,
+                                ahead->data,
+                                ahead->size,
+                                false,
+                                true,
+                                ahead->arrival_us,
+                                fec_part) > 0;
+                    }
+                }
+            }
+
+            if (!recovered) {
+                DecodePlc(stream, lost_frames);
+            }
 
             stream->next_sequence =
                 static_cast<uint16_t>(
                     stream->next_sequence + 1);
 
-            stream->next_timestamp += 480;
+            stream->next_timestamp +=
+                static_cast<uint32_t>(lost_frames);
+
+            // `ahead` is decoded by the exact lookup on the next loop turn.
         }
     }
 
     int ReadStream(
         Stream* stream,
-        int16_t* mix,
+        int32_t* mix,
         uint8_t* contributors,
         int frames) {
 
@@ -1044,60 +1312,57 @@ struct YasuFastAudioCore::Impl {
             stream->pcm_write.load(
                 std::memory_order_acquire);
 
-        // YASU ADAPTIVE PLAYBACK:
-        //
-        // Never perform a large burst drop when the PCM ring grows.
-        // Instead, gradually consume a few extra frames while the
-        // backlog is above the target. This trades a very small amount
-        // of playback-rate acceleration for much lower discontinuity
-        // noise than deleting a large PCM block at once.
-        constexpr uint32_t kAdaptiveTargetFrames = 1440;    // 30 ms
-        constexpr uint32_t kAdaptiveHardLimitFrames = 2880;  // 60 ms
-        constexpr uint32_t kAdaptiveMaxExtraFrames = 240;    // 5 ms/callback
-
         const uint32_t used =
             write >= read
                 ? write - read
                 : kStreamRingFrames - read + write;
 
-        uint32_t extra_consume = 0;
+        // YASU ADAPTIVE BACKLOG CONTROL (per stream):
+        //
+        // Steady state level is in [pad, pad + one packet]. The old fixed
+        // 30 ms target was SMALLER than one 120 ms packet, so after every
+        // packet the code threw away up to 240 of every 240 frames (2x speed
+        // raw sample deletion) => heavy distortion. The threshold now follows
+        // the real packet length and the measured jitter pad, and trimming
+        // is done on silence first, then with a very gentle sample skip.
+        const uint32_t pad =
+            stream->pad_frames.load(std::memory_order_relaxed);
+        const uint32_t pkt =
+            stream->last_packet_frames.load(std::memory_order_relaxed);
+        const uint32_t high =
+            pad + pkt + kTrimHeadroomFrames;
 
-        if (used > kAdaptiveTargetFrames) {
-            const uint32_t excess =
-                used - kAdaptiveTargetFrames;
+        uint32_t skip_every = 0;
 
-            // Proportional catch-up:
-            // 0.5 ms maximum extra consumption per callback.
-            extra_consume =
-                std::min(
-                    kAdaptiveMaxExtraFrames,
-                    std::max<uint32_t>(
-                        1,
-                        excess / 960));
+        if (used > high) {
+            const uint32_t excess = used - high;
 
-            // If the ring reaches the hard limit, temporarily use
-            // the maximum micro-trim rate instead of burst dropping.
-            if (used >= kAdaptiveHardLimitFrames) {
-                extra_consume =
-                    kAdaptiveMaxExtraFrames;
+            // (a) drop a block that is (almost) silence: inaudible.
+            const uint32_t block =
+                std::min<uint32_t>(
+                    std::min<uint32_t>(excess, 480),
+                    used > 1 ? used - 1 : 0);
+
+            bool silent = block != 0;
+            for (uint32_t i = 0; silent && i < block; ++i) {
+                const int32_t v =
+                    stream->pcm[(read + i) & (kStreamRingFrames - 1)];
+                if (v > 300 || v < -300) {
+                    silent = false;
+                }
             }
 
-            const uint32_t available_before_output =
-                used;
-
-            if (extra_consume >= available_before_output) {
-                extra_consume =
-                    available_before_output > 1
-                        ? available_before_output - 1
-                        : 0;
+            if (silent) {
+                read = (read + block) & (kStreamRingFrames - 1);
+            } else if (excess > 4800) {
+                // (b) > 100 ms over target while speech is playing:
+                // skip 1 sample in 64 (~1.6 % faster, no hard bursts).
+                skip_every = 64;
             }
-
-            read =
-                (read + extra_consume) &
-                (kStreamRingFrames - 1);
         }
 
         int count = 0;
+        uint32_t skip_counter = 0;
 
         while (count < frames &&
                read != write) {
@@ -1105,16 +1370,8 @@ struct YasuFastAudioCore::Impl {
             const uint64_t stamp =
                 stream->pcm_time_us[read];
 
-            const int32_t value =
-                static_cast<int32_t>(mix[count]) +
+            mix[count] +=
                 static_cast<int32_t>(stream->pcm[read]);
-
-            mix[count] =
-                static_cast<int16_t>(
-                    std::clamp(
-                        value,
-                        -32768,
-                        32767));
 
             if (contributors) {
                 if (contributors[count] < 255) {
@@ -1140,6 +1397,14 @@ struct YasuFastAudioCore::Impl {
 
             read =
                 (read + 1) & (kStreamRingFrames - 1);
+
+            if (skip_every != 0 &&
+                ++skip_counter >= skip_every &&
+                read != write) {
+                skip_counter = 0;
+                read =
+                    (read + 1) & (kStreamRingFrames - 1);
+            }
         }
 
         stream->pcm_read.store(
@@ -1232,7 +1497,7 @@ struct YasuFastAudioCore::Impl {
             return 0;
         }
 
-        int16_t mix[kOutputChunk];
+        int32_t mix[kOutputChunk];
         uint8_t contributors[kOutputChunk];
 
         int remaining = frames;
@@ -1248,7 +1513,7 @@ struct YasuFastAudioCore::Impl {
                 mix,
                 0,
                 static_cast<size_t>(chunk) *
-                    sizeof(int16_t));
+                    sizeof(int32_t));
 
             std::memset(
                 contributors,
@@ -1294,8 +1559,8 @@ struct YasuFastAudioCore::Impl {
             for (int i = 0; i < chunk; ++i) {
                 const int16_t value =
                     contributors[i] != 0
-                        ? mix[i]
-                        : 0;
+                        ? SoftLimit(mix[i])
+                        : static_cast<int16_t>(0);
 
                 for (int channel = 0;
                      channel < channels;
@@ -1455,6 +1720,7 @@ void YasuFastAudioCore::Reset() {
             std::memory_order_release);
 
         stream.ssrc = 0;
+        stream.ResetAdaptive();
 
         stream.have_sequence = false;
         stream.next_sequence = 0;
@@ -1835,6 +2101,18 @@ void YasuFastAudioCore::ProcessPacket(
             payload_size);
 
     destination->arrival_us = arrival;
+    destination->real_arrival_us = packet_arrival_us;
+
+    // YASU JITTER ESTIMATOR: relative one-way delay = arrival time minus
+    // RTP media time. Its 95th percentile (minus the running minimum)
+    // sets the per-stream pad, so low-jitter streams stay low-latency and
+    // bursty streams get exactly the protection they need.
+    if (packet_arrival_us != 0) {
+        impl_->UpdateJitterPad(
+            stream,
+            timestamp,
+            packet_arrival_us);
+    }
 
     std::memcpy(
         destination->data,
