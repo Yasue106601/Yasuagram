@@ -1056,9 +1056,9 @@ struct YasuFastAudioCore::Impl {
         constexpr uint32_t kAdaptiveMaxExtraFrames = 240;    // 5 ms/callback
 
         const uint32_t used =
-            read >= write
-                ? read - write
-                : kStreamRingFrames - write + read;
+            write >= read
+                ? write - read
+                : kStreamRingFrames - read + write;
 
         uint32_t extra_consume = 0;
 
