@@ -1062,34 +1062,6 @@ JNIEXPORT void JNICALL Java_org_telegram_messenger_voip_NativeInstance_setMeasur
 }
 
 extern "C"
-JNIEXPORT void JNICALL Java_org_telegram_messenger_voip_NativeInstance_setYasuFastAudioEnabledNative(JNIEnv *env, jobject obj, jboolean enabled) {
-    (void)env;
-    (void)obj;
-
-    auto& fastAudio = tgcalls::YasuFastAudioCore::Instance();
-    fastAudio.SetEnabled(enabled == JNI_TRUE);
-}
-
-extern "C"
-JNIEXPORT jstring JNICALL Java_org_telegram_messenger_voip_NativeInstance_getYasuFastAudioMeasurementLogNative(JNIEnv *env, jobject obj) {
-    (void)obj;
-
-    const std::string log =
-        tgcalls::YasuFastAudioCore::Instance().TakeMeasurementLog();
-
-    return env->NewStringUTF(log.c_str());
-}
-
-extern "C"
-JNIEXPORT void JNICALL Java_org_telegram_messenger_voip_NativeInstance_resetYasuFastAudioNative(JNIEnv *env, jobject obj) {
-    (void)env;
-    (void)obj;
-
-    auto& fastAudio = tgcalls::YasuFastAudioCore::Instance();
-    fastAudio.SetEnabled(false);
-}
-
-extern "C"
 JNIEXPORT void JNICALL Java_org_telegram_messenger_voip_NativeInstance_onStreamPartAvailable(JNIEnv *env, jobject obj, jlong ts, jobject byteBuffer, jint size, jlong responseTs, jint videoChannel, jint quality) {
     InstanceHolder *instance = getInstanceHolder(env, obj);
     if (instance == nullptr || instance->groupNativeInstance == nullptr) {

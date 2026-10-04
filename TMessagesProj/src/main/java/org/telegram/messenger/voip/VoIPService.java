@@ -1015,20 +1015,6 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
         return measurementsEnabled;
     }
 
-    private boolean yasuFastAudioEnabled = false;
-
-    public void setYasuFastAudioEnabled(boolean enabled) {
-        yasuFastAudioEnabled = enabled;
-        NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
-        if (instance != null && instance.isGroup()) {
-            instance.setYasuFastAudioEnabled(enabled);
-        }
-    }
-
-    public boolean getYasuFastAudioEnabled() {
-        return yasuFastAudioEnabled;
-    }
-
 public static VoIPService getSharedInstance() {
 		return sharedInstance;
 	}
@@ -4235,8 +4221,6 @@ public static VoIPService getSharedInstance() {
 				NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
 				Utilities.globalQueue.postRunnable(() -> {
                                    String netEqLog = instance.stopGroup();
-                                   String fastAudioLog = instance.getYasuFastAudioMeasurementLog();
-                                   instance.resetYasuFastAudio();
 
                                    if (netEqLog != null && !netEqLog.isEmpty()) {
                                            try {
@@ -4266,33 +4250,6 @@ public static VoIPService getSharedInstance() {
                                            }
                                    }
 
-                                   if (fastAudioLog != null && !fastAudioLog.isEmpty()) {
-                                           try {
-                                                   android.content.ContentValues values = new android.content.ContentValues();
-                                                   values.put(android.provider.MediaStore.Downloads.DISPLAY_NAME,
-                                                           "Yasuagram_FastAudio_" + System.currentTimeMillis() + ".txt");
-                                                   values.put(android.provider.MediaStore.Downloads.MIME_TYPE, "text/plain");
-                                                   values.put(android.provider.MediaStore.Downloads.RELATIVE_PATH,
-                                                           android.os.Environment.DIRECTORY_DOWNLOADS);
-
-                                                   android.net.Uri uri = getContentResolver().insert(
-                                                           android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                                                           values
-                                                   );
-
-                                                   if (uri != null) {
-                                                           try (java.io.OutputStream outputStream = getContentResolver().openOutputStream(uri)) {
-                                                                   if (outputStream != null) {
-                                                                           outputStream.write(fastAudioLog.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                                                                           outputStream.flush();
-                                                                   }
-                                                           }
-                                                           FileLog.e("YASU FAST AUDIO: log exported to Downloads");
-                                                   }
-                                           } catch (Exception e) {
-                                                   FileLog.e("YASU FAST AUDIO: export failed", e);
-                                           }
-                                   }
                            });
 				for (HashMap.Entry<String, Integer> entry : currentStreamRequestTimestamp.entrySet()) {
 					AccountInstance.getInstance(currentAccount).getConnectionsManager().cancelRequest(entry.getValue(), true);

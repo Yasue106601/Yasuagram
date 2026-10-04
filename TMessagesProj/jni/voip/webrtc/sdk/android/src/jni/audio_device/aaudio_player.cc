@@ -208,7 +208,7 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
   // underrun recovery does not silently add playback latency.
   auto& yasu_fast_audio = tgcalls::YasuFastAudioCore::Instance();
 
-  if (!yasu_fast_audio.IsEnabled()) {
+  if (!yasu_fast_audio.HasRegisteredGroupSsrc()) {
     const int32_t underrun_count = aaudio_.xrun_count();
     // YASU: the output buffer used to only grow. Shrink it back one burst
     // at a time after a quiet period, down to 2 bursts (10 ms).
@@ -322,7 +322,7 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
   // This is the actual Group Call AAudio backend. When FAST is enabled,
   // consume decoded PCM directly from YasuFastAudioCore and completely
   // bypass FineAudioBuffer/WebRTC playout for this callback.
-  if (yasu_fast_audio.IsEnabled()) {
+  if (yasu_fast_audio.HasRegisteredGroupSsrc()) {
     const int yasu_fast_frames = yasu_fast_audio.ReadPcm(
         static_cast<int16_t*>(audio_data),
         num_frames,

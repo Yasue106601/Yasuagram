@@ -89,25 +89,6 @@ public class NativeInstance {
         }
     }
 
-    public void setYasuFastAudioEnabled(boolean enabled) {
-        if (nativePtr != 0 && isGroup) {
-            setYasuFastAudioEnabledNative(enabled);
-        }
-    }
-
-    public String getYasuFastAudioMeasurementLog() {
-        if (nativePtr != 0 && isGroup) {
-            return getYasuFastAudioMeasurementLogNative();
-        }
-        return "";
-    }
-
-    public void resetYasuFastAudio() {
-        if (nativePtr != 0 && isGroup) {
-            resetYasuFastAudioNative();
-        }
-    }
-
     public int getPeerCapabilities() {
         return 0;
     }
@@ -226,9 +207,6 @@ public class NativeInstance {
     }
 
     private native void setMeasurementsEnabledNative(boolean enabled);
-    private native void setYasuFastAudioEnabledNative(boolean enabled);
-    private native String getYasuFastAudioMeasurementLogNative();
-    private native void resetYasuFastAudioNative();
 
     private static native long makeGroupNativeInstance(NativeInstance instance, String persistentStateFilePath, boolean highQuality, long videoCapturer, boolean screencast, boolean noiseSupression, boolean conference);
     private static native long makeNativeInstance(String version, NativeInstance instance, Instance.Config config, String persistentStateFilePath, Instance.Endpoint[] endpoints, Instance.Proxy proxy, int networkType, Instance.EncryptionKey encryptionKey, VideoSink remoteSink, long videoCapturer, float aspectRatio);

@@ -265,7 +265,7 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
   // When enabled, bypass FineAudioBuffer/NetEq playout and read directly from
   // the experimental low-latency PCM ring.
   auto& yasu_fast_audio = tgcalls::YasuFastAudioCore::Instance();
-  if (yasu_fast_audio.IsEnabled()) {
+  if (yasu_fast_audio.HasRegisteredGroupSsrc()) {
     yasu_fast_audio.ReadPcm(
         static_cast<int16_t*>(audio_data),
         num_frames,

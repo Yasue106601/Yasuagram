@@ -349,13 +349,12 @@ void ChannelReceive::OnReceivedPayloadData(
     return;
   }
 
-  // YASU FAST AUDIO:
-  // When FAST is enabled, this is the complete audio receive path.
+  // YASU FAST GROUP VOICE AUDIO:
+  // Registered Group Voice SSRCs bypass NetEq/ACM/NACK completely.
   // The already-transformed Opus payload goes directly to YasuFastAudioCore.
-  // Do not feed it into NetEq, ACM, or the legacy NACK/audio pipeline.
   auto& yasu_fast_audio = tgcalls::YasuFastAudioCore::Instance();
 
-  if (yasu_fast_audio.IsEnabled()) {
+  if (yasu_fast_audio.IsGroupSsrc(rtpHeader.ssrc)) {
     if (rtpHeader.payloadType == 111) {
       yasu_fast_audio.PushPacket(
           rtpHeader.ssrc,
@@ -369,7 +368,7 @@ void ChannelReceive::OnReceivedPayloadData(
   }
 
   // LEGACY AUDIO PATH:
-  // NetEq/ACM/NACK remain completely intact when FAST is disabled.
+  // Non-Group-Voice SSRCs continue through the existing NetEq/ACM/NACK path.
   if (acm_receiver_.InsertPacket(rtpHeader, payload) != 0) {
     RTC_DLOG(LS_ERROR) << "ChannelReceive::OnReceivedPayloadData() unable to "
                           "push data to the ACM";

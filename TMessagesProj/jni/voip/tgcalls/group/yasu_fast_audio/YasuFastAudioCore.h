@@ -13,11 +13,13 @@ class YasuFastAudioCore final {
 public:
     static YasuFastAudioCore& Instance();
 
-    void SetEnabled(bool enabled);
-    bool IsEnabled() const;
 
     void Reset();
-    void ResetMeasurements();
+
+    void RegisterGroupSsrc(uint32_t ssrc);
+    void UnregisterGroupSsrc(uint32_t ssrc);
+    bool IsGroupSsrc(uint32_t ssrc) const;
+    bool HasRegisteredGroupSsrc() const;
 
     void PushPacket(uint32_t ssrc,
                     uint16_t sequence,
@@ -38,7 +40,6 @@ public:
                 int channels,
                 int sample_rate);
 
-    std::string TakeMeasurementLog();
 
 private:
     YasuFastAudioCore();
