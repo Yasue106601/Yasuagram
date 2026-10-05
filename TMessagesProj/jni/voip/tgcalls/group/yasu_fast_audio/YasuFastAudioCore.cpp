@@ -46,17 +46,17 @@ static_assert((kStreamRingFrames & (kStreamRingFrames - 1)) == 0,
               "kStreamRingFrames must be a power of two");
 
 // Adaptive jitter pad (per stream, derived from measured RTP arrival jitter).
-constexpr uint32_t kPadMinFrames = 240;      // 5 ms
-constexpr uint32_t kPadMaxFrames = 960;      // 20 ms
+constexpr uint32_t kPadMinFrames = 120;      // 2.5 ms
+constexpr uint32_t kPadMaxFrames = 480;       // 10 ms
 constexpr uint32_t kPadInitialFrames = 0;    // no artificial startup delay
 constexpr int kJitterHistory = 64;
 // Extra headroom above (pad + one packet) before we start trimming backlog.
-constexpr uint32_t kTrimHeadroomFrames = 240;   // 5 ms
+constexpr uint32_t kTrimHeadroomFrames = 120; // 2.5 ms
 // Backlog above (pad + packet + headroom + this) is dropped at once (a short
 // glitch beats hundreds of ms of permanent delay after a network burst).
-constexpr uint32_t kHardTrimExcessFrames = 14400;  // 300 ms
+constexpr uint32_t kHardTrimExcessFrames = 4800; // 100 ms
 // Max wait for a reordered packet before concealing it.
-constexpr uint64_t kReorderWaitUs = 3000;
+constexpr uint64_t kReorderWaitUs = 1500; // 1.5 ms
 // Never conceal more than this many consecutive missing packets; resync instead.
 constexpr uint16_t kMaxConcealPackets = 2;
 
@@ -807,7 +807,29 @@ struct YasuFastAudioCore::Impl {
 
         // PLC/FEC must be asked for exactly the duration that is missing
         // (multiple of 2.5 ms). The old code always asked PLC for 120 ms.
-        int decode_frame_size = kDecodeSamples;
+        //
+        // For normal packets, determine the actual Opus packet duration
+        // first instead of always handing opus_decode() the full 120 ms
+        // output capacity. This keeps the normal decode working set small
+        // while preserving support for larger valid Opus packets.
+        int decode_frame_size = 480;
+
+        if (!plc && !fec) {
+            int packet_samples =
+                opus_packet_get_nb_samples(
+                    data,
+                    size,
+                    48000);
+
+            if (packet_samples > 0) {
+                packet_samples -= packet_samples % 120;
+
+                if (packet_samples >= 120 &&
+                    packet_samples <= kDecodeSamples) {
+                    decode_frame_size = packet_samples;
+                }
+            }
+        }
 
         if (fec) {
             int fec_frame_size = frame_samples;
@@ -1053,8 +1075,11 @@ struct YasuFastAudioCore::Impl {
         if (target > stream->pad_smooth) {
             stream->pad_smooth = target;
         } else {
+            // Fast decay: once network jitter settles, release
+            // accumulated playback padding quickly instead of carrying
+            // old latency forward.
             stream->pad_smooth =
-                stream->pad_smooth * 0.98 + target * 0.02;
+                stream->pad_smooth * 0.90 + target * 0.10;
         }
 
         stream->pad_frames.store(
@@ -1073,8 +1098,9 @@ struct YasuFastAudioCore::Impl {
 
         const uint32_t ssrc = stream->ssrc;
         const uint64_t gen = generation.load(std::memory_order_acquire);
+        // Keep timer scheduling overhead below 0.25 ms.
         const int64_t delay_us =
-            static_cast<int64_t>(wait_us) + 500;
+            static_cast<int64_t>(wait_us) + 250;
 
         fast_queue->PostDelayedTask(
             [this, ssrc, gen]() {
@@ -1320,63 +1346,83 @@ struct YasuFastAudioCore::Impl {
                 ? write - read
                 : kStreamRingFrames - read + write;
 
-        // YASU ADAPTIVE BACKLOG CONTROL (per stream):
+        // YASU ULTRA-LOW-LATENCY BACKLOG CONTROL.
         //
-        // Steady state level is in [pad, pad + one packet]. The old fixed
-        // 30 ms target was SMALLER than one 120 ms packet, so after every
-        // packet the code threw away up to 240 of every 240 frames (2x speed
-        // raw sample deletion) => heavy distortion. The threshold now follows
-        // the real packet length and the measured jitter pad, and trimming
-        // is done on silence first, then with a very gentle sample skip.
-        const uint32_t pad =
-            stream->pad_frames.load(std::memory_order_relaxed);
-        const uint32_t pkt =
-            stream->last_packet_frames.load(std::memory_order_relaxed);
-        const uint32_t high =
-            pad + pkt + kTrimHeadroomFrames;
+        // Diagnostics showed:
+        //   packet_to_pcm  ~= 2.2 ms
+        //   packet_to_play ~= 76.9 ms
+        //
+        // Therefore the dominant latency is PCM residence in this ring.
+        //
+        // Keep only:
+        //   adaptive jitter pad + one packet + 2.5 ms headroom.
+        //
+        // If PCM accumulates beyond that level, remove the oldest excess
+        // immediately. Prefer removing silence first. If the excess is
+        // audible, accept a very small skip rather than keeping tens of
+        // milliseconds of stale audio.
 
-        uint32_t skip_every = 0;
+        const uint32_t pad =
+            stream->pad_frames.load(
+                std::memory_order_relaxed);
+
+        const uint32_t pkt =
+            stream->last_packet_frames.load(
+                std::memory_order_relaxed);
+
+        const uint32_t high =
+            std::min<uint32_t>(
+                pad + pkt + kTrimHeadroomFrames,
+                kStreamRingFrames - 1);
 
         if (used > high) {
-            const uint32_t excess = used - high;
+            const uint32_t excess =
+                used - high;
 
-            if (excess > kHardTrimExcessFrames) {
-                // Network burst piled up a huge backlog: jump forward and
-                // keep only (pad + one packet). One click, delay is gone.
-                const uint32_t keep = pad + pkt;
-                read = (write + kStreamRingFrames - keep) &
-                       (kStreamRingFrames - 1);
+            // First remove a small old silence block if possible.
+            const uint32_t silence_probe =
+                std::min<uint32_t>(
+                    std::min<uint32_t>(excess, 480),
+                    used > 1 ? used - 1 : 0);
+
+            bool silent =
+                silence_probe != 0;
+
+            for (uint32_t i = 0;
+                 silent && i < silence_probe;
+                 ++i) {
+
+                const int32_t v =
+                    stream->pcm[
+                        (read + i) &
+                        (kStreamRingFrames - 1)];
+
+                if (v > 300 || v < -300) {
+                    silent = false;
+                }
+            }
+
+            if (silent) {
+                read =
+                    (read + silence_probe) &
+                    (kStreamRingFrames - 1);
             } else {
-                // (a) drop a block that is (almost) silence: inaudible.
-                const uint32_t block =
-                    std::min<uint32_t>(
-                        std::min<uint32_t>(excess, 960),
-                        used > 1 ? used - 1 : 0);
+                // Audible backlog:
+                // jump directly back to the low-latency target.
+                //
+                // This deliberately replaces the old 1.6% / 3% / 6%
+                // slow catch-up policy. Those policies allowed the PCM
+                // residence to remain tens of milliseconds too high.
 
-                bool silent = block != 0;
-                for (uint32_t i = 0; silent && i < block; ++i) {
-                    const int32_t v =
-                        stream->pcm[(read + i) & (kStreamRingFrames - 1)];
-                    if (v > 300 || v < -300) {
-                        silent = false;
-                    }
-                }
+                const uint32_t keep = high;
 
-                if (silent) {
-                    read = (read + block) & (kStreamRingFrames - 1);
-                } else if (excess > 7200) {
-                    skip_every = 16;   // >150 ms over: ~6 % faster
-                } else if (excess > 2880) {
-                    skip_every = 32;   // >60 ms over: ~3 % faster
-                } else if (excess > 960) {
-                    skip_every = 64;   // >20 ms over: ~1.6 % faster
-                }
+                read =
+                    (write + kStreamRingFrames - keep) &
+                    (kStreamRingFrames - 1);
             }
         }
 
         int count = 0;
-        uint32_t skip_counter = 0;
-
         while (count < frames &&
                read != write) {
 
@@ -1411,13 +1457,6 @@ struct YasuFastAudioCore::Impl {
             read =
                 (read + 1) & (kStreamRingFrames - 1);
 
-            if (skip_every != 0 &&
-                ++skip_counter >= skip_every &&
-                read != write) {
-                skip_counter = 0;
-                read =
-                    (read + 1) & (kStreamRingFrames - 1);
-            }
         }
 
         stream->pcm_read.store(
