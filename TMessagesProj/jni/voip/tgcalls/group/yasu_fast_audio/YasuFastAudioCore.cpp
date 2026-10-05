@@ -56,10 +56,14 @@ constexpr int kJitterHistory = 64;
 constexpr uint32_t kTrimHeadroomFrames = 96;          // 2 ms
 constexpr uint32_t kSoftTrimExcessFrames = 96;        // 2 ms
 constexpr uint32_t kHardTrimExcessFrames = 480;       // 10 ms
+constexpr uint32_t kBurstTrimExcessFrames = 1440;     // 30 ms
 constexpr uint32_t kMaxTrimPerReadFrames = 48;        // 1 ms
-constexpr uint64_t kTrimCooldownUs = 20000;            // 20 ms
+constexpr uint32_t kBurstMaxTrimPerReadFrames = 96;   // 2 ms
+constexpr uint64_t kTrimCooldownUs = 20000;           // 20 ms
+constexpr uint64_t kBurstCooldownUs = 4000;            // 4 ms
+constexpr uint64_t kHeavyBurstCooldownUs = 2000;       // 2 ms
 constexpr int32_t kTrimSilenceThreshold = 300;
-// Backlog above (pad + packet + headroom + this) is dropped at once (a short
+// Large backlog is recovered gradually with burst-adaptive trimming (a short
 // glitch beats hundreds of ms of permanent delay after a network burst).
 // Adaptive network protection.
 // The controller prefers minimum latency and only increases protection
@@ -1729,30 +1733,50 @@ struct YasuFastAudioCore::Impl {
                 stream->last_pcm_trim_us.load(
                     std::memory_order_relaxed);
 
+            // Burst-adaptive recovery:
+            // Keep every individual correction small enough to avoid
+            // audible chopping, but shorten the cooldown aggressively
+            // when a network burst has created a large PCM backlog.
+            //
+            // <= 10 ms excess : normal recovery
+            // 10-30 ms        : burst recovery
+            // >= 30 ms        : heavy-burst recovery
+            const bool heavy_burst =
+                remaining_excess >= kBurstTrimExcessFrames;
+
+            const bool burst =
+                remaining_excess >= kHardTrimExcessFrames;
+
+            const uint64_t recovery_cooldown_us =
+                heavy_burst
+                    ? kHeavyBurstCooldownUs
+                    : burst
+                        ? kBurstCooldownUs
+                        : kTrimCooldownUs;
+
             const bool cooldown_ok =
                 last_trim_us == 0 ||
                 now_us < last_trim_us ||
-                now_us - last_trim_us >= kTrimCooldownUs;
+                now_us - last_trim_us >= recovery_cooldown_us;
 
             // Do not react to tiny fluctuations.
             const bool meaningful_excess =
                 remaining_excess >= kSoftTrimExcessFrames;
 
             if (cooldown_ok && meaningful_excess) {
+                const uint32_t max_trim =
+                    burst
+                        ? kBurstMaxTrimPerReadFrames
+                        : kMaxTrimPerReadFrames;
+
                 uint32_t trim =
                     std::min<uint32_t>(
                         remaining_excess,
-                        kMaxTrimPerReadFrames);
+                        max_trim);
 
-                // For a very large backlog we still intentionally use
-                // the same bounded correction. The backlog must recover
-                // progressively instead of causing a large audible skip.
-                if (remaining_excess >= kHardTrimExcessFrames) {
-                    trim =
-                        std::min<uint32_t>(
-                            trim,
-                            kMaxTrimPerReadFrames);
-                }
+                // Even during a large burst, never jump directly to the
+                // newest PCM. Recovery is accelerated by frequency, not
+                // by throwing away a large audible section at once.
 
                 // Prefer ending the trim close to a zero crossing.
                 // This greatly reduces clicks when audible PCM has to
