@@ -46,17 +46,17 @@ static_assert((kStreamRingFrames & (kStreamRingFrames - 1)) == 0,
               "kStreamRingFrames must be a power of two");
 
 // Adaptive jitter pad (per stream, derived from measured RTP arrival jitter).
-constexpr uint32_t kPadMinFrames = 120;      // 2.5 ms
-constexpr uint32_t kPadMaxFrames = 480;       // 10 ms
+constexpr uint32_t kPadMinFrames = 60;       // 1.25 ms
+constexpr uint32_t kPadMaxFrames = 240;       // 5 ms
 constexpr uint32_t kPadInitialFrames = 0;    // no artificial startup delay
 constexpr int kJitterHistory = 64;
 // Extra headroom above (pad + one packet) before we start trimming backlog.
-constexpr uint32_t kTrimHeadroomFrames = 120; // 2.5 ms
+constexpr uint32_t kTrimHeadroomFrames = 30;  // 0.625 ms
 // Backlog above (pad + packet + headroom + this) is dropped at once (a short
 // glitch beats hundreds of ms of permanent delay after a network burst).
 constexpr uint32_t kHardTrimExcessFrames = 4800; // 100 ms
 // Max wait for a reordered packet before concealing it.
-constexpr uint64_t kReorderWaitUs = 1500; // 1.5 ms
+constexpr uint64_t kReorderWaitUs = 750; // 0.75 ms
 // Never conceal more than this many consecutive missing packets; resync instead.
 constexpr uint16_t kMaxConcealPackets = 2;
 
@@ -1049,7 +1049,13 @@ struct YasuFastAudioCore::Impl {
             ++stream->jitter_hist_n;
         }
 
-        if (stream->jitter_hist_n < 8) {
+        // Do not recompute the percentile on every 10 ms packet.
+        // Four packets still gives a 40 ms reaction window while
+        // substantially reducing hot-path jitter analysis cost.
+        ++stream->jitter_update_counter;
+
+        if (stream->jitter_hist_n < 8 ||
+            (stream->jitter_update_counter & 3u) != 0) {
             return;
         }
 
@@ -1058,12 +1064,22 @@ struct YasuFastAudioCore::Impl {
             sorted,
             stream->jitter_hist_us,
             sizeof(int32_t) * stream->jitter_hist_n);
-        std::sort(sorted, sorted + stream->jitter_hist_n);
 
         const int idx =
             (stream->jitter_hist_n * 95) / 100;
+
+        // nth_element is sufficient for P95 and avoids a full sort.
+        std::nth_element(
+            sorted,
+            sorted + std::min(
+                idx,
+                stream->jitter_hist_n - 1),
+            sorted + stream->jitter_hist_n);
+
         const int32_t p95_us =
-            sorted[std::min(idx, stream->jitter_hist_n - 1)];
+            sorted[std::min(
+                idx,
+                stream->jitter_hist_n - 1)];
 
         // Convert jitter to 48 kHz frames.
         double target =
@@ -1079,7 +1095,7 @@ struct YasuFastAudioCore::Impl {
             // accumulated playback padding quickly instead of carrying
             // old latency forward.
             stream->pad_smooth =
-                stream->pad_smooth * 0.90 + target * 0.10;
+                stream->pad_smooth * 0.80 + target * 0.20;
         }
 
         stream->pad_frames.store(
@@ -1859,6 +1875,9 @@ void YasuFastAudioCore::PushPacket(
     queued.timestamp = timestamp;
     queued.size = static_cast<uint16_t>(payload_size);
     queued.generation = packet_generation;
+
+    // Arrival time is part of FAST jitter control, not just diagnostics.
+    // Keep it available even when measurement/export is disabled.
     queued.arrival_us = NowUs();
 
     std::memcpy(
@@ -1882,7 +1901,13 @@ void YasuFastAudioCore::PushPacket(
     impl_->fast_queue->PostTask(
         [this]() {
             for (;;) {
-                Impl::QueuedPacket packet;
+                uint32_t packet_ssrc = 0;
+                uint16_t packet_sequence = 0;
+                uint32_t packet_timestamp = 0;
+                uint16_t packet_size = 0;
+                uint64_t packet_generation = 0;
+                uint64_t packet_arrival_us = 0;
+                uint8_t packet_data[kMaxPayload];
 
                 impl_->LockPacketQueue();
 
@@ -1909,7 +1934,22 @@ void YasuFastAudioCore::PushPacket(
                 const uint32_t read =
                     impl_->packet_queue_read;
 
-                packet = impl_->packet_queue[read];
+                const auto& queued =
+                    impl_->packet_queue[read];
+
+                packet_ssrc = queued.ssrc;
+                packet_sequence = queued.sequence;
+                packet_timestamp = queued.timestamp;
+                packet_size = queued.size;
+                packet_generation = queued.generation;
+                packet_arrival_us = queued.arrival_us;
+
+                // Copy only the actual RTP payload instead of copying the
+                // entire 1600-byte QueuedPacket structure.
+                std::memcpy(
+                    packet_data,
+                    queued.data,
+                    packet_size);
 
                 impl_->packet_queue_read =
                     impl_->PacketQueueNext(read);
@@ -1917,13 +1957,13 @@ void YasuFastAudioCore::PushPacket(
                 impl_->UnlockPacketQueue();
 
                 ProcessPacket(
-                    packet.ssrc,
-                    packet.sequence,
-                    packet.timestamp,
-                    packet.data,
-                    packet.size,
-                    packet.generation,
-                    packet.arrival_us);
+                    packet_ssrc,
+                    packet_sequence,
+                    packet_timestamp,
+                    packet_data,
+                    packet_size,
+                    packet_generation,
+                    packet_arrival_us);
             }
         });
 }
@@ -2132,11 +2172,15 @@ void YasuFastAudioCore::ProcessPacket(
     const bool measure =
         YasuFastMeasurementsEnabled();
 
+    // The packet already carries its arrival timestamp.
+    // Avoid a second clock read on the normal FAST path.
     const uint64_t now =
-        NowUs();
+        packet_arrival_us != 0
+            ? packet_arrival_us
+            : NowUs();
 
     const uint64_t arrival =
-        measure ? packet_arrival_us : 0;
+        packet_arrival_us;
 
     if (measure) {
         impl_->stats.packets_received.fetch_add(1);
