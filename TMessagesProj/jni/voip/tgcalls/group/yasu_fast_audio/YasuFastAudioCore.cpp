@@ -51,7 +51,10 @@ constexpr uint32_t kPadMaxFrames = 240;       // 5 ms
 constexpr uint32_t kPadInitialFrames = 0;    // no artificial startup delay
 constexpr int kJitterHistory = 64;
 // Extra headroom above (pad + one packet) before we start trimming backlog.
-constexpr uint32_t kTrimHeadroomFrames = 30;  // 0.625 ms
+constexpr uint32_t kTrimHeadroomFrames = 120;  // 2.5 ms
+// Do not hard-jump the PCM read pointer for small/normal backlog.
+// A hard resync is allowed only when the excess itself reaches 30 ms.
+constexpr uint32_t kHardTrimExcessFrames = 1440;  // 30 ms @ 48 kHz
 // Backlog above (pad + packet + headroom + this) is dropped at once (a short
 // glitch beats hundreds of ms of permanent delay after a network burst).
 // Adaptive network protection.
@@ -1671,8 +1674,8 @@ struct YasuFastAudioCore::Impl {
         // latency even on a healthy network.
         const uint32_t packet_guard =
             std::min<uint32_t>(
-                pkt / 4,
-                120);  // <= 2.5 ms @ 48 kHz
+                pkt,
+                480);  // <= 10 ms @ 48 kHz
 
         const uint32_t high =
             std::min<uint32_t>(
@@ -1734,10 +1737,12 @@ struct YasuFastAudioCore::Impl {
                     ? write - read
                     : kStreamRingFrames - read + write;
 
-            if (remaining_used > high) {
-                // Audible backlog or a very large non-silent backlog:
-                // discard stale PCM immediately and retain only the
-                // newest low-latency target window.
+            if (remaining_used > high &&
+                remaining_used - high >= kHardTrimExcessFrames) {
+                // Only perform a hard resync for a genuinely large
+                // backlog. Small/medium backlog is preserved so the
+                // realtime output path does not repeatedly skip audible
+                // PCM and create chopping.
                 const uint32_t keep = high;
 
                 read =
