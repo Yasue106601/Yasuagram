@@ -54,16 +54,16 @@ constexpr int kJitterHistory = 64;
 constexpr uint32_t kTrimHeadroomFrames = 30;  // 0.625 ms
 // Backlog above (pad + packet + headroom + this) is dropped at once (a short
 // glitch beats hundreds of ms of permanent delay after a network burst).
-constexpr uint32_t kHardTrimExcessFrames = 4800; // 100 ms
-// Max wait for a reordered packet before concealing it.
-constexpr uint64_t kReorderWaitUs = 750; // 0.75 ms
-// Temporary network-recovery mode. It never increases the jitter pad;
-// it only shortens reorder waiting after repeated loss/reordering events.
-constexpr uint64_t kRecoveryWindowUs = 250000;      // 250 ms
-constexpr uint64_t kRecoveryReorderWaitUs = 350;    // 0.35 ms
-constexpr uint64_t kRecoveryCooldownUs = 500000;   // 500 ms
-constexpr uint8_t kRecoveryTriggerEvents = 2;
-constexpr uint8_t kRecoveryMaxEvents = 8;
+// Adaptive network protection.
+// The controller prefers minimum latency and only increases protection
+// when the RTP stream proves that reordering/jitter actually requires it.
+constexpr uint64_t kAdaptiveReorderMinUs = 220;   // 0.22 ms
+constexpr uint64_t kAdaptiveReorderMaxUs = 1200;  // 1.20 ms
+constexpr uint64_t kAdaptiveRecoveryUs = 180000;  // 180 ms
+constexpr uint64_t kAdaptiveDecayUs = 350000;     // 350 ms
+constexpr double kAdaptiveJitterWeight = 0.45;
+constexpr double kAdaptiveReorderWeight = 0.35;
+constexpr double kAdaptiveLossWeight = 0.20;
 
 // Never conceal more than this many consecutive missing packets; resync instead.
 constexpr uint16_t kMaxConcealPackets = 2;
@@ -177,10 +177,18 @@ struct Stream {
     // A delayed re-drain is already scheduled for a reordered packet.
     bool reorder_timer_posted = false;
 
-    // Short-lived network recovery state. This does NOT increase buffering.
-    uint8_t recovery_events = 0;
-    uint64_t recovery_until_us = 0;
-    uint64_t recovery_last_event_us = 0;
+    // ---- YASU adaptive network controller ----
+    // These values are producer-owned and stay local to the FAST stream.
+    // They describe current network pressure, not a permanent buffer target.
+    double network_jitter_ewma_us = 0.0;
+    double network_reorder_score = 0.0;
+    double network_loss_score = 0.0;
+    double network_pressure = 0.0;
+    uint8_t network_level = 0;
+    uint64_t network_last_update_us = 0;
+    uint64_t network_recovery_until_us = 0;
+    uint64_t network_last_event_us = 0;
+    uint64_t adaptive_reorder_wait_us = kAdaptiveReorderMinUs;
 
     void ResetAdaptive() {
         last_packet_frames.store(960, std::memory_order_relaxed);
@@ -193,9 +201,15 @@ struct Stream {
         jitter_hist_pos = 0;
         pad_smooth = static_cast<double>(kPadInitialFrames);
         reorder_timer_posted = false;
-        recovery_events = 0;
-        recovery_until_us = 0;
-        recovery_last_event_us = 0;
+        network_jitter_ewma_us = 0.0;
+        network_reorder_score = 0.0;
+        network_loss_score = 0.0;
+        network_pressure = 0.0;
+        network_level = 0;
+        network_last_update_us = 0;
+        network_recovery_until_us = 0;
+        network_last_event_us = 0;
+        adaptive_reorder_wait_us = kAdaptiveReorderMinUs;
     }
 };
 
@@ -1143,52 +1157,197 @@ struct YasuFastAudioCore::Impl {
         stream->pad_frames.store(
             static_cast<uint32_t>(stream->pad_smooth),
             std::memory_order_relaxed);
+
+        // Feed the measured RTP arrival jitter directly into the
+        // adaptive network controller. Do not derive network pressure
+        // from pad_smooth because the pad has an intentional minimum.
+        UpdateAdaptiveNetwork(
+            stream,
+            arrival_us,
+            static_cast<uint32_t>(
+                std::min<int64_t>(
+                    std::max<int64_t>(0, p95_us),
+                    12000)));
     }
 
-    void NoteNetworkRecoveryEvent(
+    void UpdateAdaptiveNetwork(
         Stream* stream,
         uint64_t now_us,
-        uint8_t weight = 1) {
+        uint32_t jitter_us = 0,
+        bool reorder_event = false,
+        bool loss_event = false,
+        bool late_event = false) {
 
-        if (stream->recovery_last_event_us != 0 &&
-            now_us >= stream->recovery_last_event_us &&
-            now_us - stream->recovery_last_event_us >
-                kRecoveryCooldownUs) {
-            stream->recovery_events = 0;
+        if (now_us == 0) {
+            return;
         }
 
-        stream->recovery_last_event_us = now_us;
+        if (stream->network_last_update_us != 0 &&
+            now_us >= stream->network_last_update_us) {
 
-        const uint16_t next =
-            static_cast<uint16_t>(stream->recovery_events) + weight;
+            const uint64_t elapsed =
+                now_us - stream->network_last_update_us;
 
-        stream->recovery_events =
-            static_cast<uint8_t>(
-                std::min<uint16_t>(next, kRecoveryMaxEvents));
+            // Fast enough to react to a bad burst, but never lets one
+            // packet permanently poison the network state.
+            const double decay =
+                elapsed >= kAdaptiveDecayUs
+                    ? 0.0
+                    : static_cast<double>(
+                          kAdaptiveDecayUs - elapsed) /
+                      static_cast<double>(kAdaptiveDecayUs);
 
-        if (stream->recovery_events >= kRecoveryTriggerEvents) {
-            stream->recovery_until_us =
-                now_us + kRecoveryWindowUs;
+            stream->network_reorder_score *= decay;
+            stream->network_loss_score *= decay;
         }
-    }
 
-    bool IsNetworkRecoveryActive(
-        const Stream* stream,
-        uint64_t now_us) const {
+        stream->network_last_update_us = now_us;
 
-        return stream->recovery_until_us != 0 &&
-               now_us < stream->recovery_until_us;
+        if (jitter_us != 0) {
+            const double sample =
+                static_cast<double>(
+                    std::min<uint32_t>(jitter_us, 12000));
+
+            if (stream->network_jitter_ewma_us == 0.0) {
+                stream->network_jitter_ewma_us = sample;
+            } else {
+                // Fast attack, faster recovery.
+                const double alpha =
+                    sample > stream->network_jitter_ewma_us
+                        ? 0.35
+                        : 0.18;
+
+                stream->network_jitter_ewma_us =
+                    stream->network_jitter_ewma_us * (1.0 - alpha) +
+                    sample * alpha;
+            }
+        }
+
+        if (reorder_event) {
+            stream->network_reorder_score =
+                std::min(1.0,
+                    stream->network_reorder_score + 0.22);
+            stream->network_last_event_us = now_us;
+        }
+
+        if (loss_event) {
+            stream->network_loss_score =
+                std::min(1.0,
+                    stream->network_loss_score + 0.30);
+            stream->network_last_event_us = now_us;
+        }
+
+        if (late_event) {
+            stream->network_loss_score =
+                std::min(1.0,
+                    stream->network_loss_score + 0.08);
+        }
+
+        const double jitter_pressure =
+            std::min(
+                1.0,
+                stream->network_jitter_ewma_us / 1800.0);
+
+        // Reordering is the only strong reason to wait for an ahead packet.
+        // High jitter alone must NOT create playback latency.
+        const double reorder_pressure =
+            stream->network_reorder_score;
+
+        const double loss_pressure =
+            stream->network_loss_score;
+
+        // Network quality score is useful for classification/telemetry,
+        // but it is deliberately NOT used as the reorder timer directly.
+        double pressure =
+            jitter_pressure * kAdaptiveJitterWeight +
+            reorder_pressure * kAdaptiveReorderWeight +
+            loss_pressure * kAdaptiveLossWeight;
+
+        // Genuine loss means freshness is more important than waiting.
+        pressure -= loss_pressure * 0.30;
+
+        pressure = std::max(0.0, std::min(1.0, pressure));
+
+        // Healthy periods rapidly release accumulated network pressure.
+        if (stream->network_last_event_us != 0 &&
+            now_us > stream->network_last_event_us &&
+            now_us - stream->network_last_event_us >
+                kAdaptiveRecoveryUs) {
+
+            pressure *= 0.45;
+            stream->network_reorder_score *= 0.65;
+            stream->network_loss_score *= 0.65;
+        }
+
+        stream->network_pressure =
+            stream->network_pressure * 0.60 +
+            pressure * 0.40;
+
+        if (stream->network_pressure < 0.15) {
+            stream->network_level = 0;
+        } else if (stream->network_pressure < 0.30) {
+            stream->network_level = 1;
+        } else if (stream->network_pressure < 0.50) {
+            stream->network_level = 2;
+        } else if (stream->network_pressure < 0.70) {
+            stream->network_level = 3;
+        } else if (stream->network_pressure < 0.85) {
+            stream->network_level = 4;
+        } else {
+            stream->network_level = 5;
+        }
+
+        // Reorder wait is driven primarily by measured reordering.
+        // Jitter contributes only a small secondary component.
+        double wait =
+            static_cast<double>(kAdaptiveReorderMinUs) +
+            stream->network_reorder_score * 700.0 +
+            jitter_pressure * 120.0;
+
+        // Packet loss actively pulls the wait back down.
+        wait -= loss_pressure * 300.0;
+
+        wait = std::max<double>(
+            kAdaptiveReorderMinUs,
+            std::min<double>(
+                kAdaptiveReorderMaxUs,
+                wait));
+
+        stream->adaptive_reorder_wait_us =
+            static_cast<uint64_t>(wait);
+
+        // Severe loss/recovery: aggressively favor fresh audio.
+        if (stream->network_level >= 4 || loss_event) {
+            stream->adaptive_reorder_wait_us =
+                std::min<uint64_t>(
+                    stream->adaptive_reorder_wait_us,
+                    500);
+        }
+
+        if (loss_event) {
+            stream->network_recovery_until_us =
+                now_us + kAdaptiveRecoveryUs;
+        }
     }
 
     uint64_t GetReorderWaitUs(
         const Stream* stream,
         uint64_t now_us) const {
 
-        if (IsNetworkRecoveryActive(stream, now_us)) {
-            return kRecoveryReorderWaitUs;
+        uint64_t wait =
+            stream->adaptive_reorder_wait_us;
+
+        if (stream->network_recovery_until_us != 0 &&
+            now_us < stream->network_recovery_until_us) {
+            // Loss/recovery: do not sit on the missing packet.
+            wait = std::min<uint64_t>(wait, 500);
         }
 
-        return kReorderWaitUs;
+        return std::max<uint64_t>(
+            kAdaptiveReorderMinUs,
+            std::min<uint64_t>(
+                kAdaptiveReorderMaxUs,
+                wait));
     }
 
     // Re-run Drain() for one stream after a short delay. Without this a
@@ -1356,17 +1515,28 @@ struct YasuFastAudioCore::Impl {
                 }
 
                 // A packet remained missing long enough to require
-                // concealment. Count this as a network-recovery event.
-                NoteNetworkRecoveryEvent(
+                // concealment. Feed actual loss into the adaptive
+                // controller. Loss reduces waiting rather than increasing
+                // latency.
+                UpdateAdaptiveNetwork(
                     stream,
                     now_us,
-                    1);
+                    0,
+                    false,
+                    true,
+                    false);
             } else {
-                // Multiple missing packets are a stronger network event.
-                NoteNetworkRecoveryEvent(
+                // Multiple missing packets are one loss burst, not two
+                // independent events. Register it once; the adaptive
+                // controller already raises loss pressure and shortens
+                // reorder waiting.
+                UpdateAdaptiveNetwork(
                     stream,
                     NowUs(),
-                    2);
+                    0,
+                    false,
+                    true,
+                    false);
             }
 
             const int lost_frames = LastPacketFrames(stream);
@@ -1489,50 +1659,85 @@ struct YasuFastAudioCore::Impl {
             stream->last_packet_frames.load(
                 std::memory_order_relaxed);
 
+        // Keep the PCM residence window as small as possible.
+        // Do not reserve a full codec packet unconditionally: the
+        // packet size is a decode quantum, not required playback latency.
+        //
+        // Target:
+        //   adaptive network pad + small safety headroom.
+        //
+        // A full packet is only useful when the stream is actually
+        // accumulating; allowing it permanently would add unnecessary
+        // latency even on a healthy network.
+        const uint32_t packet_guard =
+            std::min<uint32_t>(
+                pkt / 4,
+                120);  // <= 2.5 ms @ 48 kHz
+
         const uint32_t high =
             std::min<uint32_t>(
-                pad + pkt + kTrimHeadroomFrames,
+                pad + packet_guard + kTrimHeadroomFrames,
                 kStreamRingFrames - 1);
 
         if (used > high) {
             const uint32_t excess =
                 used - high;
 
-            // First remove a small old silence block if possible.
-            const uint32_t silence_probe =
+            // Low-latency backlog recovery:
+            // Never allow a large PCM backlog to drain slowly over many
+            // callbacks. That would turn temporary network/callback
+            // imbalance into tens or hundreds of milliseconds of latency.
+            //
+            // First discard as much old silence as possible. If the
+            // backlog is still above the target, jump directly to the
+            // newest low-latency window.
+            // Keep realtime callback work bounded. Never scan a large
+            // backlog sample-by-sample inside the AAudio callback.
+            constexpr uint32_t kSilenceProbeFrames = 240; // 5 ms
+
+            const uint32_t max_silence_probe =
                 std::min<uint32_t>(
-                    std::min<uint32_t>(excess, 480),
+                    std::min<uint32_t>(
+                        excess,
+                        kSilenceProbeFrames),
                     used > 1 ? used - 1 : 0);
 
-            bool silent =
-                silence_probe != 0;
+            uint32_t silence_frames = 0;
 
-            for (uint32_t i = 0;
-                 silent && i < silence_probe;
-                 ++i) {
+            // Only inspect a bounded 5 ms window. Larger backlogs are
+            // handled by the direct low-latency jump below.
+            const uint32_t silence_probe =
+                max_silence_probe;
 
+            while (silence_frames < silence_probe) {
                 const int32_t v =
                     stream->pcm[
-                        (read + i) &
+                        (read + silence_frames) &
                         (kStreamRingFrames - 1)];
 
                 if (v > 300 || v < -300) {
-                    silent = false;
+                    break;
                 }
+
+                ++silence_frames;
             }
 
-            if (silent) {
+            if (silence_frames != 0) {
                 read =
-                    (read + silence_probe) &
+                    (read + silence_frames) &
                     (kStreamRingFrames - 1);
-            } else {
-                // Audible backlog:
-                // jump directly back to the low-latency target.
-                //
-                // This deliberately replaces the old 1.6% / 3% / 6%
-                // slow catch-up policy. Those policies allowed the PCM
-                // residence to remain tens of milliseconds too high.
+            }
 
+            // Recalculate the remaining backlog after removing silence.
+            const uint32_t remaining_used =
+                write >= read
+                    ? write - read
+                    : kStreamRingFrames - read + write;
+
+            if (remaining_used > high) {
+                // Audible backlog or a very large non-silent backlog:
+                // discard stale PCM immediately and retain only the
+                // newest low-latency target window.
                 const uint32_t keep = high;
 
                 read =
@@ -2383,6 +2588,14 @@ void YasuFastAudioCore::ProcessPacket(
                        expected)) {
 
             // Already played / no longer useful.
+            impl_->UpdateAdaptiveNetwork(
+                stream,
+                now,
+                0,
+                false,
+                false,
+                true);
+
             if (measure) {
                 impl_->stats.packets_late.fetch_add(1);
             }
@@ -2393,6 +2606,16 @@ void YasuFastAudioCore::ProcessPacket(
         } else if (SeqAhead(
                        sequence,
                        expected)) {
+
+            // Packet is ahead of playback. This is genuine reordering
+            // information and feeds the adaptive reorder controller.
+            impl_->UpdateAdaptiveNetwork(
+                stream,
+                now,
+                0,
+                true,
+                false,
+                false);
 
             if (measure) {
                 impl_->stats.packets_reordered.fetch_add(1);
