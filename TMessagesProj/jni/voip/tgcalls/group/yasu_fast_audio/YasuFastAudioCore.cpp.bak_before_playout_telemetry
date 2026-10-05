@@ -185,9 +185,6 @@ struct Stream {
     double playout_phase = 0.0;
     double playout_speed = 1.0;
 
-    // Lightweight telemetry sampler: 1 of every 16 ReadStream calls.
-    uint32_t playout_telemetry_tick = 0;
-
     bool have_jitter_base = false;
     uint32_t jitter_first_ts = 0;
     uint64_t jitter_first_arrival_us = 0;
@@ -238,7 +235,6 @@ struct Stream {
         // Return realtime playout to 1.0x after stream reset.
         playout_phase = 0.0;
         playout_speed = 1.0;
-        playout_telemetry_tick = 0;
     }
 };
 
@@ -316,28 +312,6 @@ struct Stats {
     std::atomic<uint64_t> max_ring_depth{0};
     std::atomic<uint64_t> active_streams_peak{0};
 
-    // YASU ADAPTIVE PLAYOUT TELEMETRY.
-    // Speed is stored as parts-per-million to keep the counters integral.
-    std::atomic<uint64_t> playout_telemetry_samples{0};
-    std::atomic<uint64_t> playout_speed_sum_ppm{0};
-    std::atomic<uint64_t> playout_speed_max_ppm{0};
-
-    // Current PCM residence/backlog observed by ReadStream().
-    std::atomic<uint64_t> playout_backlog_sum_us{0};
-    std::atomic<uint64_t> playout_backlog_max_us{0};
-
-    // How often the adaptive controller actually had to accelerate.
-    std::atomic<uint64_t> playout_above_1x{0};
-    std::atomic<uint64_t> playout_above_1_05x{0};
-    std::atomic<uint64_t> playout_above_1_10x{0};
-    std::atomic<uint64_t> playout_above_1_15x{0};
-
-    // Backlog distribution.
-    std::atomic<uint64_t> playout_backlog_above_10ms{0};
-    std::atomic<uint64_t> playout_backlog_above_30ms{0};
-    std::atomic<uint64_t> playout_backlog_above_50ms{0};
-    std::atomic<uint64_t> playout_backlog_above_80ms{0};
-
     void Reset() {
         started_us.store(NowUs(), std::memory_order_relaxed);
 
@@ -404,23 +378,6 @@ struct Stats {
 
         max_ring_depth.store(0);
         active_streams_peak.store(0);
-
-        playout_telemetry_samples.store(0);
-        playout_speed_sum_ppm.store(0);
-        playout_speed_max_ppm.store(0);
-
-        playout_backlog_sum_us.store(0);
-        playout_backlog_max_us.store(0);
-
-        playout_above_1x.store(0);
-        playout_above_1_05x.store(0);
-        playout_above_1_10x.store(0);
-        playout_above_1_15x.store(0);
-
-        playout_backlog_above_10ms.store(0);
-        playout_backlog_above_30ms.store(0);
-        playout_backlog_above_50ms.store(0);
-        playout_backlog_above_80ms.store(0);
     }
 
     static void AddMin(
@@ -474,88 +431,6 @@ struct Stats {
         packet_to_play_us.fetch_add(us);
         AddMin(packet_to_play_min_us, us);
         AddMax(packet_to_play_max_us, us);
-    }
-
-    void RecordPlayoutTelemetry(
-        uint32_t backlog_frames,
-        double speed) {
-
-        // 48 kHz mono PCM: 48 frames = 1 ms.
-        const uint64_t backlog_us =
-            (static_cast<uint64_t>(backlog_frames) * 1000000ULL) /
-            48000ULL;
-
-        // Store speed as ppm: 1.00x = 1,000,000.
-        const uint64_t speed_ppm =
-            static_cast<uint64_t>(speed * 1000000.0 + 0.5);
-
-        playout_telemetry_samples.fetch_add(
-            1,
-            std::memory_order_relaxed);
-
-        playout_speed_sum_ppm.fetch_add(
-            speed_ppm,
-            std::memory_order_relaxed);
-
-        AddMax(
-            playout_speed_max_ppm,
-            speed_ppm);
-
-        playout_backlog_sum_us.fetch_add(
-            backlog_us,
-            std::memory_order_relaxed);
-
-        AddMax(
-            playout_backlog_max_us,
-            backlog_us);
-
-        if (speed > 1.000001) {
-            playout_above_1x.fetch_add(
-                1,
-                std::memory_order_relaxed);
-        }
-
-        if (speed >= 1.05) {
-            playout_above_1_05x.fetch_add(
-                1,
-                std::memory_order_relaxed);
-        }
-
-        if (speed >= 1.10) {
-            playout_above_1_10x.fetch_add(
-                1,
-                std::memory_order_relaxed);
-        }
-
-        if (speed >= 1.15) {
-            playout_above_1_15x.fetch_add(
-                1,
-                std::memory_order_relaxed);
-        }
-
-        if (backlog_us >= 10000) {
-            playout_backlog_above_10ms.fetch_add(
-                1,
-                std::memory_order_relaxed);
-        }
-
-        if (backlog_us >= 30000) {
-            playout_backlog_above_30ms.fetch_add(
-                1,
-                std::memory_order_relaxed);
-        }
-
-        if (backlog_us >= 50000) {
-            playout_backlog_above_50ms.fetch_add(
-                1,
-                std::memory_order_relaxed);
-        }
-
-        if (backlog_us >= 80000) {
-            playout_backlog_above_80ms.fetch_add(
-                1,
-                std::memory_order_relaxed);
-        }
     }
 
     void Residence(uint64_t us) {
@@ -1885,17 +1760,6 @@ struct YasuFastAudioCore::Impl {
         const double speed =
             stream->playout_speed;
 
-        // Record only 1 of every 16 observations so telemetry itself
-        // remains negligible on the realtime audio path.
-        ++stream->playout_telemetry_tick;
-
-        if ((stream->playout_telemetry_tick & 15u) == 0u) {
-            // 'used' is the real ring residence at this instant.
-            stats.RecordPlayoutTelemetry(
-                used,
-                speed);
-        }
-
         double phase =
             stream->playout_phase;
 
@@ -2678,70 +2542,6 @@ std::string YasuFastAudioCore::GetDiagnostics() const {
         << s.max_ring_depth.load(std::memory_order_relaxed) << '\n';
     out << "active_streams_peak="
         << s.active_streams_peak.load(std::memory_order_relaxed) << '\n';
-
-    const uint64_t playout_telemetry_samples =
-        s.playout_telemetry_samples.load(
-            std::memory_order_relaxed);
-
-    const double playout_speed_avg =
-        playout_telemetry_samples
-            ? static_cast<double>(
-                  s.playout_speed_sum_ppm.load(
-                      std::memory_order_relaxed)) /
-              static_cast<double>(
-                  playout_telemetry_samples) /
-              1000000.0
-            : 0.0;
-
-    out << "playout_telemetry_samples="
-        << playout_telemetry_samples << '\n';
-
-    out << "playout_speed_avg="
-        << playout_speed_avg
-        << 'x' << '\n';
-
-    out << "playout_speed_max="
-        << s.playout_speed_max_ppm.load(std::memory_order_relaxed) /
-               1000000.0
-        << 'x' << '\n';
-
-    out << "playout_backlog_avg_us="
-        << avg(
-            s.playout_backlog_sum_us.load(
-                std::memory_order_relaxed),
-            playout_telemetry_samples) << '\n';
-
-    out << "playout_backlog_max_us="
-        << s.playout_backlog_max_us.load(std::memory_order_relaxed)
-        << '\n';
-
-    out << "playout_above_1x="
-        << s.playout_above_1x.load(std::memory_order_relaxed) << '\n';
-
-    out << "playout_above_1_05x="
-        << s.playout_above_1_05x.load(std::memory_order_relaxed) << '\n';
-
-    out << "playout_above_1_10x="
-        << s.playout_above_1_10x.load(std::memory_order_relaxed) << '\n';
-
-    out << "playout_above_1_15x="
-        << s.playout_above_1_15x.load(std::memory_order_relaxed) << '\n';
-
-    out << "playout_backlog_above_10ms="
-        << s.playout_backlog_above_10ms.load(std::memory_order_relaxed)
-        << '\n';
-
-    out << "playout_backlog_above_30ms="
-        << s.playout_backlog_above_30ms.load(std::memory_order_relaxed)
-        << '\n';
-
-    out << "playout_backlog_above_50ms="
-        << s.playout_backlog_above_50ms.load(std::memory_order_relaxed)
-        << '\n';
-
-    out << "playout_backlog_above_80ms="
-        << s.playout_backlog_above_80ms.load(std::memory_order_relaxed)
-        << '\n';
 
     return out.str();
 }

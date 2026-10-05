@@ -185,9 +185,6 @@ struct Stream {
     double playout_phase = 0.0;
     double playout_speed = 1.0;
 
-    // Lightweight telemetry sampler: 1 of every 16 ReadStream calls.
-    uint32_t playout_telemetry_tick = 0;
-
     bool have_jitter_base = false;
     uint32_t jitter_first_ts = 0;
     uint64_t jitter_first_arrival_us = 0;
@@ -238,7 +235,6 @@ struct Stream {
         // Return realtime playout to 1.0x after stream reset.
         playout_phase = 0.0;
         playout_speed = 1.0;
-        playout_telemetry_tick = 0;
     }
 };
 
@@ -318,7 +314,7 @@ struct Stats {
 
     // YASU ADAPTIVE PLAYOUT TELEMETRY.
     // Speed is stored as parts-per-million to keep the counters integral.
-    std::atomic<uint64_t> playout_telemetry_samples{0};
+    std::atomic<uint64_t> playout_observations{0};
     std::atomic<uint64_t> playout_speed_sum_ppm{0};
     std::atomic<uint64_t> playout_speed_max_ppm{0};
 
@@ -405,7 +401,7 @@ struct Stats {
         max_ring_depth.store(0);
         active_streams_peak.store(0);
 
-        playout_telemetry_samples.store(0);
+        playout_observations.store(0);
         playout_speed_sum_ppm.store(0);
         playout_speed_max_ppm.store(0);
 
@@ -489,7 +485,7 @@ struct Stats {
         const uint64_t speed_ppm =
             static_cast<uint64_t>(speed * 1000000.0 + 0.5);
 
-        playout_telemetry_samples.fetch_add(
+        playout_observations.fetch_add(
             1,
             std::memory_order_relaxed);
 
@@ -1885,16 +1881,11 @@ struct YasuFastAudioCore::Impl {
         const double speed =
             stream->playout_speed;
 
-        // Record only 1 of every 16 observations so telemetry itself
-        // remains negligible on the realtime audio path.
-        ++stream->playout_telemetry_tick;
-
-        if ((stream->playout_telemetry_tick & 15u) == 0u) {
-            // 'used' is the real ring residence at this instant.
-            stats.RecordPlayoutTelemetry(
-                used,
-                speed);
-        }
+        // Record the actual controller state before PCM consumption.
+        // 'used' is the real ring residence at this instant.
+        stats.RecordPlayoutTelemetry(
+            used,
+            speed);
 
         double phase =
             stream->playout_phase;
@@ -2679,25 +2670,13 @@ std::string YasuFastAudioCore::GetDiagnostics() const {
     out << "active_streams_peak="
         << s.active_streams_peak.load(std::memory_order_relaxed) << '\n';
 
-    const uint64_t playout_telemetry_samples =
-        s.playout_telemetry_samples.load(
-            std::memory_order_relaxed);
-
-    const double playout_speed_avg =
-        playout_telemetry_samples
-            ? static_cast<double>(
-                  s.playout_speed_sum_ppm.load(
-                      std::memory_order_relaxed)) /
-              static_cast<double>(
-                  playout_telemetry_samples) /
-              1000000.0
-            : 0.0;
-
-    out << "playout_telemetry_samples="
-        << playout_telemetry_samples << '\n';
+    const uint64_t playout_observations =
+        s.playout_observations.load(std::memory_order_relaxed);
 
     out << "playout_speed_avg="
-        << playout_speed_avg
+        << avg(
+            s.playout_speed_sum_ppm.load(std::memory_order_relaxed),
+            playout_observations) / 1000000.0
         << 'x' << '\n';
 
     out << "playout_speed_max="
@@ -2707,9 +2686,8 @@ std::string YasuFastAudioCore::GetDiagnostics() const {
 
     out << "playout_backlog_avg_us="
         << avg(
-            s.playout_backlog_sum_us.load(
-                std::memory_order_relaxed),
-            playout_telemetry_samples) << '\n';
+            s.playout_backlog_sum_us.load(std::memory_order_relaxed),
+            playout_observations) << '\n';
 
     out << "playout_backlog_max_us="
         << s.playout_backlog_max_us.load(std::memory_order_relaxed)
