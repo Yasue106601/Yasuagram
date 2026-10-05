@@ -171,6 +171,7 @@ struct Stream {
     int32_t jitter_hist_us[kJitterHistory]{};
     int jitter_hist_n = 0;
     int jitter_hist_pos = 0;
+    uint32_t jitter_update_counter = 0;
     double pad_smooth = static_cast<double>(kPadInitialFrames);
 
     // A delayed re-drain is already scheduled for a reordered packet.
