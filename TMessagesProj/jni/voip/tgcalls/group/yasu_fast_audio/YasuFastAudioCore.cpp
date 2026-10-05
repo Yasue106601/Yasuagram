@@ -1814,7 +1814,7 @@ struct YasuFastAudioCore::Impl {
                     packet_guard +
                     kTrimHeadroomFrames,
                     120),
-                480);
+                240);
 
         const uint32_t excess =
             used > target
@@ -1838,16 +1838,14 @@ struct YasuFastAudioCore::Impl {
 
         double desired_speed = 1.0;
 
-        if (excess >= 3840) {
-            desired_speed = 1.20;       // >80 ms
-        } else if (excess >= 2400) {
-            desired_speed = 1.15;       // >50 ms
+        if (excess >= 2400) {
+            desired_speed = 1.04;       // >50 ms
         } else if (excess >= 1440) {
-            desired_speed = 1.10;       // >30 ms
+            desired_speed = 1.035;      // >30 ms
         } else if (excess >= 720) {
-            desired_speed = 1.06;       // >15 ms
+            desired_speed = 1.025;      // >15 ms
         } else if (excess >= 240) {
-            desired_speed = 1.03;       // >5 ms
+            desired_speed = 1.015;      // >5 ms
         }
 
         if (used == 0) {
@@ -1876,7 +1874,7 @@ struct YasuFastAudioCore::Impl {
                     1.0,
                     std::min(
                         current,
-                        1.20));
+                        1.04));
 
             stream->playout_speed =
                 current;
