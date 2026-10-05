@@ -1816,153 +1816,6 @@ struct YasuFastAudioCore::Impl {
                     120),
                 240);
 
-        // --------------------------------------------------------
-        // Safe PCM backlog recovery.
-        //
-        // This directly reduces PCM residence latency when the ring
-        // grows beyond the normal target. It never changes sample rate,
-        // pitch, volume, codec settings, or playback quality.
-        //
-        // Recovery order:
-        //   1) Remove only leading near-silence.
-        //   2) If audible excess remains, remove only a very small
-        //      bounded amount at a zero-crossing / near-zero point.
-        //   3) If no safe point exists, do NOT trim audible PCM.
-        //
-        // This avoids hard jumps and protects against audible clicks
-        // while still draining persistent backlog.
-        // --------------------------------------------------------
-
-        if (used > target) {
-            const uint32_t excess_before_trim =
-                used - target;
-
-            // First remove genuinely quiet PCM from the front.
-            // Maximum probe: 5 ms @ 48 kHz.
-            constexpr uint32_t kSilenceProbeFrames = 240;
-
-            const uint32_t silence_probe =
-                std::min<uint32_t>(
-                    std::min<uint32_t>(
-                        excess_before_trim,
-                        kSilenceProbeFrames),
-                    used > 1 ? used - 1 : 0);
-
-            uint32_t silence_frames = 0;
-
-            while (silence_frames < silence_probe) {
-                const int32_t v =
-                    stream->pcm[
-                        (read + silence_frames) &
-                        (kStreamRingFrames - 1)];
-
-                if (v > kTrimSilenceThreshold ||
-                    v < -kTrimSilenceThreshold) {
-                    break;
-                }
-
-                ++silence_frames;
-            }
-
-            if (silence_frames != 0) {
-                read =
-                    (read + silence_frames) &
-                    (kStreamRingFrames - 1);
-
-                used =
-                    RingUsed(read, write);
-            }
-
-            if (used > target) {
-                const uint32_t remaining_excess =
-                    used - target;
-
-                const uint64_t now_us = NowUs();
-
-                const uint64_t last_trim_us =
-                    stream->last_pcm_trim_us.load(
-                        std::memory_order_relaxed);
-
-                const bool heavy_burst =
-                    remaining_excess >= kBurstTrimExcessFrames;
-
-                const bool burst =
-                    remaining_excess >= kHardTrimExcessFrames;
-
-                const uint64_t recovery_cooldown_us =
-                    heavy_burst
-                        ? kHeavyBurstCooldownUs
-                        : burst
-                            ? kBurstCooldownUs
-                            : kTrimCooldownUs;
-
-                const bool cooldown_ok =
-                    last_trim_us == 0 ||
-                    now_us < last_trim_us ||
-                    now_us - last_trim_us >=
-                        recovery_cooldown_us;
-
-                const bool meaningful_excess =
-                    remaining_excess >= kSoftTrimExcessFrames;
-
-                if (cooldown_ok && meaningful_excess) {
-                    const uint32_t max_trim =
-                        burst
-                            ? kBurstMaxTrimPerReadFrames
-                            : kMaxTrimPerReadFrames;
-
-                    const uint32_t trim =
-                        std::min<uint32_t>(
-                            remaining_excess,
-                            max_trim);
-
-                    // Only trim at a safe waveform location.
-                    // If no zero-crossing / near-zero point exists,
-                    // leave the audible PCM untouched.
-                    uint32_t safe_trim = 0;
-
-                    if (trim > 1) {
-                        for (uint32_t i = 1; i < trim; ++i) {
-                            const int32_t a =
-                                stream->pcm[
-                                    (read + i - 1) &
-                                    (kStreamRingFrames - 1)];
-
-                            const int32_t b =
-                                stream->pcm[
-                                    (read + i) &
-                                    (kStreamRingFrames - 1)];
-
-                            const bool crossing =
-                                (a <= 0 && b >= 0) ||
-                                (a >= 0 && b <= 0);
-
-                            const bool near_zero =
-                                std::abs(b) <= 500;
-
-                            if (crossing || near_zero) {
-                                safe_trim = i;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (safe_trim != 0) {
-                        read =
-                            (read + safe_trim) &
-                            (kStreamRingFrames - 1);
-
-                        stream->last_pcm_trim_us.store(
-                            now_us,
-                            std::memory_order_relaxed);
-
-                        used =
-                            RingUsed(read, write);
-                    }
-                }
-            }
-        }
-
         const uint32_t excess =
             used > target
                 ? used - target
@@ -1972,11 +1825,11 @@ struct YasuFastAudioCore::Impl {
         // Adaptive time-compression controller.
         //
         // 0..5 ms excess    -> 1.00x
-        // 5..15 ms          -> 1.015x
-        // 15..30 ms         -> 1.04x
-        // 30..50 ms         -> 1.06x
-        // 50..80 ms         -> 1.08x
-        // >50 ms            -> 1.08x
+        // 5..15 ms          -> 1.03x
+        // 15..30 ms         -> 1.06x
+        // 30..50 ms         -> 1.10x
+        // 50..80 ms         -> 1.15x
+        // >80 ms            -> 1.20x
         //
         // This changes TEMPORARY PLAYOUT SPEED.
         // It does not jump to the newest PCM and does not discard
@@ -2008,7 +1861,7 @@ struct YasuFastAudioCore::Impl {
             // Fast recovery when backlog rises.
             if (delta > 0.0) {
                 current +=
-                    std::min(delta, 0.08);
+                    std::min(delta, 0.04);
             } else {
                 // Slower return to 1.0x to avoid audible
                 // speed modulation.
