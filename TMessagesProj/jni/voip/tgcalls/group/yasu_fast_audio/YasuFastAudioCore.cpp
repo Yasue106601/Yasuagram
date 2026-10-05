@@ -2203,7 +2203,7 @@ void YasuFastAudioCore::ProcessPacket(
         }
 
         const int samples =
-            DecodePacket(
+            impl_->DecodePacket(
                 stream,
                 payload,
                 static_cast<int>(payload_size),
