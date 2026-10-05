@@ -18,3 +18,23 @@ void SetYasuMeasurementsEnabled(bool enabled) {
 }
 
 } // namespace tgcalls
+
+
+namespace {
+std::atomic<bool> g_yasu_fast_measurements_enabled{false};
+}
+
+namespace tgcalls {
+
+bool YasuFastMeasurementsEnabled() {
+    return g_yasu_fast_measurements_enabled.load(
+        std::memory_order_acquire);
+}
+
+void SetYasuFastMeasurementsEnabled(bool enabled) {
+    g_yasu_fast_measurements_enabled.store(
+        enabled,
+        std::memory_order_release);
+}
+
+} // namespace tgcalls

@@ -40,6 +40,8 @@ public:
                 int channels,
                 int sample_rate);
 
+    std::string GetDiagnostics() const;
+
 
 private:
     YasuFastAudioCore();

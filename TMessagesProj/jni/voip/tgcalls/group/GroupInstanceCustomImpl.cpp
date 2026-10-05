@@ -4501,6 +4501,12 @@ GroupInstanceCustomImpl::GroupInstanceCustomImpl(GroupInstanceDescriptor &&descr
 }
 
 
+
+std::string GroupInstanceCustomImpl::getFastAudioDiagnostics() const {
+    return tgcalls::YasuFastAudioCore::Instance().GetDiagnostics();
+}
+
+
 std::string GroupInstanceCustomImpl::stopAndGetDebugLog() {
     auto promise = std::make_shared<std::promise<std::string>>();
     auto future = promise->get_future();
@@ -4517,7 +4523,7 @@ std::string GroupInstanceCustomImpl::stopAndGetDebugLog() {
 void GroupInstanceCustomImpl::setMeasurementsEnabled(bool enabled) {
     if (!_logSink) {
         _measurementsEnabled.store(false, std::memory_order_release);
-        tgcalls::SetYasuMeasurementsEnabled(false);
+        tgcalls::SetYasuFastMeasurementsEnabled(false);
         return;
     }
 
@@ -4531,9 +4537,9 @@ void GroupInstanceCustomImpl::setMeasurementsEnabled(bool enabled) {
     }
 
     if (enabled) {
-        tgcalls::SetYasuMeasurementsEnabled(true);
+        tgcalls::SetYasuFastMeasurementsEnabled(true);
     } else {
-        tgcalls::SetYasuMeasurementsEnabled(false);
+        tgcalls::SetYasuFastMeasurementsEnabled(false);
     }
 }
 
@@ -4543,7 +4549,7 @@ GroupInstanceCustomImpl::~GroupInstanceCustomImpl() {
     }
 
     if (_measurementsEnabled.exchange(false, std::memory_order_acq_rel)) {
-        tgcalls::SetYasuMeasurementsEnabled(false);
+        tgcalls::SetYasuFastMeasurementsEnabled(false);
     }
     _internal.reset();
 

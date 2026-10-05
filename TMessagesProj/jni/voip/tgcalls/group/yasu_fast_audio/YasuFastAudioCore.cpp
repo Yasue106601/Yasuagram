@@ -46,17 +46,17 @@ static_assert((kStreamRingFrames & (kStreamRingFrames - 1)) == 0,
               "kStreamRingFrames must be a power of two");
 
 // Adaptive jitter pad (per stream, derived from measured RTP arrival jitter).
-constexpr uint32_t kPadMinFrames = 960;      // 20 ms
-constexpr uint32_t kPadMaxFrames = 5760;     // 120 ms
-constexpr uint32_t kPadInitialFrames = 1440; // 30 ms until estimator has data
+constexpr uint32_t kPadMinFrames = 240;      // 5 ms
+constexpr uint32_t kPadMaxFrames = 960;      // 20 ms
+constexpr uint32_t kPadInitialFrames = 0;    // no artificial startup delay
 constexpr int kJitterHistory = 64;
 // Extra headroom above (pad + one packet) before we start trimming backlog.
-constexpr uint32_t kTrimHeadroomFrames = 960;   // 20 ms
+constexpr uint32_t kTrimHeadroomFrames = 240;   // 5 ms
 // Backlog above (pad + packet + headroom + this) is dropped at once (a short
 // glitch beats hundreds of ms of permanent delay after a network burst).
 constexpr uint32_t kHardTrimExcessFrames = 14400;  // 300 ms
 // Max wait for a reordered packet before concealing it.
-constexpr uint64_t kReorderWaitUs = 15000;
+constexpr uint64_t kReorderWaitUs = 3000;
 // Never conceal more than this many consecutive missing packets; resync instead.
 constexpr uint16_t kMaxConcealPackets = 2;
 
@@ -471,7 +471,7 @@ struct YasuFastAudioCore::Impl {
     }
 
     bool Measurements() const {
-        return YasuMeasurementsEnabled();
+        return YasuFastMeasurementsEnabled();
     }
 
     Stream* Find(uint32_t ssrc) {
@@ -793,7 +793,7 @@ struct YasuFastAudioCore::Impl {
             kDecodeSamples * 2];
 
         const bool measure =
-            YasuMeasurementsEnabled();
+            YasuFastMeasurementsEnabled();
 
         // FEC must only be attempted when the packet actually
         // carries Opus in-band FEC. Otherwise opus_decode(..., 1)
@@ -1043,9 +1043,9 @@ struct YasuFastAudioCore::Impl {
         const int32_t p95_us =
             sorted[std::min(idx, stream->jitter_hist_n - 1)];
 
-        // 48 frames per ms; +10 ms safety margin.
+        // Convert jitter to 48 kHz frames.
         double target =
-            static_cast<double>(p95_us) * 48.0 / 1000.0 + 480.0;
+            static_cast<double>(p95_us) * 48.0 / 1000.0;
         target = std::max<double>(target, kPadMinFrames);
         target = std::min<double>(target, kPadMaxFrames);
 
@@ -1305,7 +1305,7 @@ struct YasuFastAudioCore::Impl {
         int frames) {
 
         const bool measure =
-            YasuMeasurementsEnabled();
+            YasuFastMeasurementsEnabled();
 
         uint32_t read =
             stream->pcm_read.load(
@@ -1451,7 +1451,7 @@ struct YasuFastAudioCore::Impl {
         } reader_guard(this);
 
         const bool measure =
-            YasuMeasurementsEnabled();
+            YasuFastMeasurementsEnabled();
 
         // Diagnostics are completely outside the normal hot path.
         if (measure) {
@@ -1808,7 +1808,7 @@ void YasuFastAudioCore::PushPacket(
         impl_->packet_queue_read =
             impl_->PacketQueueNext(impl_->packet_queue_read);
 
-        if (YasuMeasurementsEnabled()) {
+        if (YasuFastMeasurementsEnabled()) {
             impl_->stats.packets_dropped.fetch_add(1);
         }
     }
@@ -1889,6 +1889,157 @@ void YasuFastAudioCore::PushPacket(
         });
 }
 
+
+std::string YasuFastAudioCore::GetDiagnostics() const {
+    const Impl& impl = *impl_;
+    const Stats& s = impl.stats;
+
+    auto avg = [](uint64_t total, uint64_t count) -> uint64_t {
+        return count ? total / count : 0;
+    };
+
+    auto min_or_zero = [](uint64_t value) -> uint64_t {
+        return value == std::numeric_limits<uint64_t>::max()
+            ? 0
+            : value;
+    };
+
+    std::ostringstream out;
+
+    const uint64_t queue_count =
+        s.packet_queue_wait_count.load(std::memory_order_relaxed);
+    const uint64_t decode_count =
+        s.decode_count.load(std::memory_order_relaxed);
+    const uint64_t pcm_count =
+        s.packet_to_pcm_count.load(std::memory_order_relaxed);
+    const uint64_t play_count =
+        s.packet_to_play_count.load(std::memory_order_relaxed);
+    const uint64_t residence_count =
+        s.residence_count.load(std::memory_order_relaxed);
+    const uint64_t callback_count =
+        s.callback_count.load(std::memory_order_relaxed);
+
+    out << "YASU FAST AUDIO DIAGNOSTICS\n";
+    out << "started_us="
+        << s.started_us.load(std::memory_order_relaxed) << '\n';
+
+    out << "packets_received="
+        << s.packets_received.load(std::memory_order_relaxed) << '\n';
+    out << "packets_decoded="
+        << s.packets_decoded.load(std::memory_order_relaxed) << '\n';
+    out << "packets_plc="
+        << s.packets_plc.load(std::memory_order_relaxed) << '\n';
+    out << "packets_fec="
+        << s.packets_fec.load(std::memory_order_relaxed) << '\n';
+    out << "packets_late="
+        << s.packets_late.load(std::memory_order_relaxed) << '\n';
+    out << "packets_reordered="
+        << s.packets_reordered.load(std::memory_order_relaxed) << '\n';
+    out << "packets_dropped="
+        << s.packets_dropped.load(std::memory_order_relaxed) << '\n';
+    out << "packets_decode_failed="
+        << s.packets_decode_failed.load(std::memory_order_relaxed) << '\n';
+
+    out << "queue_wait_avg_us="
+        << avg(
+            s.packet_queue_wait_us.load(std::memory_order_relaxed),
+            queue_count) << '\n';
+    out << "queue_wait_min_us="
+        << min_or_zero(
+            s.packet_queue_wait_min_us.load(std::memory_order_relaxed))
+        << '\n';
+    out << "queue_wait_max_us="
+        << s.packet_queue_wait_max_us.load(std::memory_order_relaxed) << '\n';
+
+    out << "decode_avg_us="
+        << avg(
+            s.decode_cost_us.load(std::memory_order_relaxed),
+            decode_count) << '\n';
+    out << "decode_min_us="
+        << min_or_zero(
+            s.decode_cost_min_us.load(std::memory_order_relaxed))
+        << '\n';
+    out << "decode_max_us="
+        << s.decode_cost_max_us.load(std::memory_order_relaxed) << '\n';
+
+    out << "packet_to_pcm_avg_us="
+        << avg(
+            s.packet_to_pcm_us.load(std::memory_order_relaxed),
+            pcm_count) << '\n';
+    out << "packet_to_pcm_min_us="
+        << min_or_zero(
+            s.packet_to_pcm_min_us.load(std::memory_order_relaxed))
+        << '\n';
+    out << "packet_to_pcm_max_us="
+        << s.packet_to_pcm_max_us.load(std::memory_order_relaxed) << '\n';
+
+    out << "packet_to_play_avg_us="
+        << avg(
+            s.packet_to_play_us.load(std::memory_order_relaxed),
+            play_count) << '\n';
+    out << "packet_to_play_min_us="
+        << min_or_zero(
+            s.packet_to_play_min_us.load(std::memory_order_relaxed))
+        << '\n';
+    out << "packet_to_play_max_us="
+        << s.packet_to_play_max_us.load(std::memory_order_relaxed) << '\n';
+
+    out << "pcm_frames_written="
+        << s.pcm_frames_written.load(std::memory_order_relaxed) << '\n';
+    out << "pcm_frames_read="
+        << s.pcm_frames_read.load(std::memory_order_relaxed) << '\n';
+
+    out << "readpcm_calls="
+        << s.readpcm_calls.load(std::memory_order_relaxed) << '\n';
+    out << "readpcm_enabled_calls="
+        << s.readpcm_enabled_calls.load(std::memory_order_relaxed) << '\n';
+    out << "readpcm_invalid_calls="
+        << s.readpcm_invalid_calls.load(std::memory_order_relaxed) << '\n';
+    out << "readpcm_wrong_rate_calls="
+        << s.readpcm_wrong_rate_calls.load(std::memory_order_relaxed) << '\n';
+    out << "readpcm_zero_source_calls="
+        << s.readpcm_zero_source_calls.load(std::memory_order_relaxed) << '\n';
+    out << "readpcm_last_sample_rate="
+        << s.readpcm_last_sample_rate.load(std::memory_order_relaxed) << '\n';
+    out << "readpcm_last_channels="
+        << s.readpcm_last_channels.load(std::memory_order_relaxed) << '\n';
+
+    out << "pcm_underruns="
+        << s.pcm_underruns.load(std::memory_order_relaxed) << '\n';
+    out << "pcm_overruns="
+        << s.pcm_overruns.load(std::memory_order_relaxed) << '\n';
+    out << "pcm_overrun_frames="
+        << s.pcm_overrun_frames.load(std::memory_order_relaxed) << '\n';
+
+    out << "residence_avg_us="
+        << avg(
+            s.residence_us.load(std::memory_order_relaxed),
+            residence_count) << '\n';
+    out << "residence_min_us="
+        << min_or_zero(
+            s.residence_min_us.load(std::memory_order_relaxed)) << '\n';
+    out << "residence_max_us="
+        << s.residence_max_us.load(std::memory_order_relaxed) << '\n';
+
+    out << "callback_avg_us="
+        << avg(
+            s.callback_cost_us.load(std::memory_order_relaxed),
+            callback_count) << '\n';
+    out << "callback_min_us="
+        << min_or_zero(
+            s.callback_cost_min_us.load(std::memory_order_relaxed)) << '\n';
+    out << "callback_max_us="
+        << s.callback_cost_max_us.load(std::memory_order_relaxed) << '\n';
+
+    out << "max_ring_depth="
+        << s.max_ring_depth.load(std::memory_order_relaxed) << '\n';
+    out << "active_streams_peak="
+        << s.active_streams_peak.load(std::memory_order_relaxed) << '\n';
+
+    return out.str();
+}
+
+
 int YasuFastAudioCore::ReadPcm(
     int16_t* output,
     int frames,
@@ -1940,7 +2091,7 @@ void YasuFastAudioCore::ProcessPacket(
     }
 
     const bool measure =
-        YasuMeasurementsEnabled();
+        YasuFastMeasurementsEnabled();
 
     const uint64_t now =
         NowUs();
@@ -2034,6 +2185,49 @@ void YasuFastAudioCore::ProcessPacket(
             impl_->Unlock();
             return;
         }
+    }
+
+    // FAST HOT PATH:
+    // An in-order packet is already the exact packet needed for playback.
+    // Do not copy it into the reorder buffer. Decode it immediately.
+    //
+    // Out-of-order packets still use the reorder buffer below.
+    if (stream->have_sequence &&
+        sequence == stream->next_sequence) {
+
+        if (packet_arrival_us != 0) {
+            impl_->UpdateJitterPad(
+                stream,
+                timestamp,
+                packet_arrival_us);
+        }
+
+        const int samples =
+            DecodePacket(
+                stream,
+                payload,
+                static_cast<int>(payload_size),
+                false,
+                false,
+                arrival);
+
+        if (samples > 0) {
+            stream->next_sequence =
+                static_cast<uint16_t>(sequence + 1);
+
+            stream->next_timestamp =
+                timestamp +
+                static_cast<uint32_t>(samples);
+
+            stream->have_timestamp = true;
+
+            // A previously buffered out-of-order packet may now become
+            // playable immediately.
+            impl_->Drain(stream);
+        }
+
+        impl_->Unlock();
+        return;
     }
 
     Packet* destination = nullptr;

@@ -1043,12 +1043,16 @@ JNIEXPORT jstring JNICALL Java_org_telegram_messenger_voip_NativeInstance_stopGr
         return env->NewStringUTF("");
     }
 
-    std::string debugLog = instance->groupNativeInstance->stopAndGetDebugLog();
+    std::string fastDiagnostics =
+        instance->groupNativeInstance->getFastAudioDiagnostics();
+
+    std::string debugLog =
+        instance->groupNativeInstance->stopAndGetDebugLog();
 
     instance->groupNativeInstance.reset();
     delete instance;
 
-    return env->NewStringUTF(debugLog.c_str());
+    return env->NewStringUTF(fastDiagnostics.c_str());
 }
 
 extern "C"
