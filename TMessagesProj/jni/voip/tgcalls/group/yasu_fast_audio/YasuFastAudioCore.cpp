@@ -51,10 +51,14 @@ constexpr uint32_t kPadMaxFrames = 240;       // 5 ms
 constexpr uint32_t kPadInitialFrames = 0;    // no artificial startup delay
 constexpr int kJitterHistory = 64;
 // Extra headroom above (pad + one packet) before we start trimming backlog.
-constexpr uint32_t kTrimHeadroomFrames = 120;  // 2.5 ms
-// Do not hard-jump the PCM read pointer for small/normal backlog.
-// A hard resync is allowed only when the excess itself reaches 30 ms.
-constexpr uint32_t kHardTrimExcessFrames = 1440;  // 30 ms @ 48 kHz
+// Adaptive PCM backlog recovery.
+// Keep the normal target small, but never perform repeated large hard jumps.
+constexpr uint32_t kTrimHeadroomFrames = 96;          // 2 ms
+constexpr uint32_t kSoftTrimExcessFrames = 96;        // 2 ms
+constexpr uint32_t kHardTrimExcessFrames = 480;       // 10 ms
+constexpr uint32_t kMaxTrimPerReadFrames = 48;        // 1 ms
+constexpr uint64_t kTrimCooldownUs = 20000;            // 20 ms
+constexpr int32_t kTrimSilenceThreshold = 300;
 // Backlog above (pad + packet + headroom + this) is dropped at once (a short
 // glitch beats hundreds of ms of permanent delay after a network burst).
 // Adaptive network protection.
@@ -166,6 +170,9 @@ struct Stream {
     std::atomic<uint32_t> last_packet_frames{960};
     // Silence inserted before audio when the ring is empty (start/underrun).
     std::atomic<uint32_t> pad_frames{kPadInitialFrames};
+    // Consumer-side PCM recovery cooldown. This prevents repeated
+    // read-pointer jumps from producing audible chopping.
+    std::atomic<uint64_t> last_pcm_trim_us{0};
 
     bool have_jitter_base = false;
     uint32_t jitter_first_ts = 0;
@@ -1638,120 +1645,161 @@ struct YasuFastAudioCore::Impl {
                 ? write - read
                 : kStreamRingFrames - read + write;
 
-        // YASU ULTRA-LOW-LATENCY BACKLOG CONTROL.
-        //
-        // Diagnostics showed:
-        //   packet_to_pcm  ~= 2.2 ms
-        //   packet_to_play ~= 76.9 ms
-        //
-        // Therefore the dominant latency is PCM residence in this ring.
-        //
-        // Keep only:
-        //   adaptive jitter pad + one packet + 2.5 ms headroom.
-        //
-        // If PCM accumulates beyond that level, remove the oldest excess
-        // immediately. Prefer removing silence first. If the excess is
-        // audible, accept a very small skip rather than keeping tens of
-        // milliseconds of stale audio.
+        // YASU ADAPTIVE ULTRA-LOW-LATENCY BACKLOG CONTROL.
+    //
+    // The PCM ring is the dominant residence point, so keep the target
+    // small. However, never repeatedly throw away audible PCM in large
+    // hard jumps: that creates the chopping heard in the previous build.
+    //
+    // Recovery policy:
+    //   1) Small excess       -> do nothing.
+    //   2) Leading silence    -> remove silence immediately.
+    //   3) Audible excess     -> bounded trim, max 1 ms.
+    //   4) Repeated trimming  -> blocked for 20 ms.
+    //   5) Large backlog      -> continue bounded recovery rather than
+    //                           jumping directly to the newest samples.
 
-        const uint32_t pad =
-            stream->pad_frames.load(
-                std::memory_order_relaxed);
+    const uint32_t pad =
+        stream->pad_frames.load(
+            std::memory_order_relaxed);
 
-        const uint32_t pkt =
-            stream->last_packet_frames.load(
-                std::memory_order_relaxed);
+    const uint32_t pkt =
+        stream->last_packet_frames.load(
+            std::memory_order_relaxed);
 
-        // Keep the PCM residence window as small as possible.
-        // Do not reserve a full codec packet unconditionally: the
-        // packet size is a decode quantum, not required playback latency.
-        //
-        // Target:
-        //   adaptive network pad + small safety headroom.
-        //
-        // A full packet is only useful when the stream is actually
-        // accumulating; allowing it permanently would add unnecessary
-        // latency even on a healthy network.
-        const uint32_t packet_guard =
+    // A codec packet is a decode quantum, not playback latency.
+    // Only reserve a small fraction of it.
+    const uint32_t packet_guard =
+        std::min<uint32_t>(
+            pkt / 4,
+            120);  // <= 2.5 ms @ 48 kHz
+
+    const uint32_t high =
+        std::min<uint32_t>(
+            pad + packet_guard + kTrimHeadroomFrames,
+            kStreamRingFrames - 1);
+
+    if (used > high) {
+        const uint32_t excess =
+            used - high;
+
+        // First remove only genuinely quiet PCM from the front.
+        constexpr uint32_t kSilenceProbeFrames = 240; // 5 ms
+
+        const uint32_t silence_probe =
             std::min<uint32_t>(
-                pkt,
-                480);  // <= 10 ms @ 48 kHz
-
-        const uint32_t high =
-            std::min<uint32_t>(
-                pad + packet_guard + kTrimHeadroomFrames,
-                kStreamRingFrames - 1);
-
-        if (used > high) {
-            const uint32_t excess =
-                used - high;
-
-            // Low-latency backlog recovery:
-            // Never allow a large PCM backlog to drain slowly over many
-            // callbacks. That would turn temporary network/callback
-            // imbalance into tens or hundreds of milliseconds of latency.
-            //
-            // First discard as much old silence as possible. If the
-            // backlog is still above the target, jump directly to the
-            // newest low-latency window.
-            // Keep realtime callback work bounded. Never scan a large
-            // backlog sample-by-sample inside the AAudio callback.
-            constexpr uint32_t kSilenceProbeFrames = 240; // 5 ms
-
-            const uint32_t max_silence_probe =
                 std::min<uint32_t>(
-                    std::min<uint32_t>(
-                        excess,
-                        kSilenceProbeFrames),
-                    used > 1 ? used - 1 : 0);
+                    excess,
+                    kSilenceProbeFrames),
+                used > 1 ? used - 1 : 0);
 
-            uint32_t silence_frames = 0;
+        uint32_t silence_frames = 0;
 
-            // Only inspect a bounded 5 ms window. Larger backlogs are
-            // handled by the direct low-latency jump below.
-            const uint32_t silence_probe =
-                max_silence_probe;
-
-            while (silence_frames < silence_probe) {
-                const int32_t v =
-                    stream->pcm[
-                        (read + silence_frames) &
-                        (kStreamRingFrames - 1)];
-
-                if (v > 300 || v < -300) {
-                    break;
-                }
-
-                ++silence_frames;
-            }
-
-            if (silence_frames != 0) {
-                read =
+        while (silence_frames < silence_probe) {
+            const int32_t v =
+                stream->pcm[
                     (read + silence_frames) &
-                    (kStreamRingFrames - 1);
+                    (kStreamRingFrames - 1)];
+
+            if (v > kTrimSilenceThreshold ||
+                v < -kTrimSilenceThreshold) {
+                break;
             }
 
-            // Recalculate the remaining backlog after removing silence.
-            const uint32_t remaining_used =
-                write >= read
-                    ? write - read
-                    : kStreamRingFrames - read + write;
-
-            if (remaining_used > high &&
-                remaining_used - high >= kHardTrimExcessFrames) {
-                // Only perform a hard resync for a genuinely large
-                // backlog. Small/medium backlog is preserved so the
-                // realtime output path does not repeatedly skip audible
-                // PCM and create chopping.
-                const uint32_t keep = high;
-
-                read =
-                    (write + kStreamRingFrames - keep) &
-                    (kStreamRingFrames - 1);
-            }
+            ++silence_frames;
         }
 
-        int count = 0;
+        if (silence_frames != 0) {
+            read =
+                (read + silence_frames) &
+                (kStreamRingFrames - 1);
+        }
+
+        const uint32_t remaining_used =
+            write >= read
+                ? write - read
+                : kStreamRingFrames - read + write;
+
+        if (remaining_used > high) {
+            const uint32_t remaining_excess =
+                remaining_used - high;
+
+            const uint64_t now_us = NowUs();
+            const uint64_t last_trim_us =
+                stream->last_pcm_trim_us.load(
+                    std::memory_order_relaxed);
+
+            const bool cooldown_ok =
+                last_trim_us == 0 ||
+                now_us < last_trim_us ||
+                now_us - last_trim_us >= kTrimCooldownUs;
+
+            // Do not react to tiny fluctuations.
+            const bool meaningful_excess =
+                remaining_excess >= kSoftTrimExcessFrames;
+
+            if (cooldown_ok && meaningful_excess) {
+                uint32_t trim =
+                    std::min<uint32_t>(
+                        remaining_excess,
+                        kMaxTrimPerReadFrames);
+
+                // For a very large backlog we still intentionally use
+                // the same bounded correction. The backlog must recover
+                // progressively instead of causing a large audible skip.
+                if (remaining_excess >= kHardTrimExcessFrames) {
+                    trim =
+                        std::min<uint32_t>(
+                            trim,
+                            kMaxTrimPerReadFrames);
+                }
+
+                // Prefer ending the trim close to a zero crossing.
+                // This greatly reduces clicks when audible PCM has to
+                // be discarded.
+                uint32_t safe_trim = trim;
+
+                if (trim > 1) {
+                    for (uint32_t i = 1; i < trim; ++i) {
+                        const int32_t a =
+                            stream->pcm[
+                                (read + i - 1) &
+                                (kStreamRingFrames - 1)];
+
+                        const int32_t b =
+                            stream->pcm[
+                                (read + i) &
+                                (kStreamRingFrames - 1)];
+
+                        const bool crossing =
+                            (a <= 0 && b >= 0) ||
+                            (a >= 0 && b <= 0);
+
+                        const bool near_zero =
+                            std::abs(b) <= 500;
+
+                        if (crossing || near_zero) {
+                            safe_trim = i;
+                            break;
+                        }
+                    }
+                }
+
+                // Never move farther than the bounded correction.
+                if (safe_trim != 0) {
+                    read =
+                        (read + safe_trim) &
+                        (kStreamRingFrames - 1);
+
+                    stream->last_pcm_trim_us.store(
+                        now_us,
+                        std::memory_order_relaxed);
+                }
+            }
+        }
+    }
+
+    int count = 0;
         while (count < frames &&
                read != write) {
 
