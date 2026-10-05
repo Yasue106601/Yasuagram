@@ -551,7 +551,9 @@ struct YasuFastAudioCore::Impl {
             }
 
             if (!stale) {
-                stats.packets_dropped.fetch_add(1);
+                if (YasuFastMeasurementsEnabled()) {
+                    stats.packets_dropped.fetch_add(1);
+                }
                 return nullptr;
             }
 
@@ -618,7 +620,9 @@ struct YasuFastAudioCore::Impl {
                 false,
                 std::memory_order_release);
 
-            stats.packets_dropped.fetch_add(1);
+            if (YasuFastMeasurementsEnabled()) {
+                stats.packets_dropped.fetch_add(1);
+            }
 
             return nullptr;
         }
@@ -763,7 +767,8 @@ struct YasuFastAudioCore::Impl {
                 (kStreamRingFrames - 1);
         }
 
-        if (dropped_frames != 0 &&
+        if (YasuFastMeasurementsEnabled() &&
+            dropped_frames != 0 &&
             source_arrival_us != 0) {
             stats.pcm_overruns.fetch_add(
                 1,
@@ -778,7 +783,8 @@ struct YasuFastAudioCore::Impl {
             write,
             std::memory_order_release);
 
-        if (source_arrival_us != 0 &&
+        if (YasuFastMeasurementsEnabled() &&
+            source_arrival_us != 0 &&
             frames_to_write != 0) {
             stats.pcm_frames_written.fetch_add(
                 static_cast<uint64_t>(frames_to_write));
@@ -906,7 +912,9 @@ struct YasuFastAudioCore::Impl {
         }
 
         if (samples <= 0) {
-            stats.packets_decode_failed.fetch_add(1);
+            if (YasuFastMeasurementsEnabled()) {
+                stats.packets_decode_failed.fetch_add(1);
+            }
 
             static int yasu_decode_error_logs = 0;
             if (yasu_decode_error_logs < 10) {
@@ -934,13 +942,18 @@ struct YasuFastAudioCore::Impl {
             return 0;
         }
 
-        if (plc) {
-            stats.packets_plc.fetch_add(1);
-        } else if (fec) {
-            stats.packets_fec.fetch_add(1);
-            stats.packets_decoded.fetch_add(1);
-        } else {
-            stats.packets_decoded.fetch_add(1);
+        if (YasuFastMeasurementsEnabled()) {
+            if (plc) {
+                stats.packets_plc.fetch_add(1);
+            } else if (fec) {
+                stats.packets_fec.fetch_add(1);
+                stats.packets_decoded.fetch_add(1);
+            } else {
+                stats.packets_decoded.fetch_add(1);
+            }
+        }
+
+        if (!plc && !fec) {
             // Remember the real packet duration (works for any ptime).
             stream->last_packet_frames.store(
                 static_cast<uint32_t>(samples),
