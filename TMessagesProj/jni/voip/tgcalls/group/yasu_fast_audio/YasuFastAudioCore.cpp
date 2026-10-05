@@ -57,6 +57,14 @@ constexpr uint32_t kTrimHeadroomFrames = 30;  // 0.625 ms
 constexpr uint32_t kHardTrimExcessFrames = 4800; // 100 ms
 // Max wait for a reordered packet before concealing it.
 constexpr uint64_t kReorderWaitUs = 750; // 0.75 ms
+// Temporary network-recovery mode. It never increases the jitter pad;
+// it only shortens reorder waiting after repeated loss/reordering events.
+constexpr uint64_t kRecoveryWindowUs = 250000;      // 250 ms
+constexpr uint64_t kRecoveryReorderWaitUs = 350;    // 0.35 ms
+constexpr uint64_t kRecoveryCooldownUs = 500000;   // 500 ms
+constexpr uint8_t kRecoveryTriggerEvents = 2;
+constexpr uint8_t kRecoveryMaxEvents = 8;
+
 // Never conceal more than this many consecutive missing packets; resync instead.
 constexpr uint16_t kMaxConcealPackets = 2;
 
@@ -168,6 +176,11 @@ struct Stream {
     // A delayed re-drain is already scheduled for a reordered packet.
     bool reorder_timer_posted = false;
 
+    // Short-lived network recovery state. This does NOT increase buffering.
+    uint8_t recovery_events = 0;
+    uint64_t recovery_until_us = 0;
+    uint64_t recovery_last_event_us = 0;
+
     void ResetAdaptive() {
         last_packet_frames.store(960, std::memory_order_relaxed);
         pad_frames.store(kPadInitialFrames, std::memory_order_relaxed);
@@ -179,6 +192,9 @@ struct Stream {
         jitter_hist_pos = 0;
         pad_smooth = static_cast<double>(kPadInitialFrames);
         reorder_timer_posted = false;
+        recovery_events = 0;
+        recovery_until_us = 0;
+        recovery_last_event_us = 0;
     }
 };
 
@@ -434,6 +450,13 @@ struct YasuFastAudioCore::Impl {
     QueuedPacket packet_queue[kFastPacketQueueSlots];
     uint32_t packet_queue_read = 0;
     uint32_t packet_queue_write = 0;
+
+    // The worker keeps the read slot owned while ProcessPacket() is using
+    // its payload. This removes the second payload memcpy without allowing
+    // the producer to overwrite an in-flight packet.
+    uint32_t packet_queue_inflight = 0;
+    bool packet_queue_inflight_active = false;
+
     std::atomic_flag packet_queue_lock = ATOMIC_FLAG_INIT;
     std::atomic<bool> packet_task_posted{false};
 
@@ -1098,9 +1121,60 @@ struct YasuFastAudioCore::Impl {
                 stream->pad_smooth * 0.80 + target * 0.20;
         }
 
+        // Recovery logic must never be able to increase the latency budget.
+        stream->pad_smooth = std::min<double>(
+            stream->pad_smooth,
+            static_cast<double>(kPadMaxFrames));
+
         stream->pad_frames.store(
             static_cast<uint32_t>(stream->pad_smooth),
             std::memory_order_relaxed);
+    }
+
+    void NoteNetworkRecoveryEvent(
+        Stream* stream,
+        uint64_t now_us,
+        uint8_t weight = 1) {
+
+        if (stream->recovery_last_event_us != 0 &&
+            now_us >= stream->recovery_last_event_us &&
+            now_us - stream->recovery_last_event_us >
+                kRecoveryCooldownUs) {
+            stream->recovery_events = 0;
+        }
+
+        stream->recovery_last_event_us = now_us;
+
+        const uint16_t next =
+            static_cast<uint16_t>(stream->recovery_events) + weight;
+
+        stream->recovery_events =
+            static_cast<uint8_t>(
+                std::min<uint16_t>(next, kRecoveryMaxEvents));
+
+        if (stream->recovery_events >= kRecoveryTriggerEvents) {
+            stream->recovery_until_us =
+                now_us + kRecoveryWindowUs;
+        }
+    }
+
+    bool IsNetworkRecoveryActive(
+        const Stream* stream,
+        uint64_t now_us) const {
+
+        return stream->recovery_until_us != 0 &&
+               now_us < stream->recovery_until_us;
+    }
+
+    uint64_t GetReorderWaitUs(
+        const Stream* stream,
+        uint64_t now_us) const {
+
+        if (IsNetworkRecoveryActive(stream, now_us)) {
+            return kRecoveryReorderWaitUs;
+        }
+
+        return kReorderWaitUs;
     }
 
     // Re-run Drain() for one stream after a short delay. Without this a
@@ -1255,15 +1329,30 @@ struct YasuFastAudioCore::Impl {
             if (gap == 1) {
                 const uint64_t now_us = NowUs();
                 const uint64_t ahead_arrival = ahead->real_arrival_us;
+                const uint64_t reorder_wait_us =
+                    GetReorderWaitUs(stream, now_us);
 
                 if (ahead_arrival != 0 &&
                     now_us >= ahead_arrival &&
-                    now_us - ahead_arrival < kReorderWaitUs) {
+                    now_us - ahead_arrival < reorder_wait_us) {
                     ScheduleReorderDrain(
                         stream,
-                        kReorderWaitUs - (now_us - ahead_arrival));
+                        reorder_wait_us - (now_us - ahead_arrival));
                     break;
                 }
+
+                // A packet remained missing long enough to require
+                // concealment. Count this as a network-recovery event.
+                NoteNetworkRecoveryEvent(
+                    stream,
+                    now_us,
+                    1);
+            } else {
+                // Multiple missing packets are a stronger network event.
+                NoteNetworkRecoveryEvent(
+                    stream,
+                    NowUs(),
+                    2);
             }
 
             const int lost_frames = LastPacketFrames(stream);
@@ -1770,7 +1859,13 @@ void YasuFastAudioCore::Reset() {
         std::memory_order_acq_rel);
 
     impl_->LockPacketQueue();
+
+    // The generation change above makes any in-flight packet obsolete.
+    // Clear its ownership so the worker will not advance the queue after
+    // Reset() has already moved the read/write boundary.
+    impl_->packet_queue_inflight_active = false;
     impl_->packet_queue_read = impl_->packet_queue_write;
+
     impl_->UnlockPacketQueue();
 
     impl_->Lock();
@@ -1857,9 +1952,26 @@ void YasuFastAudioCore::PushPacket(
     const uint32_t write = impl_->packet_queue_write;
     const uint32_t next = impl_->PacketQueueNext(write);
 
-    // Bounded low-latency policy:
-    // never allow queued packets to accumulate unbounded delay.
+    // The read slot can be owned by the FAST worker while ProcessPacket()
+    // is decoding it. Never recycle that slot until the worker releases it.
     if (next == impl_->packet_queue_read) {
+        if (impl_->packet_queue_inflight_active &&
+            impl_->packet_queue_read ==
+                impl_->packet_queue_inflight) {
+
+            // The queue is full while one slot is actively being decoded.
+            // Drop the newest packet instead of advancing read and
+            // corrupting the in-flight payload.
+            if (YasuFastMeasurementsEnabled()) {
+                impl_->stats.packets_dropped.fetch_add(1);
+            }
+
+            impl_->UnlockPacketQueue();
+            return;
+        }
+
+        // Normal bounded low-latency overflow: discard the oldest queued
+        // packet so the queue cannot accumulate unbounded delay.
         impl_->packet_queue_read =
             impl_->PacketQueueNext(impl_->packet_queue_read);
 
@@ -1877,9 +1989,9 @@ void YasuFastAudioCore::PushPacket(
     queued.generation = packet_generation;
 
     // Arrival time is part of FAST jitter control, not just diagnostics.
-    // Keep it available even when measurement/export is disabled.
     queued.arrival_us = NowUs();
 
+    // This remains the only payload copy in the FAST handoff.
     std::memcpy(
         queued.data,
         payload,
@@ -1887,7 +1999,6 @@ void YasuFastAudioCore::PushPacket(
 
     impl_->packet_queue_write = next;
 
-    // Only the transition from idle -> pending posts a task.
     need_post = !impl_->packet_task_posted.exchange(
         true,
         std::memory_order_acq_rel);
@@ -1907,19 +2018,23 @@ void YasuFastAudioCore::PushPacket(
                 uint16_t packet_size = 0;
                 uint64_t packet_generation = 0;
                 uint64_t packet_arrival_us = 0;
-                uint8_t packet_data[kMaxPayload];
+                const uint8_t* packet_data = nullptr;
+                uint32_t packet_slot = 0;
 
                 impl_->LockPacketQueue();
 
-                if (impl_->PacketQueueEmpty()) {
+                if (impl_->PacketQueueEmpty() ||
+                    impl_->packet_queue_inflight_active) {
+
                     // Mark idle while holding the queue lock so a producer
                     // cannot miss the transition.
                     impl_->packet_task_posted.store(
                         false,
                         std::memory_order_release);
 
-                    // Close producer race before leaving the worker.
-                    if (!impl_->PacketQueueEmpty()) {
+                    // Close the producer race before leaving the worker.
+                    if (!impl_->PacketQueueEmpty() &&
+                        !impl_->packet_queue_inflight_active) {
                         impl_->packet_task_posted.store(
                             true,
                             std::memory_order_release);
@@ -1931,11 +2046,10 @@ void YasuFastAudioCore::PushPacket(
                     return;
                 }
 
-                const uint32_t read =
-                    impl_->packet_queue_read;
+                packet_slot = impl_->packet_queue_read;
 
-                const auto& queued =
-                    impl_->packet_queue[read];
+                auto& queued =
+                    impl_->packet_queue[packet_slot];
 
                 packet_ssrc = queued.ssrc;
                 packet_sequence = queued.sequence;
@@ -1944,15 +2058,15 @@ void YasuFastAudioCore::PushPacket(
                 packet_generation = queued.generation;
                 packet_arrival_us = queued.arrival_us;
 
-                // Copy only the actual RTP payload instead of copying the
-                // entire 1600-byte QueuedPacket structure.
-                std::memcpy(
-                    packet_data,
-                    queued.data,
-                    packet_size);
+                // Transfer ownership of this queue slot to the worker.
+                // The producer is now forbidden from recycling this slot
+                // until ProcessPacket() returns.
+                impl_->packet_queue_inflight = packet_slot;
+                impl_->packet_queue_inflight_active = true;
 
-                impl_->packet_queue_read =
-                    impl_->PacketQueueNext(read);
+                // Directly decode from the queue slot.
+                // No second payload memcpy is performed.
+                packet_data = queued.data;
 
                 impl_->UnlockPacketQueue();
 
@@ -1964,6 +2078,22 @@ void YasuFastAudioCore::PushPacket(
                     packet_size,
                     packet_generation,
                     packet_arrival_us);
+
+                impl_->LockPacketQueue();
+
+                // Reset() may have invalidated this ownership while
+                // ProcessPacket() was running. In that case it already
+                // moved the queue boundary and we must not advance it again.
+                if (impl_->packet_queue_inflight_active &&
+                    impl_->packet_queue_inflight == packet_slot) {
+
+                    impl_->packet_queue_read =
+                        impl_->PacketQueueNext(packet_slot);
+
+                    impl_->packet_queue_inflight_active = false;
+                }
+
+                impl_->UnlockPacketQueue();
             }
         });
 }
