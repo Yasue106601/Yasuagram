@@ -27,7 +27,6 @@ public:
     void stop(std::function<void()> completion);
 
     std::string stopAndGetDebugLog();
-    std::string getFastAudioDiagnostics() const;
     
     void setConnectionMode(GroupConnectionMode connectionMode, bool keepBroadcastIfWasEnabled, bool isUnifiedBroadcast);
 

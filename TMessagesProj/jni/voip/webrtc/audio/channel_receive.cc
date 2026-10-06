@@ -10,8 +10,6 @@
 
 #include "audio/channel_receive.h"
 
-#include "voip/tgcalls/group/yasu_fast_audio/YasuFastAudioCore.h"
-
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -349,26 +347,6 @@ void ChannelReceive::OnReceivedPayloadData(
     return;
   }
 
-  // YASU FAST GROUP VOICE AUDIO:
-  // Registered Group Voice SSRCs bypass NetEq/ACM/NACK completely.
-  // The already-transformed Opus payload goes directly to YasuFastAudioCore.
-  auto& yasu_fast_audio = tgcalls::YasuFastAudioCore::Instance();
-
-  if (yasu_fast_audio.IsGroupSsrc(rtpHeader.ssrc)) {
-    if (rtpHeader.payloadType == 111) {
-      yasu_fast_audio.PushPacket(
-          rtpHeader.ssrc,
-          rtpHeader.sequenceNumber,
-          rtpHeader.timestamp,
-          payload.data(),
-          payload.size());
-    }
-
-    return;
-  }
-
-  // LEGACY AUDIO PATH:
-  // Non-Group-Voice SSRCs continue through the existing NetEq/ACM/NACK path.
   if (acm_receiver_.InsertPacket(rtpHeader, payload) != 0) {
     RTC_DLOG(LS_ERROR) << "ChannelReceive::OnReceivedPayloadData() unable to "
                           "push data to the ACM";

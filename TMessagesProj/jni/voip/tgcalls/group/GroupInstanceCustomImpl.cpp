@@ -1,7 +1,5 @@
 #include "GroupInstanceCustomImpl.h"
 
-#include "yasu_fast_audio/YasuFastAudioCore.h"
-
 #include <memory>
 #include <iomanip>
 
@@ -1536,13 +1534,6 @@ public:
     }
 
     ~IncomingAudioChannel() {
-        // FAST Group Voice membership must disappear before this
-        // channel is destroyed, including destruction through
-        // _incomingAudioChannels.clear().
-        if (_ssrc.networkSsrc != 1) {
-            tgcalls::YasuFastAudioCore::Instance().UnregisterGroupSsrc(
-                _ssrc.networkSsrc);
-        }
 
         _threads->getNetworkThread()->BlockingCall([&]() {
             _audioChannel->SetRtpTransport(nullptr);
@@ -4052,13 +4043,6 @@ public:
 
         _incomingAudioChannels.insert(std::make_pair(ssrc, std::move(channel)));
 
-        // SSRC 1 is the permanent dummy audio channel and is not a
-        // real Group Voice source. Never register it in FAST.
-        if (ssrc.networkSsrc != 1) {
-            tgcalls::YasuFastAudioCore::Instance().RegisterGroupSsrc(
-                ssrc.networkSsrc);
-        }
-
         auto currentMapping = _channelBySsrc.find(ssrc.networkSsrc);
         if (currentMapping != _channelBySsrc.end()) {
             if (currentMapping->second.type == ChannelSsrcInfo::Type::Audio) {
@@ -4079,8 +4063,6 @@ public:
     }
 
     void removeIncomingAudioChannel(ChannelId const &channelId) {
-        tgcalls::YasuFastAudioCore::Instance().UnregisterGroupSsrc(
-            channelId.networkSsrc);
 
         const auto it = _incomingAudioChannels.find(channelId);
         if (it != _incomingAudioChannels.end()) {
@@ -4502,9 +4484,6 @@ GroupInstanceCustomImpl::GroupInstanceCustomImpl(GroupInstanceDescriptor &&descr
 
 
 
-std::string GroupInstanceCustomImpl::getFastAudioDiagnostics() const {
-    return tgcalls::YasuFastAudioCore::Instance().GetDiagnostics();
-}
 
 
 std::string GroupInstanceCustomImpl::stopAndGetDebugLog() {
@@ -4523,7 +4502,7 @@ std::string GroupInstanceCustomImpl::stopAndGetDebugLog() {
 void GroupInstanceCustomImpl::setMeasurementsEnabled(bool enabled) {
     if (!_logSink) {
         _measurementsEnabled.store(false, std::memory_order_release);
-        tgcalls::SetYasuFastMeasurementsEnabled(false);
+        
         return;
     }
 
@@ -4537,9 +4516,9 @@ void GroupInstanceCustomImpl::setMeasurementsEnabled(bool enabled) {
     }
 
     if (enabled) {
-        tgcalls::SetYasuFastMeasurementsEnabled(true);
+        
     } else {
-        tgcalls::SetYasuFastMeasurementsEnabled(false);
+        
     }
 }
 
@@ -4549,7 +4528,7 @@ GroupInstanceCustomImpl::~GroupInstanceCustomImpl() {
     }
 
     if (_measurementsEnabled.exchange(false, std::memory_order_acq_rel)) {
-        tgcalls::SetYasuFastMeasurementsEnabled(false);
+        
     }
     _internal.reset();
 

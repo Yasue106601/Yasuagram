@@ -11,8 +11,6 @@
 
 #include "modules/audio_device/android/aaudio_player.h"
 
-#include "voip/tgcalls/group/yasu_fast_audio/YasuFastAudioCore.h"
-
 #include <memory>
 
 #include "api/array_view.h"
@@ -264,16 +262,6 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
   // YASU FAST AUDIO:
   // When enabled, bypass FineAudioBuffer/NetEq playout and read directly from
   // the experimental low-latency PCM ring.
-  auto& yasu_fast_audio = tgcalls::YasuFastAudioCore::Instance();
-  if (yasu_fast_audio.HasRegisteredGroupSsrc()) {
-    yasu_fast_audio.ReadPcm(
-        static_cast<int16_t*>(audio_data),
-        num_frames,
-        aaudio_.audio_parameters().channels(),
-        aaudio_.sample_rate());
-    return AAUDIO_CALLBACK_RESULT_CONTINUE;
-  }
-
   // Read audio data from the WebRTC source using the FineAudioBuffer object
   // and write that data into `audio_data` to be played out by AAudio.
   // Prime output with zeros during a short initial phase to avoid distortion.

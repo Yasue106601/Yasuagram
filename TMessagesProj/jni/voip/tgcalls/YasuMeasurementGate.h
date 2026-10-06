@@ -8,9 +8,6 @@ namespace tgcalls {
 bool YasuMeasurementsEnabled();
 void SetYasuMeasurementsEnabled(bool enabled);
 
-bool YasuFastMeasurementsEnabled();
-void SetYasuFastMeasurementsEnabled(bool enabled);
-
 } // namespace tgcalls
 
 #endif // TGCALLS_YASU_MEASUREMENT_GATE_H

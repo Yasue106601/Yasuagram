@@ -496,7 +496,6 @@ add_library(tgcalls STATIC
         voip/tgcalls/group/GroupNetworkManager.cpp
         voip/tgcalls/group/GroupJoinPayloadInternal.cpp
         voip/tgcalls/group/GroupInstanceCustomImpl.cpp
-        voip/tgcalls/group/yasu_fast_audio/YasuFastAudioCore.cpp
         voip/tgcalls/group/AudioStreamingPart.cpp
         voip/tgcalls/group/AudioStreamingPartInternal.cpp
         voip/tgcalls/group/AVIOContextImpl.cpp

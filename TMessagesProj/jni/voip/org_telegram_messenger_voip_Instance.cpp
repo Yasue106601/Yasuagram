@@ -11,7 +11,6 @@
 #include <voip/webrtc/media/base/media_constants.h>
 #include <tgnet/FileLog.h>
 #include <voip/tgcalls/group/GroupInstanceCustomImpl.h>
-#include <voip/tgcalls/group/yasu_fast_audio/YasuFastAudioCore.h>
 
 #include <memory>
 #include <utility>
@@ -1043,16 +1042,13 @@ JNIEXPORT jstring JNICALL Java_org_telegram_messenger_voip_NativeInstance_stopGr
         return env->NewStringUTF("");
     }
 
-    std::string fastDiagnostics =
-        instance->groupNativeInstance->getFastAudioDiagnostics();
-
     std::string debugLog =
         instance->groupNativeInstance->stopAndGetDebugLog();
 
     instance->groupNativeInstance.reset();
     delete instance;
 
-    return env->NewStringUTF(fastDiagnostics.c_str());
+    return env->NewStringUTF(debugLog.c_str());
 }
 
 extern "C"
