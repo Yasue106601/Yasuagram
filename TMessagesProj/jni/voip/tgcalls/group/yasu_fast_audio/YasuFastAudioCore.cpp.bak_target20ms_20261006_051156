@@ -625,10 +625,6 @@ struct YasuFastAudioCore::Impl {
     std::atomic_flag packet_queue_lock = ATOMIC_FLAG_INIT;
     std::atomic<bool> packet_task_posted{false};
 
-    // Prevent the realtime ReadPcm() callback from posting
-    // multiple refill tasks while one is already pending.
-    std::atomic<bool> pcm_refill_task_posted{false};
-
     void LockPacketQueue() {
         while (packet_queue_lock.test_and_set(
             std::memory_order_acquire)) {
@@ -1504,61 +1500,9 @@ struct YasuFastAudioCore::Impl {
                 wait));
     }
 
-    // Drain is defined below the scheduling helpers.
-    // Declare it here so the refill task can call it safely.
-
     // Re-run Drain() for one stream after a short delay. Without this a
     // packet that is waiting for its reordered predecessor would sit until
     // the NEXT packet arrives (up to one full packet duration later).
-    void SchedulePcmRefill() {
-        if (!fast_queue ||
-            resetting.load(std::memory_order_acquire)) {
-            return;
-        }
-
-        bool expected = false;
-
-        if (!pcm_refill_task_posted.compare_exchange_strong(
-                expected,
-                true,
-                std::memory_order_acq_rel,
-                std::memory_order_acquire)) {
-            return;
-        }
-
-        const uint64_t gen =
-            generation.load(std::memory_order_acquire);
-
-        fast_queue->PostTask([this, gen]() {
-            if (resetting.load(std::memory_order_acquire) ||
-                generation.load(std::memory_order_acquire) != gen) {
-                pcm_refill_task_posted.store(
-                    false,
-                    std::memory_order_release);
-                return;
-            }
-
-            Lock();
-
-            if (!resetting.load(std::memory_order_acquire) &&
-                generation.load(std::memory_order_acquire) == gen) {
-
-                for (auto& stream : streams) {
-                    if (stream.active.load(
-                            std::memory_order_acquire)) {
-                        Drain(&stream);
-                    }
-                }
-            }
-
-            Unlock();
-
-            pcm_refill_task_posted.store(
-                false,
-                std::memory_order_release);
-        });
-    }
-
     void ScheduleReorderDrain(Stream* stream, uint64_t wait_us) {
         if (stream->reorder_timer_posted || !fast_queue) {
             return;
@@ -1567,10 +1511,9 @@ struct YasuFastAudioCore::Impl {
 
         const uint32_t ssrc = stream->ssrc;
         const uint64_t gen = generation.load(std::memory_order_acquire);
-        // Minimal scheduler guard: do not add a quarter-millisecond
-        // artificial delay to an already latency-sensitive reorder path.
+        // Keep timer scheduling overhead below 0.25 ms.
         const int64_t delay_us =
-            static_cast<int64_t>(wait_us) + 50;
+            static_cast<int64_t>(wait_us) + 250;
 
         fast_queue->PostDelayedTask(
             [this, ssrc, gen]() {
@@ -1612,27 +1555,26 @@ struct YasuFastAudioCore::Impl {
         auto CanDecodeMore = [stream, &PcmUsed]() -> bool {
             const uint32_t used = PcmUsed();
 
-            /*
-             * YASU FAST ADAPTIVE DECODE WINDOW
-             *
-             * Decode ready compressed packets aggressively while the
-             * PCM ring is still small. This attacks packet_to_pcm
-             * residence directly instead of allowing RTP packets to
-             * sit compressed in the reorder buffer.
-             *
-             * 0-30 ms   : unrestricted ready-packet drain
-             * 30-60 ms  : continue draining ready packets
-             * 60-90 ms  : controlled drain
-             * 90-120 ms : stop adding PCM
-             * >120 ms   : hard back-pressure
-             *
-             * No playback-speed change and no packet destruction here.
-             */
-            // Keep decoded PCM tightly bounded. The compressed RTP
-            // packet must not sit behind a large PCM backlog.
-            constexpr uint32_t kDecodeMaxFrames = 1440; // 30 ms
+            const uint32_t pad =
+                stream->pad_frames.load(std::memory_order_relaxed);
 
-            return used < kDecodeMaxFrames;
+            const uint32_t pkt =
+                stream->last_packet_frames.load(
+                    std::memory_order_relaxed);
+
+            const uint32_t packet_guard =
+                std::min<uint32_t>(pkt / 4, 120);
+
+            const uint32_t target =
+                std::min<uint32_t>(
+                    std::max<uint32_t>(
+                        pad +
+                        packet_guard +
+                        kTrimHeadroomFrames,
+                        120),
+                    240);
+
+            return used < target;
         };
 
         if (!stream->have_sequence) {
@@ -1763,23 +1705,8 @@ struct YasuFastAudioCore::Impl {
             if (gap == 1) {
                 const uint64_t now_us = NowUs();
                 const uint64_t ahead_arrival = ahead->real_arrival_us;
-                /*
-                 * ULTRA-LOW-LATENCY REORDER WINDOW
-                 *
-                 * The next packet is already present. Waiting for a
-                 * conservative jitter estimate here directly increases
-                 * packet-to-PCM latency.
-                 *
-                 * Give a missing packet only a tiny arrival window:
-                 * enough to catch an immediately-following reordered
-                 * RTP packet, but never enough to build audible delay.
-                 */
-                constexpr uint64_t kFastReorderWaitUs = 300;
-
                 const uint64_t reorder_wait_us =
-                    std::min<uint64_t>(
-                        GetReorderWaitUs(stream, now_us),
-                        kFastReorderWaitUs);
+                    GetReorderWaitUs(stream, now_us);
 
                 if (ahead_arrival != 0 &&
                     now_us >= ahead_arrival &&
@@ -1916,9 +1843,36 @@ struct YasuFastAudioCore::Impl {
         uint32_t used =
             RingUsed(read, write);
 
-        // PCM is consumed at exact 1.0x.
-        // Latency control is handled by Drain(), not by altering
-        // playback speed or deleting audible samples.
+        const uint32_t pad =
+            stream->pad_frames.load(
+                std::memory_order_relaxed);
+
+        const uint32_t pkt =
+            stream->last_packet_frames.load(
+                std::memory_order_relaxed);
+
+        const uint32_t packet_guard =
+            std::min<uint32_t>(
+                pkt / 4,
+                120);
+
+        // Desired PCM residence is intentionally small.
+        //
+        // This is NOT a drop threshold. Going above this value activates
+        // temporary accelerated playout instead of deleting audible PCM.
+        const uint32_t target =
+            std::min<uint32_t>(
+                std::max<uint32_t>(
+                    pad +
+                    packet_guard +
+                    kTrimHeadroomFrames,
+                    120),
+                240);
+
+        const uint32_t excess =
+            used > target
+                ? used - target
+                : 0;
 
         // --------------------------------------------------------
         // EXACT 1.0x PLAYOUT
@@ -2134,37 +2088,6 @@ struct YasuFastAudioCore::Impl {
                     sizeof(int16_t));
 
             return 0;
-        }
-
-        bool needs_refill = false;
-
-        for (auto& stream : streams) {
-            if (!stream.active.load(
-                    std::memory_order_acquire)) {
-                continue;
-            }
-
-            const uint32_t r =
-                stream.pcm_read.load(
-                    std::memory_order_relaxed);
-
-            const uint32_t w =
-                stream.pcm_write.load(
-                    std::memory_order_acquire);
-
-            const uint32_t used =
-                w >= r
-                    ? w - r
-                    : kStreamRingFrames - r + w;
-
-            if (used < 480) {
-                needs_refill = true;
-                break;
-            }
-        }
-
-        if (needs_refill) {
-            SchedulePcmRefill();
         }
 
         int32_t mix[kOutputChunk];
@@ -3096,28 +3019,7 @@ void YasuFastAudioCore::ProcessPacket(
 
     destination->valid = true;
 
-    const uint64_t drain_start_us =
-        measure ? NowUs() : 0;
-
     impl_->Drain(stream);
-
-    if (measure) {
-        const uint64_t drain_cost_us =
-            NowUs() - drain_start_us;
-
-        static std::atomic<uint64_t> yasu_drain_samples{0};
-        const uint64_t sample =
-            yasu_drain_samples.fetch_add(
-                1,
-                std::memory_order_relaxed);
-
-        if ((sample & 0x3FFu) == 0) {
-            std::cerr
-                << "YASU DRAIN COST us="
-                << drain_cost_us
-                << '\\n';
-        }
-    }
 
     impl_->Unlock();
 }
