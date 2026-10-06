@@ -1506,7 +1506,6 @@ struct YasuFastAudioCore::Impl {
 
     // Drain is defined below the scheduling helpers.
     // Declare it here so the refill task can call it safely.
-    void Drain(Stream* stream);
 
     // Re-run Drain() for one stream after a short delay. Without this a
     // packet that is waiting for its reordered predecessor would sit until
