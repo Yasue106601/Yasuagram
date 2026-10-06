@@ -260,6 +260,27 @@ struct Stats {
         std::numeric_limits<uint64_t>::max()};
     std::atomic<uint64_t> packet_queue_wait_max_us{0};
 
+    // YASU FAST STAGE LATENCY
+    std::atomic<uint64_t> process_wait_count{0};
+    std::atomic<uint64_t> process_wait_us{0};
+    std::atomic<uint64_t> process_wait_min_us{~uint64_t{0}};
+    std::atomic<uint64_t> process_wait_max_us{0};
+
+    std::atomic<uint64_t> lock_wait_count{0};
+    std::atomic<uint64_t> lock_wait_us{0};
+    std::atomic<uint64_t> lock_wait_min_us{~uint64_t{0}};
+    std::atomic<uint64_t> lock_wait_max_us{0};
+
+    std::atomic<uint64_t> arrival_to_drain_count{0};
+    std::atomic<uint64_t> arrival_to_drain_us{0};
+    std::atomic<uint64_t> arrival_to_drain_min_us{~uint64_t{0}};
+    std::atomic<uint64_t> arrival_to_drain_max_us{0};
+
+    std::atomic<uint64_t> drain_cost_count{0};
+    std::atomic<uint64_t> drain_cost_us{0};
+    std::atomic<uint64_t> drain_cost_min_us{~uint64_t{0}};
+    std::atomic<uint64_t> drain_cost_max_us{0};
+
     std::atomic<uint64_t> decode_count{0};
     std::atomic<uint64_t> decode_cost_us{0};
     std::atomic<uint64_t> decode_cost_min_us{
@@ -356,6 +377,26 @@ struct Stats {
             std::numeric_limits<uint64_t>::max());
         packet_queue_wait_max_us.store(0);
 
+        process_wait_count.store(0);
+        process_wait_us.store(0);
+        process_wait_min_us.store(~uint64_t{0});
+        process_wait_max_us.store(0);
+
+        lock_wait_count.store(0);
+        lock_wait_us.store(0);
+        lock_wait_min_us.store(~uint64_t{0});
+        lock_wait_max_us.store(0);
+
+        arrival_to_drain_count.store(0);
+        arrival_to_drain_us.store(0);
+        arrival_to_drain_min_us.store(~uint64_t{0});
+        arrival_to_drain_max_us.store(0);
+
+        drain_cost_count.store(0);
+        drain_cost_us.store(0);
+        drain_cost_min_us.store(~uint64_t{0});
+        drain_cost_max_us.store(0);
+
         decode_count.store(0);
         decode_cost_us.store(0);
         decode_cost_min_us.store(
@@ -450,6 +491,37 @@ struct Stats {
                !value.compare_exchange_weak(
                    old,
                    v,
+                   std::memory_order_relaxed,
+                   std::memory_order_relaxed)) {
+        }
+    }
+
+    void StageCost(
+        std::atomic<uint64_t>& count,
+        std::atomic<uint64_t>& total,
+        std::atomic<uint64_t>& min_value,
+        std::atomic<uint64_t>& max_value,
+        uint64_t us) {
+
+        count.fetch_add(1, std::memory_order_relaxed);
+        total.fetch_add(us, std::memory_order_relaxed);
+
+        uint64_t old_min =
+            min_value.load(std::memory_order_relaxed);
+        while (us < old_min &&
+               !min_value.compare_exchange_weak(
+                   old_min,
+                   us,
+                   std::memory_order_relaxed,
+                   std::memory_order_relaxed)) {
+        }
+
+        uint64_t old_max =
+            max_value.load(std::memory_order_relaxed);
+        while (us > old_max &&
+               !max_value.compare_exchange_weak(
+                   old_max,
+                   us,
                    std::memory_order_relaxed,
                    std::memory_order_relaxed)) {
         }
@@ -1620,17 +1692,21 @@ struct YasuFastAudioCore::Impl {
              * residence directly instead of allowing RTP packets to
              * sit compressed in the reorder buffer.
              *
-             * 0-30 ms   : unrestricted ready-packet drain
-             * 30-60 ms  : continue draining ready packets
-             * 60-90 ms  : controlled drain
-             * 90-120 ms : stop adding PCM
-             * >120 ms   : hard back-pressure
+             * Keep the decoded PCM queue below a strict 20 ms
+             * latency ceiling. Ready compressed packets are decoded
+             * immediately while there is room.
              *
              * No playback-speed change and no packet destruction here.
              */
             // Keep decoded PCM tightly bounded. The compressed RTP
             // packet must not sit behind a large PCM backlog.
-            constexpr uint32_t kDecodeMaxFrames = 1440; // 30 ms
+            // Ultra-low-latency PCM ceiling.
+        //
+        // Keep only a small amount of decoded audio ready. A larger
+        // ceiling turns network bursts into playback latency.
+        //
+        // 20 ms @ 48 kHz.
+        constexpr uint32_t kDecodeMaxFrames = 960;
 
             return used < kDecodeMaxFrames;
         };
@@ -1774,7 +1850,10 @@ struct YasuFastAudioCore::Impl {
                  * enough to catch an immediately-following reordered
                  * RTP packet, but never enough to build audible delay.
                  */
-                constexpr uint64_t kFastReorderWaitUs = 300;
+                // Only give an immediately-following RTP packet
+                // a tiny chance to arrive before declaring a loss.
+                // Do not let reorder protection become playback delay.
+                constexpr uint64_t kFastReorderWaitUs = 100;
 
                 const uint64_t reorder_wait_us =
                     std::min<uint64_t>(
@@ -2673,6 +2752,51 @@ std::string YasuFastAudioCore::GetDiagnostics() const {
     out << "queue_wait_max_us="
         << s.packet_queue_wait_max_us.load(std::memory_order_relaxed) << '\n';
 
+    auto ExportStage = [&](const char* prefix,
+                           uint64_t count,
+                           uint64_t total,
+                           uint64_t min_value,
+                           uint64_t max_value) {
+        const uint64_t safe_min =
+            count ? min_value : 0;
+
+        out << prefix << "_count=" << count << '\n';
+        out << prefix << "_avg_us="
+            << (count ? total / count : 0) << '\n';
+        out << prefix << "_min_us="
+            << safe_min << '\n';
+        out << prefix << "_max_us="
+            << max_value << '\n';
+    };
+
+    ExportStage(
+        "process_wait",
+        s.process_wait_count.load(std::memory_order_relaxed),
+        s.process_wait_us.load(std::memory_order_relaxed),
+        s.process_wait_min_us.load(std::memory_order_relaxed),
+        s.process_wait_max_us.load(std::memory_order_relaxed));
+
+    ExportStage(
+        "lock_wait",
+        s.lock_wait_count.load(std::memory_order_relaxed),
+        s.lock_wait_us.load(std::memory_order_relaxed),
+        s.lock_wait_min_us.load(std::memory_order_relaxed),
+        s.lock_wait_max_us.load(std::memory_order_relaxed));
+
+    ExportStage(
+        "arrival_to_drain",
+        s.arrival_to_drain_count.load(std::memory_order_relaxed),
+        s.arrival_to_drain_us.load(std::memory_order_relaxed),
+        s.arrival_to_drain_min_us.load(std::memory_order_relaxed),
+        s.arrival_to_drain_max_us.load(std::memory_order_relaxed));
+
+    ExportStage(
+        "drain_cost",
+        s.drain_cost_count.load(std::memory_order_relaxed),
+        s.drain_cost_us.load(std::memory_order_relaxed),
+        s.drain_cost_min_us.load(std::memory_order_relaxed),
+        s.drain_cost_max_us.load(std::memory_order_relaxed));
+
     out << "decode_avg_us="
         << avg(
             s.decode_cost_us.load(std::memory_order_relaxed),
@@ -2859,7 +2983,34 @@ void YasuFastAudioCore::ProcessPacket(
         return;
     }
 
+    const bool measure = YasuFastMeasurementsEnabled();
+    const uint64_t process_entry_us =
+        measure ? NowUs() : 0;
+
     impl_->Lock();
+
+    const uint64_t lock_acquired_us =
+        measure ? NowUs() : 0;
+
+    if (measure && packet_arrival_us != 0) {
+        if (process_entry_us >= packet_arrival_us) {
+            impl_->stats.StageCost(
+                impl_->stats.process_wait_count,
+                impl_->stats.process_wait_us,
+                impl_->stats.process_wait_min_us,
+                impl_->stats.process_wait_max_us,
+                process_entry_us - packet_arrival_us);
+        }
+
+        if (lock_acquired_us >= process_entry_us) {
+            impl_->stats.StageCost(
+                impl_->stats.lock_wait_count,
+                impl_->stats.lock_wait_us,
+                impl_->stats.lock_wait_min_us,
+                impl_->stats.lock_wait_max_us,
+                lock_acquired_us - process_entry_us);
+        }
+    }
 
     if (impl_->resetting.load(std::memory_order_acquire) ||
         impl_->generation.load(std::memory_order_acquire) !=
@@ -2875,9 +3026,6 @@ void YasuFastAudioCore::ProcessPacket(
         impl_->Unlock();
         return;
     }
-
-    const bool measure =
-        YasuFastMeasurementsEnabled();
 
     // The packet already carries its arrival timestamp.
     // Avoid a second clock read on the normal FAST path.
@@ -3096,7 +3244,33 @@ void YasuFastAudioCore::ProcessPacket(
 
     destination->valid = true;
 
+    const uint64_t drain_start_us =
+        measure ? NowUs() : 0;
+
+    if (measure &&
+        packet_arrival_us != 0 &&
+        drain_start_us >= packet_arrival_us) {
+        impl_->stats.StageCost(
+            impl_->stats.arrival_to_drain_count,
+            impl_->stats.arrival_to_drain_us,
+            impl_->stats.arrival_to_drain_min_us,
+            impl_->stats.arrival_to_drain_max_us,
+            drain_start_us - packet_arrival_us);
+    }
+
     impl_->Drain(stream);
+
+    const uint64_t drain_end_us =
+        measure ? NowUs() : 0;
+
+    if (measure && drain_end_us >= drain_start_us) {
+        impl_->stats.StageCost(
+            impl_->stats.drain_cost_count,
+            impl_->stats.drain_cost_us,
+            impl_->stats.drain_cost_min_us,
+            impl_->stats.drain_cost_max_us,
+            drain_end_us - drain_start_us);
+    }
 
     impl_->Unlock();
 }
