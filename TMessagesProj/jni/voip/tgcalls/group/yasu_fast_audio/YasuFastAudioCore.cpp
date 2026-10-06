@@ -3096,28 +3096,7 @@ void YasuFastAudioCore::ProcessPacket(
 
     destination->valid = true;
 
-    const uint64_t drain_start_us =
-        measure ? NowUs() : 0;
-
     impl_->Drain(stream);
-
-    if (measure) {
-        const uint64_t drain_cost_us =
-            NowUs() - drain_start_us;
-
-        static std::atomic<uint64_t> yasu_drain_samples{0};
-        const uint64_t sample =
-            yasu_drain_samples.fetch_add(
-                1,
-                std::memory_order_relaxed);
-
-        if ((sample & 0x3FFu) == 0) {
-            std::cerr
-                << "YASU DRAIN COST us="
-                << drain_cost_us
-                << '\\n';
-        }
-    }
 
     impl_->Unlock();
 }
