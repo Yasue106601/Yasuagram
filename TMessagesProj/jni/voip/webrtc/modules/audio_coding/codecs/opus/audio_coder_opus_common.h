@@ -53,6 +53,19 @@ class OpusFrame : public AudioDecoder::EncodedAudioFrame {
     } else {
       ret = decoder_->PacketDurationRedundant(payload_.data(), payload_.size());
     }
+
+    // YASU FORENSIC: measure the actual Opus packet duration.
+    static int yasu_duration_count = 0;
+    if ((++yasu_duration_count % 100) == 0) {
+      RTC_LOG(LS_VERBOSE)
+          << "YASU FORENSIC OPUS_PACKET_DURATION "
+          << "payload_bytes=" << payload_.size()
+          << "duration_samples=" << ret
+          << "duration_ms="
+          << (ret > 0 ? (ret * 1000 / decoder_->SampleRateHz()) : 0)
+          << "primary=" << (is_primary_payload_ ? 1 : 0);
+    }
+
     return (ret < 0) ? 0 : static_cast<size_t>(ret);
   }
 

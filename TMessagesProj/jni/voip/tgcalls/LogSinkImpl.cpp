@@ -64,12 +64,6 @@ void LogSinkImpl::OnLogMessage(const std::string &message) {
         {
             std::lock_guard<std::mutex> lock(_dataMutex);
             _data << message << std::endl;
-            // YASU: keep the live buffer small. One huge ostringstream copies
-            // the whole log every time it grows, stalling the audio thread.
-            if (static_cast<std::streamoff>(_data.tellp()) > 262144) {
-                _chunks.push_back(_data.str());
-                _data.str(std::string());
-            }
         }
     }
 
