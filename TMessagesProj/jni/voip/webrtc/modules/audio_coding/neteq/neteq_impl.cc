@@ -125,7 +125,7 @@ NetEqImpl::Dependencies::Dependencies(
                                      stats.get())),
       neteq_controller(
           CreateNetEqController(controller_factory,
-                                std::max(config.min_delay_ms, 15),
+                                config.min_delay_ms,
                                 config.max_packets_in_buffer,
                                 !config.for_test_no_time_stretching,
                                 tick_timer.get(),
@@ -1635,34 +1635,6 @@ int NetEqImpl::GetDecision(Operation* operation,
   // YASU FORENSIC: preserve the controller's original decision so it can
   // be compared with the final operation after YASU overrides.
   const Operation yasu_controller_operation = *operation;
-
-  // YASU: 90ms aggressive drain trigger.
-  // Processing trigger only. No packet deletion.
-  // The 150ms packet-buffer emergency drop remains separate.
-  constexpr size_t kYasuHardDrainMs = 50;
-  const size_t yasu_ms = fs_hz_ / 1000;
-  const size_t yasu_packet_ms =
-      status.packet_buffer_info.span_samples / yasu_ms;
-  const size_t yasu_sync_ms =
-      status.sync_buffer_samples / yasu_ms;
-  const size_t yasu_total_backlog_ms =
-      yasu_packet_ms + yasu_sync_ms;
-
-  if (yasu_total_backlog_ms >= kYasuHardDrainMs &&
-      status.packet_buffer_info.num_packets > 1 &&
-      !status.packet_buffer_info.dtx_or_cng &&
-      !status.play_dtmf) {
-    if (tgcalls::YasuMeasurementsEnabled()) {
-      RTC_LOG(LS_VERBOSE)
-          << "YASU AGGRESSIVE_DRAIN_90MS"
-          << " total_ms=" << yasu_total_backlog_ms
-          << " packet_ms=" << yasu_packet_ms
-          << " sync_ms=" << yasu_sync_ms
-          << " packets=" << status.packet_buffer_info.num_packets;
-    }
-
-    *operation = Operation::kFastAccelerate;
-  }
 
   if (tgcalls::YasuMeasurementsEnabled()) {
     RTC_LOG(LS_VERBOSE)

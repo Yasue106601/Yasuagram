@@ -4310,18 +4310,6 @@ private:
                 return nullptr;
             }
         };
-        if (_createWrappedAudioDeviceModule) {
-            auto result = _createWrappedAudioDeviceModule(&_webrtcEnvironment.task_queue_factory());
-            if (result) {
-                if (audioDeviceDataObserverShared) {
-                    auto audioDeviceObserver = std::make_unique<AudioDeviceDataObserverImpl>(audioDeviceDataObserverShared);
-                    auto moduleWithObserver = webrtc::CreateAudioDeviceWithDataObserver(result, std::move(audioDeviceObserver));
-                    return rtc::make_ref_counted<DefaultWrappedAudioDeviceModule>(moduleWithObserver);
-                } else {
-                    return result;
-                }
-            }
-        }
 #ifdef WEBRTC_ANDROID
         // YASU FORCE JAVA AUDIO ONLY:
         // Never allow Group Call to select or inject another ADM backend.
@@ -4500,40 +4488,22 @@ std::string GroupInstanceCustomImpl::stopAndGetDebugLog() {
 
 
 void GroupInstanceCustomImpl::setMeasurementsEnabled(bool enabled) {
-    if (!_logSink) {
-        _measurementsEnabled.store(false, std::memory_order_release);
-        
-        return;
-    }
+    _measurementsEnabled.store(enabled, std::memory_order_release);
 
-    const bool old = _measurementsEnabled.exchange(
-        enabled,
-        std::memory_order_acq_rel
-    );
-
-    if (old == enabled) {
-        return;
-    }
-
-    if (enabled) {
-        
-    } else {
-        
-    }
+    // Measurements are strictly opt-in.
+    // OFF = no YASU telemetry collection.
+    SetYasuMeasurementsEnabled(enabled && _logSink != nullptr);
 }
 
 GroupInstanceCustomImpl::~GroupInstanceCustomImpl() {
+    _measurementsEnabled.store(false, std::memory_order_release);
+    SetYasuMeasurementsEnabled(false);
+
     if (_logSink) {
         rtc::LogMessage::RemoveLogToStream(_logSink.get());
     }
 
-    if (_measurementsEnabled.exchange(false, std::memory_order_acq_rel)) {
-        
-    }
     _internal.reset();
-
-    // Wait until _internal is destroyed
-    _threads->getMediaThread()->BlockingCall([] {});
 }
 
 void GroupInstanceCustomImpl::stop(std::function<void()> completion) {

@@ -1,6 +1,7 @@
 #include "LogSinkImpl.h"
 
 #include "Instance.h"
+#include "YasuMeasurementGate.h"
 
 #ifdef WEBRTC_WIN
 #include "windows.h"
@@ -56,9 +57,10 @@ void LogSinkImpl::OnLogMessage(const std::string &message) {
 
     auto &stream = _file.is_open() ? (std::ostream&)_file : _data;
 
-    // YASU: capture all telemetry markers into the measurement buffer.
-    if (message.find("YASU ") != std::string::npos ||
-        message.find("YASUAGRAM HARDWARE TIMESTAMP") != std::string::npos) {
+    // YASU: capture telemetry ONLY while the measurement gate is enabled.
+    if (YasuMeasurementsEnabled() &&
+        (message.find("YASU ") != std::string::npos ||
+         message.find("YASUAGRAM HARDWARE TIMESTAMP") != std::string::npos)) {
         {
             std::lock_guard<std::mutex> lock(_dataMutex);
             _data << message << std::endl;

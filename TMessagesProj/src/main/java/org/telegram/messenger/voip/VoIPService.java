@@ -4220,12 +4220,13 @@ public static VoIPService getSharedInstance() {
 			if (tgVoip[CAPTURE_DEVICE_CAMERA].isGroup()) {
 				NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
 				Utilities.globalQueue.postRunnable(() -> {
-                                   String fastLog = instance.stopGroup();
-                                   if (fastLog != null && !fastLog.isEmpty()) {
+                                   String legacyLog = instance.stopGroup();
+                                   if (measurementsEnabled &&
+                                           legacyLog != null && !legacyLog.isEmpty()) {
                                        try {
                                            android.content.ContentValues values = new android.content.ContentValues();
                                            values.put(android.provider.MediaStore.Downloads.DISPLAY_NAME,
-                                                   "Yasuagram_FAST_" + System.currentTimeMillis() + ".txt");
+                                                   "Yasuagram_Legacy_" + System.currentTimeMillis() + ".txt");
                                            values.put(android.provider.MediaStore.Downloads.MIME_TYPE,
                                                    "text/plain");
                                            values.put(android.provider.MediaStore.Downloads.RELATIVE_PATH,
@@ -4240,15 +4241,15 @@ public static VoIPService getSharedInstance() {
                                                             getContentResolver().openOutputStream(uri)) {
                                                    if (outputStream != null) {
                                                        outputStream.write(
-                                                               fastLog.getBytes(
+                                                               legacyLog.getBytes(
                                                                        java.nio.charset.StandardCharsets.UTF_8));
                                                        outputStream.flush();
                                                    }
                                                }
-                                               FileLog.e("YASU FAST: diagnostics exported to Downloads");
+                                               FileLog.e("YASU LEGACY: diagnostics exported to Downloads");
                                            }
                                        } catch (Exception e) {
-                                           FileLog.e("YASU FAST: diagnostics export failed", e);
+                                           FileLog.e("YASU LEGACY: diagnostics export failed", e);
                                        }
                                    }
 
