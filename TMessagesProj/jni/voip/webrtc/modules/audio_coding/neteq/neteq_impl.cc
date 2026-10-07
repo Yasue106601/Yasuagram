@@ -857,13 +857,14 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
           kYasuLightDrainStartMs * yasu_ms;
 
       // Below 90ms: absolutely no packet deletion.
+      const size_t yasu_max_discard =
+          yasu_total_initial_samples > yasu_hard_backlog_samples
+              ? kYasuMaxDiscardPackets
+              : kYasuLightMaxDiscardPackets;
+
       if (yasu_total_initial_samples >= yasu_light_start_samples) {
         // 90-100ms: only a very small safe trim.
         // >100ms: continue trimming until the combined backlog is <=100ms.
-        const size_t yasu_max_discard =
-            yasu_total_initial_samples > yasu_hard_backlog_samples
-                ? kYasuMaxDiscardPackets
-                : kYasuLightMaxDiscardPackets;
 
         while (!packet_buffer_->Empty() &&
                yasu_discarded_packets < yasu_max_discard) {
