@@ -4219,9 +4219,12 @@ public static VoIPService getSharedInstance() {
 			onTgVoipPreStop();
 			if (tgVoip[CAPTURE_DEVICE_CAMERA].isGroup()) {
 				NativeInstance instance = tgVoip[CAPTURE_DEVICE_CAMERA];
+				final boolean exportMeasurements = measurementsEnabled;
 				Utilities.globalQueue.postRunnable(() -> {
+                                   FileLog.e("YASU LEGACY: stopGroup export started, enabled=" + exportMeasurements);
                                    String legacyLog = instance.stopGroup();
-                                   if (measurementsEnabled &&
+                                   FileLog.e("YASU LEGACY: stopGroup returned, chars=" + (legacyLog != null ? legacyLog.length() : -1));
+                                   if (exportMeasurements &&
                                            legacyLog != null && !legacyLog.isEmpty()) {
                                        try {
                                            android.content.ContentValues values = new android.content.ContentValues();
