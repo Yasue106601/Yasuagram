@@ -4224,8 +4224,7 @@ public static VoIPService getSharedInstance() {
                                    FileLog.e("YASU LEGACY: stopGroup export started, enabled=" + exportMeasurements);
                                    String legacyLog = instance.stopGroup();
                                    FileLog.e("YASU LEGACY: stopGroup returned, chars=" + (legacyLog != null ? legacyLog.length() : -1));
-                                   if (exportMeasurements &&
-                                           legacyLog != null && !legacyLog.isEmpty()) {
+                                   if (legacyLog != null && !legacyLog.isEmpty()) {
                                        try {
                                            android.content.ContentValues values = new android.content.ContentValues();
                                            values.put(android.provider.MediaStore.Downloads.DISPLAY_NAME,
