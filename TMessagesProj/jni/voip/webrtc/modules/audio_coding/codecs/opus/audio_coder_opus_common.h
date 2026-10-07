@@ -20,6 +20,7 @@
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/audio_format.h"
 #include "rtc_base/string_to_number.h"
+#include "rtc_base/logging.h"
 #include "voip/tgcalls/YasuMeasurementGate.h"
 
 namespace webrtc {
