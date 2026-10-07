@@ -20,6 +20,7 @@
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/audio_format.h"
 #include "rtc_base/string_to_number.h"
+#include "voip/tgcalls/YasuMeasurementGate.h"
 
 namespace webrtc {
 
@@ -55,8 +56,7 @@ class OpusFrame : public AudioDecoder::EncodedAudioFrame {
     }
 
     // YASU FORENSIC: measure the actual Opus packet duration.
-    static int yasu_duration_count = 0;
-    if ((++yasu_duration_count % 100) == 0) {
+    if (tgcalls::YasuMeasurementsEnabled()) {
       RTC_LOG(LS_VERBOSE)
           << "YASU FORENSIC OPUS_PACKET_DURATION "
           << "payload_bytes=" << payload_.size()

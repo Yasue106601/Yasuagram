@@ -1750,9 +1750,9 @@ int NetEqImpl::GetDecision(Operation* operation,
       // YASU: When actively draining a backlog, extract a larger contiguous
       // audio block so FastAccelerate has enough material to remove delay.
       if (*operation == Operation::kFastAccelerate) {
-        // YASU: Give FastAccelerate a larger contiguous block.
-        // 60ms -> 80ms, allowing stronger backlog reduction per pass.
-        required_samples = std::max(required_samples, 8 * samples_10_ms);
+        // YASU: Keep FastAccelerate extraction at the normal 30ms
+        // acceleration threshold to avoid building large decode batches.
+        required_samples = std::max(required_samples, 3 * samples_10_ms);
       }
 
       // In order to do an accelerate we need at least 30 ms of audio data.
@@ -1811,49 +1811,6 @@ int NetEqImpl::GetDecision(Operation* operation,
     }
     default: {
       // Do nothing.
-    }
-  }
-
-  // YASU: Large packet-drain batch.
-  //
-  // When packets are accumulating, do not ask ExtractPackets()
-  // for only the normal small audio frame. Give it up to 120ms
-  // of contiguous audio so Decode() and FastAccelerate() can
-  // process a much larger group of packets per pass.
-  //
-  // This is sample/time based, NOT a 100-packet ceiling.
-  // More packets are handled by subsequent audio cycles.
-  if (packet && !packet_buffer_->Empty()) {
-    // YASU: Tiered drain.
-    // 50-80ms    -> up to 80ms
-    // 80-100ms   -> up to 100ms
-    // 100ms+     -> up to 120ms.
-    // Keep the request within kMaxFrameSize (120ms @ 48kHz).
-    const size_t yasu_ms = fs_hz_ / 1000;
-    const size_t yasu_packet_span_samples =
-        packet_buffer_->GetSpanSamples(0, fs_hz_, false);
-    const size_t yasu_backlog_ms =
-        yasu_packet_span_samples / yasu_ms;
-
-    size_t yasu_drain_batch_ms = 0;
-
-    if (yasu_backlog_ms >= 80) {
-      yasu_drain_batch_ms = 140;
-    } else if (yasu_backlog_ms >= 60) {
-      yasu_drain_batch_ms = 120;
-    } else if (yasu_backlog_ms >= 30) {
-      yasu_drain_batch_ms = 100;
-    }
-
-    if (yasu_drain_batch_ms > 0) {
-      const size_t yasu_requested_samples =
-          std::min(
-              yasu_packet_span_samples,
-              yasu_drain_batch_ms * yasu_ms);
-
-      if (yasu_requested_samples > required_samples) {
-        required_samples = yasu_requested_samples;
-      }
     }
   }
 
