@@ -178,7 +178,11 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
   //
   // These checks run BEFORE PostponeDecode(), so stale queued audio
   // cannot indefinitely postpone backlog reduction.
-  constexpr size_t kYasuAccelerateMs = 10;
+  // YASU LOW-LATENCY DRAIN PROFILE
+  // 0-20ms   : normal
+  // 20-40ms  : accelerate
+  // 40ms+    : fast accelerate
+  constexpr size_t kYasuAccelerateMs = 20;
   constexpr size_t kYasuFastAccelerateMs = 40;
 
   const size_t yasu_sync_buffer_ms =
@@ -397,7 +401,7 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
     // 90-100ms    -> aggressive fast acceleration
     // 100ms+      -> maximum fast acceleration
     // 150ms+      -> packet-buffer emergency handling in NetEqImpl.
-    constexpr int kYasuAccelerateLimitMs = 10;
+    constexpr int kYasuAccelerateLimitMs = 20;
     constexpr int kYasuFastAccelerateLimitMs = 40;
 
     RTC_LOG(LS_VERBOSE)

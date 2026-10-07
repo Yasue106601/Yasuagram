@@ -803,7 +803,14 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
     // Above 60ms, discard at most 3 PacketBuffer packets per insertion.
     // This prevents large bursts of packet loss while still trimming
     // excessive backlog.
-    constexpr size_t kYasuHardBacklogMs = 130;
+    // YASU LOW-LATENCY DRAIN PROFILE.
+//
+// <90ms    : no packet deletion
+// 90-100ms : light/safe deletion of oldest packets
+// >100ms   : aggressive oldest-packet deletion until <=100ms
+    constexpr size_t kYasuLightDrainStartMs = 90;
+    constexpr size_t kYasuHardBacklogMs = 100;
+    constexpr size_t kYasuLightMaxDiscardPackets = 1;
     constexpr size_t kYasuMaxDiscardPackets = 20;
     const size_t yasu_ms = fs_hz_ / 1000;
     const size_t yasu_hard_backlog_samples =
@@ -836,32 +843,58 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
             << " before_ms="
             << (yasu_total_backlog_before_samples / yasu_ms);
       }
-    } else if (yasu_sync_samples < yasu_hard_backlog_samples &&
-        packet_buffer_->NumPacketsInBuffer() > 1) {
+    } else if (packet_buffer_->NumPacketsInBuffer() > 1) {
       size_t yasu_discarded_packets = 0;
       size_t yasu_backlog_before_samples = 0;
 
-      while (!packet_buffer_->Empty() &&
-             yasu_discarded_packets < kYasuMaxDiscardPackets) {
-        const size_t yasu_packet_span_samples =
-            packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+      const size_t yasu_packet_span_initial_samples =
+          packet_buffer_->GetSpanSamples(0, fs_hz_, false);
 
-        const size_t yasu_total_samples =
-            yasu_sync_samples + yasu_packet_span_samples;
+      const size_t yasu_total_initial_samples =
+          yasu_sync_samples + yasu_packet_span_initial_samples;
 
-        if (yasu_total_samples <= yasu_hard_backlog_samples) {
-          break;
+      const size_t yasu_light_start_samples =
+          kYasuLightDrainStartMs * yasu_ms;
+
+      // Below 90ms: absolutely no packet deletion.
+      if (yasu_total_initial_samples >= yasu_light_start_samples) {
+        // 90-100ms: only a very small safe trim.
+        // >100ms: continue trimming until the combined backlog is <=100ms.
+        const size_t yasu_max_discard =
+            yasu_total_initial_samples > yasu_hard_backlog_samples
+                ? kYasuMaxDiscardPackets
+                : kYasuLightMaxDiscardPackets;
+
+        while (!packet_buffer_->Empty() &&
+               yasu_discarded_packets < yasu_max_discard) {
+          const size_t yasu_packet_span_samples =
+              packet_buffer_->GetSpanSamples(0, fs_hz_, false);
+
+          const size_t yasu_total_samples =
+              yasu_sync_samples + yasu_packet_span_samples;
+
+          // >100ms: aggressively trim until the combined backlog
+          // reaches the 100ms ceiling.
+          //
+          // 90-100ms: perform only the configured light trim.
+          // The light stage intentionally does not require the backlog
+          // to exceed 100ms, otherwise this stage would never delete.
+          if (yasu_total_initial_samples > yasu_hard_backlog_samples &&
+              yasu_total_samples <= yasu_hard_backlog_samples) {
+            break;
+          }
+
+          if (yasu_discarded_packets == 0) {
+            yasu_backlog_before_samples = yasu_total_samples;
+          }
+
+          // DiscardNextPacket() removes the oldest packet.
+          if (packet_buffer_->DiscardNextPacket() != PacketBuffer::kOK) {
+            break;
+          }
+
+          ++yasu_discarded_packets;
         }
-
-        if (yasu_discarded_packets == 0) {
-          yasu_backlog_before_samples = yasu_total_samples;
-        }
-
-        if (packet_buffer_->DiscardNextPacket() != PacketBuffer::kOK) {
-          break;
-        }
-
-        ++yasu_discarded_packets;
       }
 
       if (yasu_discarded_packets > 0) {
@@ -872,8 +905,9 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
         if (tgcalls::YasuMeasurementsEnabled()) {
           RTC_LOG(LS_VERBOSE)
               << "YASU HARD_BACKLOG_DROP"
-              << " threshold_ms=95"
-              << " max_discard_packets=3"
+              << " light_start_ms=" << kYasuLightDrainStartMs
+              << " hard_backlog_ms=" << kYasuHardBacklogMs
+              << " max_discard_packets=" << yasu_max_discard
               << " sync_ms=" << (yasu_sync_samples / yasu_ms)
               << " before_ms="
               << (yasu_backlog_before_samples / yasu_ms)

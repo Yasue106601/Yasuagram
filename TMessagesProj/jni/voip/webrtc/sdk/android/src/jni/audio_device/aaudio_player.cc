@@ -236,7 +236,6 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
         yasu_last_shrink_us = yasu_now_us;
       }
     }
-  }
 
   // Estimate latency between writing an audio frame to the output stream and
   // the time that same frame is played out on the output audio device.
