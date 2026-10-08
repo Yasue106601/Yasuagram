@@ -147,6 +147,7 @@ absl::optional<uint32_t> AAudioPlayer::MinSpeakerVolume() const {
 
 void AAudioPlayer::OnErrorCallback(aaudio_result_t error) {
   RTC_LOG(LS_ERROR) << "OnErrorCallback: " << AAudio_convertResultToText(error);
+  RTC_LOG(LS_VERBOSE) << "YASU AAUDIO ERROR_CALLBACK time_us=" << rtc::TimeMicros() << " error=" << static_cast<int>(error) << " text=" << AAudio_convertResultToText(error);
   // TODO(henrika): investigate if we can use a thread checker here. Initial
   // tests shows that this callback can sometimes be called on a unique thread
   // but according to the documentation it should be on the same thread as the
@@ -351,6 +352,7 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
 void AAudioPlayer::HandleStreamDisconnected() {
   RTC_DCHECK_RUN_ON(&main_thread_checker_);
   RTC_DLOG(LS_INFO) << "HandleStreamDisconnected";
+  RTC_LOG(LS_VERBOSE) << "YASU AAUDIO STREAM_RESTART time_us=" << rtc::TimeMicros();
   if (!initialized_ || !playing_) {
     return;
   }
