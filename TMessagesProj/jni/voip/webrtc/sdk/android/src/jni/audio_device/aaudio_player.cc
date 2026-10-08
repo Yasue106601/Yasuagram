@@ -293,7 +293,10 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
           << " burst=" << aaudio_.frames_per_burst()
           << " xruns=" << aaudio_.xrun_count()
           << " sample_rate=" << aaudio_.sample_rate()
-          << " channels=" << aaudio_.channel_count();
+          << " channels=" << aaudio_.channel_count()
+          << " sharing=" << static_cast<int>(AAudioStream_getSharingMode(aaudio_.stream()))
+          << " perf=" << static_cast<int>(AAudioStream_getPerformanceMode(aaudio_.stream()))
+          << " device_id=" << AAudioStream_getDeviceId(aaudio_.stream());
     } else {
       RTC_LOG(LS_VERBOSE)
           << "YASU FORENSIC AAUDIO_HW"
