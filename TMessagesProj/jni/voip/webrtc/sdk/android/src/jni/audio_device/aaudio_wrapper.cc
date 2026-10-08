@@ -373,7 +373,7 @@ void AAudioWrapper::SetStreamConfiguration(AAudioStreamBuilder* builder) {
   // TODO(henrika): investigate effect of using AAUDIO_SHARING_MODE_EXCLUSIVE.
   // Ask for exclusive mode since this will give us the lowest possible latency.
   // If exclusive mode isn't available, shared mode will be used instead.
-  AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
+  AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE);
   // Use the direction that was given at construction.
   AAudioStreamBuilder_setDirection(builder, direction_);
   // TODO(henrika): investigate performance using different performance modes.
@@ -396,6 +396,14 @@ bool AAudioWrapper::OpenStream(AAudioStreamBuilder* builder) {
   RETURN_ON_ERROR(AAudioStreamBuilder_openStream(builder, &stream), false);
   stream_ = stream;
   LogStreamConfiguration();
+  RTC_LOG(LS_VERBOSE) << "YASU AAUDIO STREAM_OPEN"
+                      << " sharing=" << SharingModeToString(sharing_mode())
+                      << " perf=" << PerformanceModeToString(performance_mode())
+                      << " buffer_frames=" << AAudioStream_getBufferSizeInFrames(stream_)
+                      << " capacity=" << buffer_capacity_in_frames()
+                      << " burst=" << frames_per_burst()
+                      << " frames_per_callback=" << frames_per_callback()
+                      << " device_id=" << AAudioStream_getDeviceId(stream_);
   return true;
 }
 
