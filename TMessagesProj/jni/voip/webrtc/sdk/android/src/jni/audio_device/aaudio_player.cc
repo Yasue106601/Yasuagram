@@ -213,7 +213,7 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
       RTC_LOG(LS_ERROR) << "Underrun detected: " << underrun_count;
       underrun_count_ = underrun_count;
       yasu_last_underrun_us = rtc::TimeMicros();
-      aaudio_.IncreaseOutputBufferSize();
+      // YASU: buffer growth disabled (fixed 1-burst floor)
       RTC_LOG(LS_VERBOSE) << "YASU AAUDIO_UNDERRUN time_us="
                           << yasu_last_underrun_us
                           << " xruns=" << underrun_count

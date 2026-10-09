@@ -182,8 +182,8 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
   // 0-20ms   : normal
   // 20-40ms  : accelerate
   // 40ms+    : fast accelerate
-  constexpr size_t kYasuAccelerateMs = 20;
-  constexpr size_t kYasuFastAccelerateMs = 40;
+  constexpr size_t kYasuAccelerateMs = 14;
+  constexpr size_t kYasuFastAccelerateMs = 28;
 
   const size_t yasu_sync_buffer_ms =
       status.sync_buffer_samples / sample_rate_khz_;
