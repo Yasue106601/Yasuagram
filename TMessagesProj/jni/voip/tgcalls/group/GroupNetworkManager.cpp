@@ -390,9 +390,9 @@ void GroupNetworkManager::resetDtlsSrtpTransport() {
     
     uint32_t flags = portAllocator->flags();
     
-    flags |=
-        cricket::PORTALLOCATOR_ENABLE_IPV6 |
-        cricket::PORTALLOCATOR_ENABLE_IPV6_ON_WIFI;
+    // YASU EXPERIMENT: test IPv4-only candidate gathering.
+    flags &= ~(cricket::PORTALLOCATOR_ENABLE_IPV6 |
+               cricket::PORTALLOCATOR_ENABLE_IPV6_ON_WIFI);
     
     portAllocator->set_flags(flags);
     portAllocator->Initialize();
