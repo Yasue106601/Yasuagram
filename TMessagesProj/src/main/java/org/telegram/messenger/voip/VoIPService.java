@@ -5623,7 +5623,6 @@ public static VoIPService getSharedInstance() {
 			FileLog.d("Call " + getCallID() + " ended");
 		}
 		isCallEnded = true;
-           measurementsEnabled = false;
 		if (groupCall != null && (!playedConnectedSound || onDestroyRunnable != null)) {
 			needPlayEndSound = false;
 		}
