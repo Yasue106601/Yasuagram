@@ -401,8 +401,8 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
     // 90-100ms    -> aggressive fast acceleration
     // 100ms+      -> maximum fast acceleration
     // 150ms+      -> packet-buffer emergency handling in NetEqImpl.
-    constexpr int kYasuAccelerateLimitMs = 20;
-    constexpr int kYasuFastAccelerateLimitMs = 40;
+    constexpr int kYasuAccelerateLimitMs = 14;
+    constexpr int kYasuFastAccelerateLimitMs = 28;
 
     RTC_LOG(LS_VERBOSE)
         << "YASU DELAY DECISION"
@@ -440,7 +440,7 @@ NetEq::Operation DecisionLogic::ExpectedPacketAvailable(
                     sample_rate_khz_);
 
     constexpr int kYasuAccelerateLimitMs = 10;
-    constexpr int kYasuFastAccelerateLimitMs = 40;
+    constexpr int kYasuFastAccelerateLimitMs = 28;
 
     const int yasu_accelerate_limit =
         kYasuAccelerateLimitMs * sample_rate_khz_;
@@ -513,7 +513,7 @@ NetEq::Operation DecisionLogic::FuturePacketAvailable(
     // YASU: Future-packet waiting follows the global
     // 60ms / 80ms acceleration policy.
     constexpr int kYasuAcceleratePacketWaitMs = 10;
-    constexpr int kYasuFastAcceleratePacketWaitMs = 40;
+    constexpr int kYasuFastAcceleratePacketWaitMs = 28;
 
     const size_t yasu_packet_wait_ms =
         status.packet_buffer_info.span_samples_wait_time /
