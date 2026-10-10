@@ -233,6 +233,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 	private String lastError;
 	private PowerManager.WakeLock proximityWakelock;
 	private PowerManager.WakeLock cpuWakelock;
+    private android.net.wifi.WifiManager.WifiLock yasuWifiLock;
 	private boolean isProximityNear;
 	private boolean isHeadsetPlugged;
 	private int previousAudioOutput = -1;
@@ -4285,6 +4286,7 @@ public static VoIPService getSharedInstance() {
 			}
 		}
 		cpuWakelock.release();
+                try { if (yasuWifiLock != null && yasuWifiLock.isHeld()) yasuWifiLock.release(); } catch (Throwable ignore) {}
 		AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
 		if (!playingSound) {
 			VoipAudioManager vam = VoipAudioManager.get();
@@ -4720,6 +4722,14 @@ public static VoIPService getSharedInstance() {
 
 			cpuWakelock = ((PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "telegram-voip");
 			cpuWakelock.acquire();
+                        try {
+                                android.net.wifi.WifiManager yasuWm = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+                                if (yasuWm != null) {
+                                        yasuWifiLock = yasuWm.createWifiLock(android.os.Build.VERSION.SDK_INT >= 29 ? android.net.wifi.WifiManager.WIFI_MODE_FULL_LOW_LATENCY : android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF, "telegram-voip-wifi");
+                                        yasuWifiLock.setReferenceCounted(false);
+                                        yasuWifiLock.acquire();
+                                }
+                        } catch (Throwable ignore) {}
 
 			btAdapter = am.isBluetoothScoAvailableOffCall() ? BluetoothAdapter.getDefaultAdapter() : null;
 
