@@ -30,6 +30,7 @@ import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BaseController;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.CaptchaController;
+import org.telegram.messenger.DispatchQueue;
 import org.telegram.messenger.EmuDetector;
 import org.telegram.messenger.FileLoadOperation;
 import org.telegram.messenger.FileLoader;
@@ -121,6 +122,7 @@ public class ConnectionsManager extends BaseController {
     private boolean isUpdating;
     private int connectionState;
     private AtomicInteger lastRequestToken = new AtomicInteger(1);
+    private final DispatchQueue fastGroupTextQueue = new DispatchQueue("fastGroupTextQueue");
     private int appResumeCount;
 
     private static AsyncTask currentTask;
@@ -376,16 +378,6 @@ public class ConnectionsManager extends BaseController {
     }
 
 
-    public int sendRequestFast(
-            final TLObject object,
-            final RequestDelegate onComplete,
-            final QuickAckDelegate onQuickAck,
-            final int flags) {
-        return sendRequestFast(
-                object, onComplete, onQuickAck, null,
-                flags, DEFAULT_DATACENTER_ID, ConnectionTypeGeneric, true);
-    }
-
     /**
      * Experimental low-latency path for immediate text messages in groups.
      * Keeps native MTProto scheduling, sequencing, callbacks and socket handling.
@@ -417,18 +409,21 @@ public class ConnectionsManager extends BaseController {
             }
         }
 
-        // Yasuagram: preserve the original stageQueue ordering.
-        // Native priority is allowed only when no InvokeAfter dependency exists.
+        // Yasuagram: serialize eligible group text on a dedicated per-account
+        // queue, avoiding both stageQueue congestion and caller-thread serialization.
+        // Preserve MTProto dependency flags and native network scheduling.
         if (eligible) {
-            // Yasuagram: eligible immediate group text must not wait
-            // on the generic InvokeAfter chain.
-            final int fastFlags =
-                    (flags & ~(RequestFlagInvokeAfter | RequestFlagCanCompress))
-                    | RequestFlagFastGroupText;
+            final int fastFlags = (flags & RequestFlagInvokeAfter) == 0
+                    ? flags | RequestFlagFastGroupText
+                    : flags;
+            final int requestToken = lastRequestToken.getAndIncrement();
 
-            return sendRequest(object, onComplete, null, onQuickAck,
-                    onWriteToSocket, fastFlags, datacenterId,
-                    connectionType, immediate);
+            fastGroupTextQueue.postRunnable(() -> {
+                sendRequestInternal(object, onComplete, null, onQuickAck,
+                        onWriteToSocket, fastFlags, datacenterId,
+                        connectionType, immediate, requestToken);
+            });
+            return requestToken;
         }
 
         return sendRequest(object, onComplete, onQuickAck,

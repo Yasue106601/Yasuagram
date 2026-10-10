@@ -376,16 +376,6 @@ public class ConnectionsManager extends BaseController {
     }
 
 
-    public int sendRequestFast(
-            final TLObject object,
-            final RequestDelegate onComplete,
-            final QuickAckDelegate onQuickAck,
-            final int flags) {
-        return sendRequestFast(
-                object, onComplete, onQuickAck, null,
-                flags, DEFAULT_DATACENTER_ID, ConnectionTypeGeneric, true);
-    }
-
     /**
      * Experimental low-latency path for immediate text messages in groups.
      * Keeps native MTProto scheduling, sequencing, callbacks and socket handling.
@@ -420,11 +410,9 @@ public class ConnectionsManager extends BaseController {
         // Yasuagram: preserve the original stageQueue ordering.
         // Native priority is allowed only when no InvokeAfter dependency exists.
         if (eligible) {
-            // Yasuagram: eligible immediate group text must not wait
-            // on the generic InvokeAfter chain.
-            final int fastFlags =
-                    (flags & ~(RequestFlagInvokeAfter | RequestFlagCanCompress))
-                    | RequestFlagFastGroupText;
+            final int fastFlags = (flags & RequestFlagInvokeAfter) == 0
+                    ? flags | RequestFlagFastGroupText
+                    : flags;
 
             return sendRequest(object, onComplete, null, onQuickAck,
                     onWriteToSocket, fastFlags, datacenterId,

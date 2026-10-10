@@ -423,8 +423,7 @@ public class ConnectionsManager extends BaseController {
             // Yasuagram: eligible immediate group text must not wait
             // on the generic InvokeAfter chain.
             final int fastFlags =
-                    (flags & ~(RequestFlagInvokeAfter | RequestFlagCanCompress))
-                    | RequestFlagFastGroupText;
+                    (flags & ~RequestFlagInvokeAfter) | RequestFlagFastGroupText;
 
             return sendRequest(object, onComplete, null, onQuickAck,
                     onWriteToSocket, fastFlags, datacenterId,

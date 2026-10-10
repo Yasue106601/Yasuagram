@@ -173,7 +173,6 @@ enum RequestFlag {
     RequestFlagForceDownload = 32,
     RequestFlagInvokeAfter = 64,
     RequestFlagNeedQuickAck = 128,
-    RequestFlagFastGroupText = 4096,
     RequestFlagUseUnboundKey = 256,
     RequestFlagResendAfter = 512,
     RequestFlagIgnoreFloodWait = 1024,

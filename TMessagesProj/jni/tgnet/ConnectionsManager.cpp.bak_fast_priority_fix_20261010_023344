@@ -17,7 +17,6 @@
 #include <openssl/rand.h>
 #include <zlib.h>
 #include <memory>
-#include <iterator>
 #include <string>
 #include <cinttypes>
 #include "ConnectionsManager.h"

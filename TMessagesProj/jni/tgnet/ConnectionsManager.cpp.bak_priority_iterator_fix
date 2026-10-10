@@ -17,7 +17,6 @@
 #include <openssl/rand.h>
 #include <zlib.h>
 #include <memory>
-#include <iterator>
 #include <string>
 #include <cinttypes>
 #include "ConnectionsManager.h"
@@ -2462,37 +2461,25 @@ void ConnectionsManager::processRequestQueue(uint32_t connectionTypes, uint32_t 
     bool hasInvokeAfterMessage = false;
     bool hasInvokeWaitMessage = false;
 
-    // Yasuagram: stable priority for eligible group text requests.
-    // Keep dependency-barrier requests in place and preserve order among
-    // fast requests and among ordinary requests within each queue segment.
+    // Yasuagram: prioritize eligible group text sends within independent
+    // queue segments. Never move requests across explicit InvokeAfter /
+    // ResendAfter dependency barriers; preserve relative order within each
+    // priority class and keep the original MTProto transport machinery.
     {
         auto segmentBegin = requestsQueue.begin();
+        auto iter = requestsQueue.begin();
 
-        while (segmentBegin != requestsQueue.end()) {
-            auto segmentEnd = segmentBegin;
+        while (iter != requestsQueue.end()) {
+            Request *request = iter->get();
+            const bool dependencyBarrier =
+                    (request->requestFlags & RequestFlagInvokeAfter) != 0 ||
+                    (request->requestFlags & RequestFlagResendAfter) != 0;
 
-            // Find the end of this independent segment.
-            while (segmentEnd != requestsQueue.end()) {
-                Request *candidate = segmentEnd->get();
-                if ((candidate->requestFlags & RequestFlagInvokeAfter) != 0 ||
-                    (candidate->requestFlags & RequestFlagResendAfter) != 0) {
-                    break;
-                }
-                ++segmentEnd;
-            }
-
-            // The insertion point must remain in requestsQueue throughout
-            // every splice; never use an iterator to a node already moved.
-            auto firstOrdinary = segmentBegin;
-            while (firstOrdinary != segmentEnd &&
-                   (((*firstOrdinary)->requestFlags & RequestFlagFastGroupText) != 0)) {
-                ++firstOrdinary;
-            }
-
-            if (firstOrdinary != segmentEnd) {
+            if (dependencyBarrier) {
+                auto segmentEnd = iter;
                 std::list<std::unique_ptr<Request>> prioritized;
 
-                for (auto current = firstOrdinary; current != segmentEnd;) {
+                for (auto current = segmentBegin; current != segmentEnd;) {
                     auto next = std::next(current);
                     if (((*current)->requestFlags & RequestFlagFastGroupText) != 0) {
                         prioritized.splice(prioritized.end(), requestsQueue, current);
@@ -2500,16 +2487,23 @@ void ConnectionsManager::processRequestQueue(uint32_t connectionTypes, uint32_t 
                     current = next;
                 }
 
-                requestsQueue.splice(firstOrdinary, prioritized);
+                requestsQueue.splice(segmentBegin, prioritized);
+                iter = std::next(segmentEnd);
+                segmentBegin = iter;
+            } else {
+                ++iter;
             }
-
-            if (segmentEnd == requestsQueue.end()) {
-                break;
-            }
-
-            // Do not move a request across this dependency barrier.
-            segmentBegin = std::next(segmentEnd);
         }
+
+        std::list<std::unique_ptr<Request>> prioritized;
+        for (auto current = segmentBegin; current != requestsQueue.end();) {
+            auto next = std::next(current);
+            if (((*current)->requestFlags & RequestFlagFastGroupText) != 0) {
+                prioritized.splice(prioritized.end(), requestsQueue, current);
+            }
+            current = next;
+        }
+        requestsQueue.splice(segmentBegin, prioritized);
     }
 
     for (auto iter = runningRequests.begin(); iter != runningRequests.end();) {

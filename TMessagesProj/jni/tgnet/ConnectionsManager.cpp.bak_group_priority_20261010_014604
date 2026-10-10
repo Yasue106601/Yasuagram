@@ -17,7 +17,6 @@
 #include <openssl/rand.h>
 #include <zlib.h>
 #include <memory>
-#include <iterator>
 #include <string>
 #include <cinttypes>
 #include "ConnectionsManager.h"
@@ -2461,56 +2460,6 @@ void ConnectionsManager::processRequestQueue(uint32_t connectionTypes, uint32_t 
     uint32_t uploadRunningRequestCount = 0;
     bool hasInvokeAfterMessage = false;
     bool hasInvokeWaitMessage = false;
-
-    // Yasuagram: stable priority for eligible group text requests.
-    // Keep dependency-barrier requests in place and preserve order among
-    // fast requests and among ordinary requests within each queue segment.
-    {
-        auto segmentBegin = requestsQueue.begin();
-
-        while (segmentBegin != requestsQueue.end()) {
-            auto segmentEnd = segmentBegin;
-
-            // Find the end of this independent segment.
-            while (segmentEnd != requestsQueue.end()) {
-                Request *candidate = segmentEnd->get();
-                if ((candidate->requestFlags & RequestFlagInvokeAfter) != 0 ||
-                    (candidate->requestFlags & RequestFlagResendAfter) != 0) {
-                    break;
-                }
-                ++segmentEnd;
-            }
-
-            // The insertion point must remain in requestsQueue throughout
-            // every splice; never use an iterator to a node already moved.
-            auto firstOrdinary = segmentBegin;
-            while (firstOrdinary != segmentEnd &&
-                   (((*firstOrdinary)->requestFlags & RequestFlagFastGroupText) != 0)) {
-                ++firstOrdinary;
-            }
-
-            if (firstOrdinary != segmentEnd) {
-                std::list<std::unique_ptr<Request>> prioritized;
-
-                for (auto current = firstOrdinary; current != segmentEnd;) {
-                    auto next = std::next(current);
-                    if (((*current)->requestFlags & RequestFlagFastGroupText) != 0) {
-                        prioritized.splice(prioritized.end(), requestsQueue, current);
-                    }
-                    current = next;
-                }
-
-                requestsQueue.splice(firstOrdinary, prioritized);
-            }
-
-            if (segmentEnd == requestsQueue.end()) {
-                break;
-            }
-
-            // Do not move a request across this dependency barrier.
-            segmentBegin = std::next(segmentEnd);
-        }
-    }
 
     for (auto iter = runningRequests.begin(); iter != runningRequests.end();) {
         Request *request = iter->get();

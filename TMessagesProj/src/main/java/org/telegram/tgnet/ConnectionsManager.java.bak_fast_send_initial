@@ -97,7 +97,6 @@ public class ConnectionsManager extends BaseController {
     public final static int RequestFlagForceDownload = 32;
     public final static int RequestFlagInvokeAfter = 64;
     public final static int RequestFlagNeedQuickAck = 128;
-    public final static int RequestFlagFastGroupText = 4096;
     public final static int RequestFlagDoNotWaitFloodWait = 1024;
     public final static int RequestFlagListenAfterCancel = 2048;
     public final static int RequestFlagFailOnServerErrorsExceptFloodWait = 65536;
@@ -373,67 +372,6 @@ public class ConnectionsManager extends BaseController {
 
     public int sendRequest(final TLObject object, final RequestDelegate onComplete, final QuickAckDelegate onQuickAck, final WriteToSocketDelegate onWriteToSocket, final int flags, final int datacenterId, final int connectionType, final boolean immediate) {
         return sendRequest(object, onComplete, null, onQuickAck, onWriteToSocket, flags, datacenterId, connectionType, immediate);
-    }
-
-
-    public int sendRequestFast(
-            final TLObject object,
-            final RequestDelegate onComplete,
-            final QuickAckDelegate onQuickAck,
-            final int flags) {
-        return sendRequestFast(
-                object, onComplete, onQuickAck, null,
-                flags, DEFAULT_DATACENTER_ID, ConnectionTypeGeneric, true);
-    }
-
-    /**
-     * Experimental low-latency path for immediate text messages in groups.
-     * Keeps native MTProto scheduling, sequencing, callbacks and socket handling.
-     */
-    public int sendRequestFast(final TLObject object,
-            final RequestDelegate onComplete,
-            final QuickAckDelegate onQuickAck,
-            final WriteToSocketDelegate onWriteToSocket,
-            final int flags, final int datacenterId,
-            final int connectionType, final boolean immediate) {
-
-        boolean eligible = false;
-
-        if (object instanceof TLRPC.TL_messages_sendMessage) {
-            TLRPC.TL_messages_sendMessage request =
-                    (TLRPC.TL_messages_sendMessage) object;
-
-            if (request.schedule_date == 0 && request.peer != null) {
-                if (request.peer instanceof TLRPC.TL_inputPeerChat) {
-                    eligible = true;
-                } else if (request.peer instanceof TLRPC.TL_inputPeerChannel) {
-                    TLRPC.TL_inputPeerChannel peer =
-                            (TLRPC.TL_inputPeerChannel) request.peer;
-                    TLRPC.Chat chat =
-                            MessagesController.getInstance(currentAccount)
-                                    .getChat(peer.channel_id);
-                    eligible = chat != null && chat.megagroup;
-                }
-            }
-        }
-
-        // Yasuagram: preserve the original stageQueue ordering.
-        // Native priority is allowed only when no InvokeAfter dependency exists.
-        if (eligible) {
-            // Yasuagram: eligible immediate group text must not wait
-            // on the generic InvokeAfter chain.
-            final int fastFlags =
-                    (flags & ~(RequestFlagInvokeAfter | RequestFlagCanCompress))
-                    | RequestFlagFastGroupText;
-
-            return sendRequest(object, onComplete, null, onQuickAck,
-                    onWriteToSocket, fastFlags, datacenterId,
-                    connectionType, immediate);
-        }
-
-        return sendRequest(object, onComplete, onQuickAck,
-                onWriteToSocket, flags, datacenterId,
-                connectionType, immediate);
     }
 
     public int sendRequestSync(final TLObject object, final RequestDelegate onComplete, final QuickAckDelegate onQuickAck, final WriteToSocketDelegate onWriteToSocket, final int flags, final int datacenterId, final int connectionType, final boolean immediate) {
