@@ -10,6 +10,8 @@
 
 #include "modules/audio_coding/neteq/delay_manager.h"
 
+#include "../../../../../tgcalls/YasuMeasurementGate.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -107,15 +109,17 @@ void DelayManager::Update(int arrival_delay_ms, bool reordered) {
         std::max(target_level_ms_, yasu_reorder_target_ms);
   }
 
-  static int yasu_target_measure_count = 0;
-  if (++yasu_target_measure_count % 100 == 0) {
-    RTC_LOG(LS_VERBOSE)
-        << "YASU TARGET COMPONENTS "
-        << "arrival=" << arrival_delay_ms << "ms "
-        << "reordered=" << reordered << " "
-        << "underrun=" << yasu_underrun_target_ms << "ms "
-        << "reorder=" << yasu_reorder_target_ms << "ms "
-        << "combined=" << target_level_ms_ << "ms";
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    static int yasu_target_measure_count = 0;
+    if (++yasu_target_measure_count % 100 == 0) {
+      RTC_LOG(LS_VERBOSE)
+          << "YASU TARGET COMPONENTS "
+          << "arrival=" << arrival_delay_ms << "ms "
+          << "reordered=" << reordered << " "
+          << "underrun=" << yasu_underrun_target_ms << "ms "
+          << "reorder=" << yasu_reorder_target_ms << "ms "
+          << "combined=" << target_level_ms_ << "ms";
+    }
   }
 
   constexpr int kYasuMaxTargetDelayMs = 10;

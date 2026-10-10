@@ -1,4 +1,5 @@
 #include "NetworkManager.h"
+#include "YasuMeasurementGate.h"
 
 #include "Message.h"
 
@@ -340,17 +341,19 @@ void NetworkManager::transportReadyToSend(cricket::IceTransportInternal *transpo
 void NetworkManager::transportPacketReceived(rtc::PacketTransportInternal *transport, const char *bytes, size_t size, const int64_t &timestamp, int unused) {
         assert(_thread->IsCurrent());
 
-    // YASU FORENSIC T0: actual network packet arrival.
-    static uint64_t yasu_t0_packet_id = 0;
-    const uint64_t yasu_t0_id = ++yasu_t0_packet_id;
-    const int64_t yasu_t0_time_us = rtc::TimeMicros();
+    if (tgcalls::YasuMeasurementsEnabled()) {
+        // YASU FORENSIC T0: actual network packet arrival.
+        static uint64_t yasu_t0_packet_id = 0;
+        const uint64_t yasu_t0_id = ++yasu_t0_packet_id;
+        const int64_t yasu_t0_time_us = rtc::TimeMicros();
 
-    RTC_LOG(LS_VERBOSE)
-        << "YASU FORENSIC T0 UDP_RX_REAL"
-        << " t0_id=" << yasu_t0_id
-        << " time_us=" << yasu_t0_time_us
-        << " transport_timestamp=" << timestamp
-        << " size=" << size;
+        RTC_LOG(LS_VERBOSE)
+            << "YASU FORENSIC T0 UDP_RX_REAL"
+            << " t0_id=" << yasu_t0_id
+            << " time_us=" << yasu_t0_time_us
+            << " transport_timestamp=" << timestamp
+            << " size=" << size;
+    }
 
     _lastNetworkActivityMs = rtc::TimeMillis();
 

@@ -1,4 +1,5 @@
 #include "group/GroupNetworkManager.h"
+#include "../YasuMeasurementGate.h"
 #include <cmath>
 
 #include "p2p/base/basic_packet_socket_factory.h"
@@ -427,6 +428,27 @@ void GroupNetworkManager::resetDtlsSrtpTransport() {
     transportChannel->SetRemoteIceMode(cricket::ICEMODE_LITE);
 
     transportChannel->SignalIceTransportStateChanged.connect(this, &GroupNetworkManager::transportStateChanged);
+
+    // YASU: Log the selected ICE pair and current RTT estimate.
+    transportChannel->SetCandidatePairChangeCallback(
+        [this, channel = transportChannel.get()](
+            cricket::CandidatePairChangeEvent const &event) {
+            if (!YasuMeasurementsEnabled()) {
+                return;
+            }
+            const auto &pair = event.selected_candidate_pair;
+            const auto rtt = channel->GetRttEstimate();
+            RTC_LOG(LS_INFO)
+                << "YASU ICE_PAIR"
+                << " reason=" << event.reason
+                << " local=" << pair.local.address().ToString()
+                << " local_type=" << pair.local.type()
+                << " local_protocol=" << pair.local.protocol()
+                << " remote=" << pair.remote.address().ToString()
+                << " remote_type=" << pair.remote.type()
+                << " remote_protocol=" << pair.remote.protocol()
+                << " rtt_ms=" << (rtt.has_value() ? *rtt : -1);
+        });
     transportChannel->SignalReadPacket.connect(this, &GroupNetworkManager::transportPacketReceived);
 
     webrtc::CryptoOptions cryptoOptions = GroupNetworkManager::getDefaulCryptoOptions();
@@ -629,7 +651,7 @@ void GroupNetworkManager::transportPacketReceived(rtc::PacketTransportInternal *
 
     // YASU FORENSIC T0: exact packet arrival timestamp.
     static int yasu_t0_count = 0;
-    if ((++yasu_t0_count % 100) == 0) {
+    if (YasuMeasurementsEnabled() && (++yasu_t0_count % 100) == 0) {
         RTC_LOG(LS_VERBOSE)
             << "YASU FORENSIC T0 UDP_RX "
             << "arrival_us=" << timestamp
@@ -647,7 +669,7 @@ void GroupNetworkManager::RtpPacketReceived_n(webrtc::RtpPacketReceived const &p
 
     // YASU FORENSIC T1: exact T0 arrival timestamp carried into RTP.
     static int yasu_t1_count = 0;
-    if ((++yasu_t1_count % 100) == 0) {
+    if (YasuMeasurementsEnabled() && (++yasu_t1_count % 100) == 0) {
         RTC_LOG(LS_VERBOSE)
             << "YASU FORENSIC T1 RTP_RX "
             << "arrival_us=" << packet.arrival_time().us()

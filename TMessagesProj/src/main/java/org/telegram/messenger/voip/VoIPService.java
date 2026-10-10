@@ -4225,35 +4225,57 @@ public static VoIPService getSharedInstance() {
                                    FileLog.e("YASU LEGACY: stopGroup export started, enabled=" + exportMeasurements);
                                    String legacyLog = instance.stopGroup();
                                    FileLog.e("YASU LEGACY: stopGroup returned, chars=" + (legacyLog != null ? legacyLog.length() : -1));
-                                   if (legacyLog != null && !legacyLog.isEmpty()) {
-                                       try {
-                                           android.content.ContentValues values = new android.content.ContentValues();
-                                           values.put(android.provider.MediaStore.Downloads.DISPLAY_NAME,
-                                                   "Yasuagram_Legacy_" + System.currentTimeMillis() + ".txt");
-                                           values.put(android.provider.MediaStore.Downloads.MIME_TYPE,
-                                                   "text/plain");
-                                           values.put(android.provider.MediaStore.Downloads.RELATIVE_PATH,
-                                                   android.os.Environment.DIRECTORY_DOWNLOADS);
+                                   if (!exportMeasurements) {
+                                       FileLog.e("YASU LEGACY: export skipped; measurements were OFF");
+                                       return;
+                                   }
 
-                                           android.net.Uri uri = getContentResolver().insert(
-                                                   android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                                                   values);
+                                   if (legacyLog == null || legacyLog.isEmpty()) {
+                                       FileLog.e("YASU LEGACY: export failed; collected log is empty");
+                                       return;
+                                   }
 
-                                           if (uri != null) {
-                                               try (java.io.OutputStream outputStream =
-                                                            getContentResolver().openOutputStream(uri)) {
-                                                   if (outputStream != null) {
-                                                       outputStream.write(
-                                                               legacyLog.getBytes(
-                                                                       java.nio.charset.StandardCharsets.UTF_8));
-                                                       outputStream.flush();
-                                                   }
-                                               }
-                                               FileLog.e("YASU LEGACY: diagnostics exported to Downloads");
-                                           }
-                                       } catch (Exception e) {
-                                           FileLog.e("YASU LEGACY: diagnostics export failed", e);
+                                   android.net.Uri uri = null;
+                                   try {
+                                       android.content.ContentValues values = new android.content.ContentValues();
+                                       values.put(android.provider.MediaStore.Downloads.DISPLAY_NAME,
+                                               "Yasuagram_Legacy_" + System.currentTimeMillis() + ".txt");
+                                       values.put(android.provider.MediaStore.Downloads.MIME_TYPE,
+                                               "text/plain");
+                                       values.put(android.provider.MediaStore.Downloads.RELATIVE_PATH,
+                                               android.os.Environment.DIRECTORY_DOWNLOADS);
+
+                                       uri = getContentResolver().insert(
+                                               android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                                               values);
+
+                                       if (uri == null) {
+                                           FileLog.e("YASU LEGACY: export failed; MediaStore insert returned null");
+                                           return;
                                        }
+
+                                       try (java.io.OutputStream outputStream =
+                                                    getContentResolver().openOutputStream(uri)) {
+                                           if (outputStream == null) {
+                                               FileLog.e("YASU LEGACY: export failed; output stream is null");
+                                               getContentResolver().delete(uri, null, null);
+                                               return;
+                                           }
+                                           outputStream.write(
+                                                   legacyLog.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                                           outputStream.flush();
+                                       }
+
+                                       FileLog.e("YASU LEGACY: export succeeded, chars=" + legacyLog.length()
+                                               + ", uri=" + uri);
+                                   } catch (Exception e) {
+                                       if (uri != null) {
+                                           try {
+                                               getContentResolver().delete(uri, null, null);
+                                           } catch (Exception ignored) {
+                                           }
+                                       }
+                                       FileLog.e("YASU LEGACY: diagnostics export failed", e);
                                    }
 
                            });

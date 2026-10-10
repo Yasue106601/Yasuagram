@@ -1367,30 +1367,38 @@ public:
                 buffer.resize(frame->GetData().size());
                 std::copy(frame->GetData().begin(), frame->GetData().end(), buffer.begin());
                 
-                const int64_t yasu_decrypt_start_us = rtc::TimeMicros();
+                const bool yasu_decrypt_log = YasuMeasurementsEnabled();
+                const int64_t yasu_decrypt_start_us =
+                    yasu_decrypt_log ? rtc::TimeMicros() : 0;
 
-                RTC_LOG(LS_VERBOSE)
-                    << "YASU E2E TRACE"
-                    << " stage=T5_E2E_START"
-                    << " time_us=" << yasu_decrypt_start_us
-                    << " ssrc=" << ssrc
-                    << " payload_bytes=" << buffer.size();
+                if (yasu_decrypt_log) {
+                    RTC_LOG(LS_VERBOSE)
+                        << "YASU E2E TRACE"
+                        << " stage=T5_E2E_START"
+                        << " time_us=" << yasu_decrypt_start_us
+                        << " ssrc=" << ssrc
+                        << " payload_bytes=" << buffer.size();
+                }
 
                 auto result = _transform(buffer, _userId, false, 0);
 
-                const int64_t yasu_decrypt_end_us = rtc::TimeMicros();
+                const int64_t yasu_decrypt_end_us =
+                    yasu_decrypt_log ? rtc::TimeMicros() : 0;
 
-                RTC_LOG(LS_VERBOSE)
-                    << "YASU E2E TRACE"
-                    << " stage=T5_E2E_END"
-                    << " time_us=" << yasu_decrypt_end_us
-                    << " cost_us=" << (yasu_decrypt_end_us - yasu_decrypt_start_us)
-                    << " ssrc=" << ssrc
-                    << " input_bytes=" << buffer.size()
-                    << " output_bytes=" << result.size();
+                if (yasu_decrypt_log) {
+                    RTC_LOG(LS_VERBOSE)
+                        << "YASU E2E TRACE"
+                        << " stage=T5_E2E_END"
+                        << " time_us=" << yasu_decrypt_end_us
+                        << " cost_us=" << (yasu_decrypt_end_us - yasu_decrypt_start_us)
+                        << " ssrc=" << ssrc
+                        << " input_bytes=" << buffer.size()
+                        << " output_bytes=" << result.size();
+                }
 
                 static int yasu_decrypt_count = 0;
-                if ((++yasu_decrypt_count % 100) == 0) {
+                if (YasuMeasurementsEnabled() &&
+                    (++yasu_decrypt_count % 100) == 0) {
                     RTC_LOG(LS_VERBOSE)
                         << "YASU E2E DECRYPT "
                         << "time_us=" << yasu_decrypt_end_us
@@ -2349,10 +2357,12 @@ public:
 
             auto stats = strong->_call->GetStats();
 
-            // YASU: activate the 8 dormant per-channel forensic reports
-            // (RTT REPORT included) once per second, per incoming speaker.
-            for (const auto &it : strong->_incomingAudioChannels) {
-                it.second->logNetworkStats();
+            // Collect per-channel forensic statistics only when enabled.
+            // Keep the normal call stats and signal-quality updates active.
+            if (YasuMeasurementsEnabled()) {
+                for (const auto &it : strong->_incomingAudioChannels) {
+                    it.second->logNetworkStats();
+                }
             }
 
             float sendBitrateKbps = ((float)stats.send_bandwidth_bps / 1000.0f);
@@ -2722,8 +2732,9 @@ public:
     }
 
     void stop() {
-        _networkManager->perform([](GroupNetworkManager *networkManager) {
-            networkManager->stop();
+        // Finish network shutdown before collecting the final telemetry log.
+        _threads->getNetworkThread()->BlockingCall([this]() {
+            _networkManager->getSyncAssumingSameThread()->stop();
         });
 
         json11::Json::object statsLog;

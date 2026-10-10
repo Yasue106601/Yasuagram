@@ -14,6 +14,8 @@
 
 #include "modules/audio_coding/neteq/packet_buffer.h"
 
+#include "../../../../../tgcalls/YasuMeasurementGate.h"
+
 #include <algorithm>
 #include <list>
 #include <memory>
@@ -159,7 +161,8 @@ absl::optional<Packet> PacketBuffer::GetNextPacket() {
     return absl::nullopt;
   }
 
-  if (buffer_.front().waiting_time) {
+  if (tgcalls::YasuMeasurementsEnabled() &&
+      buffer_.front().waiting_time) {
     const int waiting_ms = buffer_.front().waiting_time->ElapsedMs();
 
     // YASU: periodic PacketBuffer residence measurement.
@@ -196,12 +199,14 @@ absl::optional<Packet> PacketBuffer::GetNextPacket() {
   RTC_DCHECK(!packet->empty());
   buffer_.pop_front();
 
-  RTC_LOG(LS_VERBOSE)
-      << "YASU FORENSIC T8_OUT"
-      << " seq=" << packet->sequence_number
-      << " timestamp=" << packet->timestamp
-      << " waiting_ms="
-      << (packet->waiting_time ? packet->waiting_time->ElapsedMs() : -1);
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU FORENSIC T8_OUT"
+        << " seq=" << packet->sequence_number
+        << " timestamp=" << packet->timestamp
+        << " waiting_ms="
+        << (packet->waiting_time ? packet->waiting_time->ElapsedMs() : -1);
+  }
 
   return packet;
 }

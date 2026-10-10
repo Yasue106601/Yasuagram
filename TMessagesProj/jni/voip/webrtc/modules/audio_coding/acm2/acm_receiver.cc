@@ -9,6 +9,7 @@
  */
 
 #include "modules/audio_coding/acm2/acm_receiver.h"
+#include "tgcalls/YasuMeasurementGate.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -106,9 +107,12 @@ int AcmReceiver::last_output_sample_rate_hz() const {
 
 int AcmReceiver::InsertPacket(const RTPHeader& rtp_header,
                               rtc::ArrayView<const uint8_t> incoming_payload) {
-  const int64_t yasu_t6_start_us = rtc::TimeMicros();
+  const bool yasu_t6_enabled = tgcalls::YasuMeasurementsEnabled();
+  const int64_t yasu_t6_start_us =
+      yasu_t6_enabled ? rtc::TimeMicros() : 0;
   static int yasu_t6_count = 0;
-  const bool yasu_t6_log = (++yasu_t6_count % 100) == 0;
+  const bool yasu_t6_log =
+      yasu_t6_enabled && (++yasu_t6_count % 100) == 0;
 
   if (yasu_t6_log) {
     RTC_LOG(LS_VERBOSE)

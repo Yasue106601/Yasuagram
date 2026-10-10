@@ -1,3 +1,4 @@
+#include "tgcalls/YasuMeasurementGate.h"
 /*
  *  Copyright (c) 2020 The WebRTC project authors. All Rights Reserved.
  *
@@ -113,10 +114,12 @@ void ChannelReceiveFrameTransformerDelegate::Transform(
 
 void ChannelReceiveFrameTransformerDelegate::OnTransformedFrame(
     std::unique_ptr<TransformableFrameInterface> frame) {
-  RTC_LOG(LS_VERBOSE)
-      << "YASU E2E TRACE"
-      << " stage=T5_TRANSFORM_DONE"
-      << " time_us=" << rtc::TimeMicros();
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU E2E TRACE"
+        << " stage=T5_TRANSFORM_DONE"
+        << " time_us=" << rtc::TimeMicros();
+  }
 
   rtc::scoped_refptr<ChannelReceiveFrameTransformerDelegate> delegate(this);
   channel_receive_thread_->PostTask(
@@ -135,10 +138,12 @@ void ChannelReceiveFrameTransformerDelegate::StartShortCircuiting() {
 
 void ChannelReceiveFrameTransformerDelegate::ReceiveFrame(
     std::unique_ptr<TransformableFrameInterface> frame) const {
-  RTC_LOG(LS_VERBOSE)
-      << "YASU E2E TRACE"
-      << " stage=T5_RECEIVE_FRAME"
-      << " time_us=" << rtc::TimeMicros();
+  if (tgcalls::YasuMeasurementsEnabled()) {
+    RTC_LOG(LS_VERBOSE)
+        << "YASU E2E TRACE"
+        << " stage=T5_RECEIVE_FRAME"
+        << " time_us=" << rtc::TimeMicros();
+  }
 
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   if (!receive_frame_callback_)

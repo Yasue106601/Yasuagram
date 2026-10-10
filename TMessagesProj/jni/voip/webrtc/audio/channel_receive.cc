@@ -10,6 +10,8 @@
 
 #include "audio/channel_receive.h"
 
+#include "tgcalls/YasuMeasurementGate.h"
+
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -1031,6 +1033,7 @@ NetworkStatistics ChannelReceive::GetNetworkStatistics(
   NetworkStatistics stats;
   acm_receiver_.GetNetworkStatistics(&stats, get_and_clear_legacy_stats);
 
+  if (tgcalls::YasuMeasurementsEnabled()) {
   {
     CallReceiveStatistics rtcp_stats = GetRTCPStatistics();
 
@@ -1152,6 +1155,8 @@ NetworkStatistics ChannelReceive::GetNetworkStatistics(
       << " LifetimeRemovedAcceleration=" << yasu_lifetime.removed_samples_for_acceleration
       << "\n";
 
+  }
+
   return stats;
 }
 
@@ -1160,6 +1165,7 @@ AudioDecodingCallStats ChannelReceive::GetDecodingCallStatistics() const {
   AudioDecodingCallStats stats;
   acm_receiver_.GetDecodingCallStatistics(&stats);
 
+  if (tgcalls::YasuMeasurementsEnabled()) {
   RTC_LOG(LS_VERBOSE)
       << "YASU DECODE REPORT\n"
       << "CallsToNetEq="
@@ -1174,6 +1180,7 @@ AudioDecodingCallStats ChannelReceive::GetDecodingCallStatistics() const {
       << stats.decoded_cng
       << " Muted="
       << stats.decoded_muted_output;
+  }
 
   return stats;
 }

@@ -9,6 +9,7 @@
  */
 
 #include "audio/audio_transport_impl.h"
+#include "tgcalls/YasuMeasurementGate.h"
 
 #include <algorithm>
 #include <memory>
@@ -267,7 +268,9 @@ int32_t AudioTransportImpl::NeedMorePlayData(const size_t nSamples,
                                              int64_t* ntp_time_ms) {
   // YASU E2E TRACE T12 START
   static int yasu_t12_count = 0;
-  const bool yasu_t12_log = (++yasu_t12_count % 100) == 0;
+  const bool yasu_t12_log =
+      tgcalls::YasuMeasurementsEnabled() &&
+      (++yasu_t12_count % 100) == 0;
   const int64_t yasu_t12_start_us =
       yasu_t12_log ? rtc::TimeMicros() : 0;
 

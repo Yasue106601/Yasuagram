@@ -55,19 +55,18 @@ void LogSinkImpl::OnLogMessage(const std::string &message) {
     int32_t milliseconds = curTime.tv_usec / 1000;
 #endif
 
-    auto &stream = _file.is_open() ? (std::ostream&)_file : _data;
-
-    // YASU: capture telemetry ONLY while the measurement gate is enabled.
+    // Capture each telemetry message once, only while measurement is enabled.
     if (YasuMeasurementsEnabled() &&
         (message.find("YASU ") != std::string::npos ||
          message.find("YASUAGRAM HARDWARE TIMESTAMP") != std::string::npos)) {
-        {
-            std::lock_guard<std::mutex> lock(_dataMutex);
-            _data << message << std::endl;
-        }
+        std::lock_guard<std::mutex> lock(_dataMutex);
+        _data << message << '\n';
     }
 
-    stream
+    // Keep the returned result telemetry-only. Do not route ordinary logs
+    // into _data when the optional file logger is unavailable.
+    if (_file.is_open()) {
+        _file
             << (timeinfo.tm_year + 1900)
             << "-" << (timeinfo.tm_mon + 1)
             << "-" << (timeinfo.tm_mday)
@@ -76,6 +75,7 @@ void LogSinkImpl::OnLogMessage(const std::string &message) {
             << ":" << timeinfo.tm_sec
             << ":" << milliseconds
             << " " << message;
+    }
 
 #if DEBUG
     printf("%d-%d-%d %d:%d:%d:%d %s\n",
