@@ -13,7 +13,7 @@
 namespace {
 
 // The minimum improvement in RTT that justifies a switch.
-const int kMinImprovement = 10;
+const int kMinImprovement = 5;
 
 bool IsRelayRelay(const cricket::Connection* conn) {
   return conn->local_candidate().is_relay() &&
@@ -654,6 +654,20 @@ int BasicIceController::CompareConnectionCandidates(const Connection* a,
       CompareCandidatePairNetworks(a, b, config_.network_preference);
   if (compare_a_b_by_networks != a_and_b_equal) {
     return compare_a_b_by_networks;
+  }
+
+  // YASU: For equally preferred networks with equal network cost,
+  // prefer a meaningfully lower measured RTT before candidate priority.
+  if (a->receiving() && b->receiving() &&
+      a->rtt_samples() > 0 && b->rtt_samples() > 0) {
+    const int a_rtt = a->rtt();
+    const int b_rtt = b->rtt();
+    if (a_rtt <= b_rtt - kMinImprovement) {
+      return a_is_better;
+    }
+    if (b_rtt <= a_rtt - kMinImprovement) {
+      return b_is_better;
+    }
   }
 
   // Compare connection priority. Lower values get sorted last.

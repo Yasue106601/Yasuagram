@@ -162,11 +162,13 @@ bool AAudioWrapper::Init() {
   }
   // Ensures that the opened stream could activate the requested settings.
   if (!VerifyStreamConfiguration()) {
+    CloseStream();
     return false;
   }
   // Optimizes the buffer scheme for lowest possible latency and creates
   // additional buffer logic to match the 10ms buffer size used in WebRTC.
   if (!OptimizeBuffers()) {
+    CloseStream();
     return false;
   }
   LogStreamState();
@@ -452,10 +454,17 @@ bool AAudioWrapper::VerifyStreamConfiguration() {
     RTC_LOG(LS_ERROR) << "Stream unable to use requested format";
     return false;
   }
-  if (AAudioStream_getSharingMode(stream_) != AAUDIO_SHARING_MODE_SHARED) {
-    RTC_LOG(LS_ERROR) << "Stream unable to use requested sharing mode";
+  const auto actual_sharing_mode = AAudioStream_getSharingMode(stream_);
+  if (actual_sharing_mode != AAUDIO_SHARING_MODE_SHARED &&
+      actual_sharing_mode != AAUDIO_SHARING_MODE_EXCLUSIVE) {
+    RTC_LOG(LS_ERROR) << "Stream returned an unsupported sharing mode: "
+                      << SharingModeToString(actual_sharing_mode);
     return false;
   }
+  RTC_LOG(LS_INFO) << "YASU AAUDIO VERIFIED sharing="
+                   << SharingModeToString(actual_sharing_mode)
+                   << " perf=" << PerformanceModeToString(
+                          AAudioStream_getPerformanceMode(stream_));
   if (AAudioStream_getPerformanceMode(stream_) !=
       AAUDIO_PERFORMANCE_MODE_LOW_LATENCY) {
     RTC_LOG(LS_ERROR) << "Stream unable to use requested performance mode";
@@ -484,6 +493,10 @@ bool AAudioWrapper::OptimizeBuffers() {
   int32_t frames_per_burst = AAudioStream_getFramesPerBurst(stream_);
   RTC_LOG(LS_INFO) << "frames per burst for optimal performance: "
                    << frames_per_burst;
+  if (frames_per_burst <= 0) {
+    RTC_LOG(LS_ERROR) << "Invalid AAudio frames-per-burst value";
+    return false;
+  }
   frames_per_burst_ = frames_per_burst;
   if (direction() == AAUDIO_DIRECTION_INPUT) {
     // There is no point in calling setBufferSizeInFrames() for input streams
@@ -495,12 +508,18 @@ bool AAudioWrapper::OptimizeBuffers() {
   // automatic buffer adjustment is enabled.
   AAudioStream_setBufferSizeInFrames(stream_, frames_per_burst);
   int32_t buffer_size = AAudioStream_getBufferSizeInFrames(stream_);
-  if (buffer_size != frames_per_burst) {
-    RTC_LOG(LS_ERROR) << "Failed to use optimal buffer burst size";
+  if (buffer_size <= 0) {
+    RTC_LOG(LS_ERROR) << "AAudio returned an invalid output buffer size";
     return false;
   }
-  // Maximum number of frames that can be filled without blocking.
-  RTC_LOG(LS_INFO) << "buffer burst size in frames: " << buffer_size;
+  if (buffer_size != frames_per_burst) {
+    RTC_LOG(LS_WARNING) << "AAudio accepted a buffer size different from one "
+                        << "burst; requested=" << frames_per_burst
+                        << " actual=" << buffer_size;
+  }
+  // Use the smallest buffer size accepted by the Android audio system.
+  RTC_LOG(LS_INFO) << "YASU AAUDIO ACTIVE BUFFER frames=" << buffer_size
+                   << " burst=" << frames_per_burst;
   return true;
 }
 

@@ -390,9 +390,7 @@ void GroupNetworkManager::resetDtlsSrtpTransport() {
     
     uint32_t flags = portAllocator->flags();
     
-    // YASU EXPERIMENT: test IPv4-only candidate gathering.
-    flags &= ~(cricket::PORTALLOCATOR_ENABLE_IPV6 |
-               cricket::PORTALLOCATOR_ENABLE_IPV6_ON_WIFI);
+    // Keep the platform's default IPv4/IPv6 candidate gathering.
     
     portAllocator->set_flags(flags);
     portAllocator->Initialize();
@@ -553,6 +551,14 @@ void GroupNetworkManager::setRemoteParams(PeerIceParameters const &remoteIcePara
     _transportChannel->SetRemoteIceParameters(parameters);
 
     for (const auto &candidate : iceCandidates) {
+        if (YasuMeasurementsEnabled()) {
+            RTC_LOG(LS_INFO)
+                << "YASU ICE_REMOTE_CANDIDATE"
+                << " address=" << candidate.address().ToString()
+                << " type=" << candidate.type()
+                << " protocol=" << candidate.protocol()
+                << " priority=" << candidate.priority();
+        }
         _transportChannel->AddRemoteCandidate(candidate);
     }
 
