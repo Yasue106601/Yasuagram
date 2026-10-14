@@ -643,6 +643,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         private boolean yasuFeature004 = false;
         private boolean yasuFeature005 = false;
         private boolean yasuAutoSendBusy = false;
+        private boolean yasuAutoSendInProgress = false;
     private boolean yasuAutoSendPosted = false;
         private boolean yasuProcessingFeatures = false;
         private boolean yasuDeleteMessages = false;
@@ -6163,7 +6164,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                     || cp == 0xFE0E || cp == 0xFE0F
                     || (cp >= 0x1F3FB && cp <= 0x1F3FF);
 
-            if (!combining) {
+            if (Character.isLetterOrDigit(cp)) {
                 counted++;
             }
         }
@@ -6204,7 +6205,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                             || cp == 0xFE0E || cp == 0xFE0F
                             || (cp >= 0x1F3FB && cp <= 0x1F3FF);
 
-                    if (!combining) {
+                    if (Character.isLetterOrDigit(cp)) {
                         counted++;
                     }
                 }
@@ -6233,7 +6234,15 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
 
                 // الإرسال عبر مسار تيليجرام المعتاد؛ ميزات 000–004 تبقى فعالة.
-                if (!processSendingText(expectedPrefix, true, 0, 0, 0)) {
+                boolean oldAutoSend = yasuAutoSendInProgress;
+                boolean sent;
+                yasuAutoSendInProgress = true;
+                try {
+                    sent = processSendingText(expectedPrefix, true, 0, 0, 0);
+                } finally {
+                    yasuAutoSendInProgress = oldAutoSend;
+                }
+                if (!sent) {
                     break;
                 }
 
@@ -6252,8 +6261,10 @@ public class ChatActivityEnterView extends FrameLayout implements
                     break;
                 }
 
-                // مقطع واحد في كل دورة؛ افحص الباقي في دورة لاحقة.
-                break;
+                // استمر فوراً إذا كان النص المتبقي يحتوي مقطعاً كاملاً.
+                if (!scheduleNext) {
+                    break;
+                }
             }
         } catch (Exception e) {
             FileLog.e(e);
@@ -8768,7 +8779,8 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         // YASU FEATURES
         if (yasuFeature000 || yasuFeature001 || yasuFeature002 || yasuFeature003 || yasuFeature004) {
-            CharSequence yasuText = AndroidUtilities.getTrimmedString(text);
+            CharSequence yasuText = yasuAutoSendInProgress
+                    ? text : AndroidUtilities.getTrimmedString(text);
 
             if (yasuText.length() != 0 && processYasuSendingFeatures(
                     yasuText,
@@ -8795,7 +8807,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             Emoji.parseEmojis(text, emojiOnly);
             hasOnlyEmoji = emojiOnly[0] > 0;
 
-            if (!hasOnlyEmoji) {
+            if (!hasOnlyEmoji && !yasuAutoSendInProgress) {
                 text = AndroidUtilities.getTrimmedString(text);
             }
 
@@ -8852,7 +8864,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
 
                 CharSequence part = text.subSequence(start, end);
-                if (!hasOnlyEmoji) {
+                if (!hasOnlyEmoji && !yasuAutoSendInProgress) {
                     part = AndroidUtilities.getTrimmedString(part);
                 }
                 CharSequence[] message = new CharSequence[]{ part };
@@ -8946,7 +8958,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                     parentFragment.fallbackFieldPanel();
                 }
                 SendMessagesHelper.getInstance(currentAccount).sendMessage(params);
-                start = end + 1;
+                start = yasuAutoSendInProgress ? end : end + 1;
             } while (end != text.length());
             return true;
         }
