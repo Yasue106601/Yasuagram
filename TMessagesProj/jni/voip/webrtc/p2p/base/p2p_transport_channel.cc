@@ -169,7 +169,7 @@ P2PTransportChannel::P2PTransportChannel(
       weak_ping_interval_(GetWeakPingIntervalInFieldTrial(field_trials)),
       config_(RECEIVING_TIMEOUT,
               BACKUP_CONNECTION_PING_INTERVAL,
-              GATHER_ONCE /* continual_gathering_policy */,
+              GATHER_CONTINUALLY /* continual_gathering_policy */,
               false /* prioritize_most_likely_candidate_pairs */,
               STRONG_AND_STABLE_WRITABLE_CONNECTION_PING_INTERVAL,
               true /* presume_writable_when_fully_relayed */,

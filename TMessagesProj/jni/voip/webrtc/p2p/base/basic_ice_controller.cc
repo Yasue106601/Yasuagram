@@ -13,7 +13,7 @@
 namespace {
 
 // The minimum improvement in RTT that justifies a switch.
-const int kMinImprovement = 5;
+const int kMinImprovement = 1;
 
 bool IsRelayRelay(const cricket::Connection* conn) {
   return conn->local_candidate().is_relay() &&
@@ -489,6 +489,19 @@ IceControllerInterface::SwitchResult BasicIceController::ShouldSwitchConnection(
     return {absl::nullopt, absl::nullopt};
   }
 
+  // YASU: Immediately switch to a substantially faster usable path.
+  if (selected_connection_->rtt_samples() > 0 &&
+      new_connection->rtt_samples() > 0 &&
+      new_connection->receiving() &&
+      (new_connection->writable() || PresumedWritable(new_connection))) {
+    const int current_rtt = selected_connection_->rtt();
+    const int candidate_rtt = new_connection->rtt();
+    if ((candidate_rtt <= 50 && current_rtt >= 100) ||
+        (current_rtt >= 150 && candidate_rtt <= 100)) {
+      return {new_connection, absl::nullopt};
+    }
+  }
+
   bool missed_receiving_unchanged_threshold = false;
   absl::optional<int64_t> receiving_unchanged_threshold(
       rtc::TimeMillis() - config_.receiving_switching_delay_or_default());
@@ -650,14 +663,7 @@ int BasicIceController::CompareConnectionStates(
 // Returns positive if `a` is better than `b`.
 int BasicIceController::CompareConnectionCandidates(const Connection* a,
                                                     const Connection* b) const {
-  int compare_a_b_by_networks =
-      CompareCandidatePairNetworks(a, b, config_.network_preference);
-  if (compare_a_b_by_networks != a_and_b_equal) {
-    return compare_a_b_by_networks;
-  }
-
-  // YASU: For equally preferred networks with equal network cost,
-  // prefer a meaningfully lower measured RTT before candidate priority.
+  // YASU: Prefer lower measured RTT when both connections are receiving.
   if (a->receiving() && b->receiving() &&
       a->rtt_samples() > 0 && b->rtt_samples() > 0) {
     const int a_rtt = a->rtt();
@@ -668,6 +674,12 @@ int BasicIceController::CompareConnectionCandidates(const Connection* a,
     if (b_rtt <= a_rtt - kMinImprovement) {
       return b_is_better;
     }
+  }
+
+  int compare_a_b_by_networks =
+      CompareCandidatePairNetworks(a, b, config_.network_preference);
+  if (compare_a_b_by_networks != a_and_b_equal) {
+    return compare_a_b_by_networks;
   }
 
   // Compare connection priority. Lower values get sorted last.

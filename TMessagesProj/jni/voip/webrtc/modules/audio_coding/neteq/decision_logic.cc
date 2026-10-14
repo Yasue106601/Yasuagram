@@ -409,8 +409,8 @@ if (tgcalls::YasuMeasurementsEnabled()) {
     // 90-100ms    -> aggressive fast acceleration
     // 100ms+      -> maximum fast acceleration
     // 150ms+      -> packet-buffer emergency handling in NetEqImpl.
-    constexpr int kYasuAccelerateLimitMs = 10;
-    constexpr int kYasuFastAccelerateLimitMs = 20;
+    constexpr int kYasuAccelerateLimitMs = 8;
+    constexpr int kYasuFastAccelerateLimitMs = 16;
 
 if (tgcalls::YasuMeasurementsEnabled()) {
     RTC_LOG(LS_VERBOSE)
@@ -449,8 +449,8 @@ if (tgcalls::YasuMeasurementsEnabled()) {
                 config_.deceleration_target_level_offset_ms *
                     sample_rate_khz_);
 
-    constexpr int kYasuAccelerateLimitMs = 10;
-    constexpr int kYasuFastAccelerateLimitMs = 20;
+    constexpr int kYasuAccelerateLimitMs = 8;
+    constexpr int kYasuFastAccelerateLimitMs = 16;
 
     const int yasu_accelerate_limit =
         kYasuAccelerateLimitMs * sample_rate_khz_;

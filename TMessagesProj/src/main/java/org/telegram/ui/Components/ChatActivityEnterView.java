@@ -641,6 +641,9 @@ public class ChatActivityEnterView extends FrameLayout implements
         private boolean yasuFeature002 = false;
         private boolean yasuFeature003 = false;
         private boolean yasuFeature004 = false;
+        private boolean yasuFeature005 = false;
+        private boolean yasuAutoSendBusy = false;
+    private boolean yasuAutoSendPosted = false;
         private boolean yasuProcessingFeatures = false;
         private boolean yasuDeleteMessages = false;
 
@@ -651,6 +654,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         private int yasuFeature001Count = 1;
         private int yasuFeature002Count = 1;
         private int yasuFeature004Count = 1;
+        private int yasuFeature005Count = 3;
 
         // 002 burst cache: reuse identical local processing across repeated sends.
         private boolean yasu002BurstActive = false;
@@ -2642,6 +2646,9 @@ public class ChatActivityEnterView extends FrameLayout implements
         yasuFeature002 = preferences.getBoolean("yasu_feature_002", false);
         yasuFeature003 = preferences.getBoolean("yasu_feature_003", false);
         yasuFeature004 = preferences.getBoolean("yasu_feature_004", false);
+        yasuFeature005 = preferences.getBoolean("yasu_feature_005", false);
+        yasuFeature005Count = Math.max(1,
+                Math.min(25, preferences.getInt("yasu_feature_005_count", 3)));
 
         yasuFeature001Count = Math.max(1,
                 Math.min(10, preferences.getInt("yasu_feature_001_count", 1)));
@@ -6103,6 +6110,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 showAiButton(lineCount > 2 && editable != null && !TextUtils.isEmpty(editable.toString().trim()));
                 checkIsEphemeralMessage(true);
                 showRichButton(lineCount > 2 && editable != null && !TextUtils.isEmpty(editable.toString().trim()));
+                yasuScheduleAutoSend();
             }
         });
         messageEditText.addTextChangedListener(new EditTextSuggestionsFix());
@@ -6119,6 +6127,142 @@ public class ChatActivityEnterView extends FrameLayout implements
             parentFragment.applyDraftMaybe(false);
         }
         updateFieldRight(lastAttachVisible);
+    }
+
+    private void yasuScheduleAutoSend() {
+        if (!yasuFeature005 || yasuAutoSendBusy || yasuAutoSendPosted
+                || messageEditText == null) {
+            return;
+        }
+
+        yasuAutoSendPosted = true;
+        messageEditText.post(() -> {
+            yasuAutoSendPosted = false;
+            if (messageEditText != null) {
+                yasuAutoSendTextIfReady(messageEditText.getText());
+            }
+        });
+    }
+
+    private boolean yasuHasAutoSendChunk(Editable editable, int threshold) {
+        if (editable == null || editable.length() == 0) {
+            return false;
+        }
+
+        int offset = 0;
+        int counted = 0;
+
+        while (offset < editable.length() && counted < threshold) {
+            int cp = Character.codePointAt(editable, offset);
+            offset += Character.charCount(cp);
+            int type = Character.getType(cp);
+
+            boolean combining = type == Character.NON_SPACING_MARK
+                    || type == Character.COMBINING_SPACING_MARK
+                    || type == Character.ENCLOSING_MARK
+                    || cp == 0xFE0E || cp == 0xFE0F
+                    || (cp >= 0x1F3FB && cp <= 0x1F3FF);
+
+            if (!combining) {
+                counted++;
+            }
+        }
+
+        return counted >= threshold;
+    }
+
+    private void yasuAutoSendTextIfReady(Editable editable) {
+        if (!yasuFeature005 || yasuAutoSendBusy || editable == null
+                || messageEditText == null || parentFragment == null
+                || parentFragment.getCurrentChat() == null
+                || editingMessageObject != null || richDraftActive
+                || recordingAudioVideo || editable.length() == 0) {
+            return;
+        }
+
+        if (android.view.inputmethod.BaseInputConnection.getComposingSpanStart(editable) >= 0
+                || android.view.inputmethod.BaseInputConnection.getComposingSpanEnd(editable) >= 0) {
+            return;
+        }
+
+        final int threshold = Math.max(1, Math.min(25, yasuFeature005Count));
+        yasuAutoSendBusy = true;
+        boolean scheduleNext = false;
+        try {
+            while (editable.length() > 0) {
+                int offset = 0;
+                int counted = 0;
+
+                while (offset < editable.length() && counted < threshold) {
+                    int cp = Character.codePointAt(editable, offset);
+                    offset += Character.charCount(cp);
+                    int type = Character.getType(cp);
+
+                    boolean combining = type == Character.NON_SPACING_MARK
+                            || type == Character.COMBINING_SPACING_MARK
+                            || type == Character.ENCLOSING_MARK
+                            || cp == 0xFE0E || cp == 0xFE0F
+                            || (cp >= 0x1F3FB && cp <= 0x1F3FF);
+
+                    if (!combining) {
+                        counted++;
+                    }
+                }
+
+                if (counted < threshold || offset <= 0) {
+                    break;
+                }
+
+                while (offset < editable.length()) {
+                    int cp = Character.codePointAt(editable, offset);
+                    int type = Character.getType(cp);
+                    if (type == Character.NON_SPACING_MARK
+                            || type == Character.COMBINING_SPACING_MARK
+                            || type == Character.ENCLOSING_MARK
+                            || cp == 0xFE0E || cp == 0xFE0F
+                            || (cp >= 0x1F3FB && cp <= 0x1F3FF)) {
+                        offset += Character.charCount(cp);
+                    } else {
+                        break;
+                    }
+                }
+
+                String expectedPrefix = editable.subSequence(0, offset).toString();
+                if (TextUtils.isEmpty(expectedPrefix.trim())) {
+                    break;
+                }
+
+                // الإرسال عبر مسار تيليجرام المعتاد؛ ميزات 000–004 تبقى فعالة.
+                if (!processSendingText(expectedPrefix, true, 0, 0, 0)) {
+                    break;
+                }
+
+                // لا نحذف شيئاً إذا تغيّر النص أثناء استدعاء مسار الإرسال.
+                if (editable.length() < offset
+                        || !TextUtils.equals(editable.subSequence(0, offset), expectedPrefix)) {
+                    break;
+                }
+
+                editable.delete(0, offset);
+                messageEditText.setSelection(editable.length());
+                scheduleNext = yasuHasAutoSendChunk(editable, threshold);
+
+                if (android.view.inputmethod.BaseInputConnection.getComposingSpanStart(editable) >= 0
+                        || android.view.inputmethod.BaseInputConnection.getComposingSpanEnd(editable) >= 0) {
+                    break;
+                }
+
+                // مقطع واحد في كل دورة؛ افحص الباقي في دورة لاحقة.
+                break;
+            }
+        } catch (Exception e) {
+            FileLog.e(e);
+        } finally {
+            yasuAutoSendBusy = false;
+            if (scheduleNext) {
+                yasuScheduleAutoSend();
+            }
+        }
     }
 
     private boolean shownAiButton;
@@ -7851,7 +7995,8 @@ public class ChatActivityEnterView extends FrameLayout implements
                 "001 — تكرار النص داخل الرسالة",
                 "002 — إرسال النص عدة مرات",
                 "003 — معالجة الأرقام",
-                "004 — تكرار الأحرف داخل الرسالة"
+                "004 — تكرار الأحرف داخل الرسالة",
+                "005 — الإرسال التلقائي"
         };
 
         for (int i = 0; i < names.length; i++) {
@@ -7917,8 +8062,11 @@ public class ChatActivityEnterView extends FrameLayout implements
                     case 3:
                         enabled = yasuFeature003;
                         break;
-                    default:
+                    case 4:
                         enabled = yasuFeature004;
+                        break;
+                    default:
+                        enabled = yasuFeature005;
                         break;
                 }
 
@@ -7954,8 +8102,11 @@ public class ChatActivityEnterView extends FrameLayout implements
                     case 3:
                         currentlyEnabled = yasuFeature003;
                         break;
-                    default:
+                    case 4:
                         currentlyEnabled = yasuFeature004;
+                        break;
+                    default:
+                        currentlyEnabled = yasuFeature005;
                         break;
                 }
 
@@ -7976,6 +8127,9 @@ public class ChatActivityEnterView extends FrameLayout implements
                         case 4:
                             yasuFeature004 = false;
                             break;
+                        case 5:
+                            yasuFeature005 = false;
+                            break;
                     }
 
                     MessagesController.getGlobalMainSettings().edit()
@@ -7984,21 +8138,26 @@ public class ChatActivityEnterView extends FrameLayout implements
                             .putBoolean("yasu_feature_002", yasuFeature002)
                             .putBoolean("yasu_feature_003", yasuFeature003)
                             .putBoolean("yasu_feature_004", yasuFeature004)
+                            .putBoolean("yasu_feature_005", yasuFeature005)
+                            .putInt("yasu_feature_005_count", yasuFeature005Count)
                             .apply();
 
                     updateToggle.run();
                     return;
                 }
 
-                if (index == 1 || index == 2 || index == 4) {
+                if (index == 1 || index == 2 || index == 4 || index == 5) {
+                    final int maxValue = index == 5 ? 25 : 10;
                     final int currentValue;
 
                     if (index == 1) {
                         currentValue = Math.max(1, Math.min(10, yasuFeature001Count));
                     } else if (index == 2) {
                         currentValue = Math.max(1, Math.min(10, yasuFeature002Count));
-                    } else {
+                    } else if (index == 4) {
                         currentValue = Math.max(1, Math.min(10, yasuFeature004Count));
+                    } else {
+                        currentValue = Math.max(1, Math.min(25, yasuFeature005Count));
                     }
 
                     final LinearLayout pickerLayout =
@@ -8022,7 +8181,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                     final android.widget.SeekBar seekBar =
                             new android.widget.SeekBar(getContext());
 
-                    seekBar.setMax(9);
+                    seekBar.setMax(maxValue - 1);
                     seekBar.setProgress(currentValue - 1);
 
                     // زيادة القيمة إلى اليمين ونقصانها إلى اليسار.
@@ -8057,7 +8216,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                     );
 
                     TextView rangeText = new TextView(getContext());
-                    rangeText.setText("1                 10");
+                    rangeText.setText("1                 " + maxValue);
                     rangeText.setTextSize(9);
                     rangeText.setTextColor(Color.WHITE);
                     rangeText.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -8089,12 +8248,12 @@ public class ChatActivityEnterView extends FrameLayout implements
                     );
 
                     AlertDialog countDialog = new AlertDialog.Builder(getContext())
-                            .setTitle("عدد التكرارات")
+                            .setTitle(index == 5 ? "عدد الأحرف قبل الإرسال" : "عدد التكرارات")
                             .setView(pickerLayout)
                             .setPositiveButton("حفظ", (dialog, which) -> {
                                 int value = Math.max(
                                         1,
-                                        Math.min(10, seekBar.getProgress() + 1)
+                                        Math.min(maxValue, seekBar.getProgress() + 1)
                                 );
 
                                 if (index == 1) {
@@ -8103,9 +8262,12 @@ public class ChatActivityEnterView extends FrameLayout implements
                                 } else if (index == 2) {
                                     yasuFeature002Count = value;
                                     yasuFeature002 = true;
-                                } else {
+                                } else if (index == 4) {
                                     yasuFeature004Count = value;
                                     yasuFeature004 = true;
+                                } else {
+                                    yasuFeature005Count = value;
+                                    yasuFeature005 = true;
                                 }
 
                                 MessagesController.getGlobalMainSettings().edit()
@@ -8114,9 +8276,11 @@ public class ChatActivityEnterView extends FrameLayout implements
                                         .putBoolean("yasu_feature_002", yasuFeature002)
                                         .putBoolean("yasu_feature_003", yasuFeature003)
                                         .putBoolean("yasu_feature_004", yasuFeature004)
+                                        .putBoolean("yasu_feature_005", yasuFeature005)
                                         .putInt("yasu_feature_001_count", yasuFeature001Count)
                                         .putInt("yasu_feature_002_count", yasuFeature002Count)
                                         .putInt("yasu_feature_004_count", yasuFeature004Count)
+                                        .putInt("yasu_feature_005_count", yasuFeature005Count)
                                         .apply();
 
                                 updateToggle.run();
@@ -8140,9 +8304,11 @@ public class ChatActivityEnterView extends FrameLayout implements
                         .putBoolean("yasu_feature_002", yasuFeature002)
                         .putBoolean("yasu_feature_003", yasuFeature003)
                         .putBoolean("yasu_feature_004", yasuFeature004)
+                        .putBoolean("yasu_feature_005", yasuFeature005)
                         .putInt("yasu_feature_001_count", yasuFeature001Count)
                         .putInt("yasu_feature_002_count", yasuFeature002Count)
                         .putInt("yasu_feature_004_count", yasuFeature004Count)
+                        .putInt("yasu_feature_005_count", yasuFeature005Count)
                         .apply();
 
                 updateToggle.run();
