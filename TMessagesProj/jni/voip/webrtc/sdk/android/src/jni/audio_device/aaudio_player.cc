@@ -227,9 +227,9 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
         const int32_t yasu_burst = aaudio_.frames_per_burst();
         const int32_t yasu_size =
             AAudioStream_getBufferSizeInFrames(aaudio_.stream());
-        if (yasu_burst > 0 && yasu_size - yasu_burst >= yasu_burst) {
+        if (yasu_burst >= 480 ? (yasu_size > yasu_burst / 2) : (yasu_burst > 0 && yasu_size - yasu_burst >= yasu_burst)) {
           const int32_t yasu_new_size = AAudioStream_setBufferSizeInFrames(
-              aaudio_.stream(), yasu_size - yasu_burst);
+              aaudio_.stream(), (yasu_size > yasu_burst ? yasu_size - yasu_burst : yasu_burst / 2));
           RTC_LOG(LS_VERBOSE) << "YASU AAUDIO_SHRINK time_us=" << yasu_now_us
                               << " from_frames=" << yasu_size
                               << " to_frames=" << yasu_new_size;

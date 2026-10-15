@@ -184,8 +184,8 @@ NetEq::Operation DecisionLogic::GetDecision(const NetEqStatus& status,
   // 0-20ms   : normal
   // 20-40ms  : accelerate
   // 40ms+    : fast accelerate
-  constexpr size_t kYasuAccelerateMs = 10;
-  constexpr size_t kYasuFastAccelerateMs = 20;
+  constexpr size_t kYasuAccelerateMs = 8;
+  constexpr size_t kYasuFastAccelerateMs = 16;
 
   const size_t yasu_sync_buffer_ms =
       status.sync_buffer_samples / sample_rate_khz_;
@@ -409,8 +409,8 @@ if (tgcalls::YasuMeasurementsEnabled()) {
     // 90-100ms    -> aggressive fast acceleration
     // 100ms+      -> maximum fast acceleration
     // 150ms+      -> packet-buffer emergency handling in NetEqImpl.
-    constexpr int kYasuAccelerateLimitMs = 8;
-    constexpr int kYasuFastAccelerateLimitMs = 16;
+    constexpr int kYasuAccelerateLimitMs = 6;
+    constexpr int kYasuFastAccelerateLimitMs = 12;
 
 if (tgcalls::YasuMeasurementsEnabled()) {
     RTC_LOG(LS_VERBOSE)
@@ -449,8 +449,8 @@ if (tgcalls::YasuMeasurementsEnabled()) {
                 config_.deceleration_target_level_offset_ms *
                     sample_rate_khz_);
 
-    constexpr int kYasuAccelerateLimitMs = 8;
-    constexpr int kYasuFastAccelerateLimitMs = 16;
+    constexpr int kYasuAccelerateLimitMs = 6;
+    constexpr int kYasuFastAccelerateLimitMs = 12;
 
     const int yasu_accelerate_limit =
         kYasuAccelerateLimitMs * sample_rate_khz_;
@@ -525,7 +525,7 @@ if (tgcalls::YasuMeasurementsEnabled()) {
     // YASU: Future-packet waiting follows the global
     // 60ms / 80ms acceleration policy.
     constexpr int kYasuAcceleratePacketWaitMs = 10;
-    constexpr int kYasuFastAcceleratePacketWaitMs = 20;
+    constexpr int kYasuFastAcceleratePacketWaitMs = 16;
 
     const size_t yasu_packet_wait_ms =
         status.packet_buffer_info.span_samples_wait_time /

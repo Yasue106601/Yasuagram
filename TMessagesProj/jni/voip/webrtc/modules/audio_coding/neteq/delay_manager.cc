@@ -122,7 +122,7 @@ void DelayManager::Update(int arrival_delay_ms, bool reordered) {
     }
   }
 
-  constexpr int kYasuMaxTargetDelayMs = 6;
+  constexpr int kYasuMaxTargetDelayMs = 4;
   constexpr int kYasuMinTargetDelayMs = 0;
 
   // YASU: Never allow adaptive NetEq delay to grow into hundreds of ms.
