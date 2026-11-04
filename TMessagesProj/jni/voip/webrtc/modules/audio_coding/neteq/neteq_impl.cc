@@ -808,8 +808,8 @@ int NetEqImpl::InsertPacketInternal(const RTPHeader& rtp_header,
 // <90ms    : no packet deletion
 // 90-100ms : light/safe deletion of oldest packets
 // >100ms   : aggressive oldest-packet deletion until <=100ms
-    constexpr size_t kYasuLightDrainStartMs = 90;
-    constexpr size_t kYasuHardBacklogMs = 100;
+    constexpr size_t kYasuLightDrainStartMs = 70;
+    constexpr size_t kYasuHardBacklogMs = 80;
     constexpr size_t kYasuLightMaxDiscardPackets = 1;
     constexpr size_t kYasuMaxDiscardPackets = 20;
     const size_t yasu_ms = fs_hz_ / 1000;

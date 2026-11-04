@@ -611,6 +611,9 @@ void AAudioWrapper::SetStreamConfiguration(AAudioStreamBuilder* builder) {
   // Ask for exclusive mode since this will give us the lowest possible latency.
   // If exclusive mode isn't available, shared mode will be used instead.
   AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE);
+  // YASU: explicit low-latency voice usage/content type instead of system defaults.
+  AAudioStreamBuilder_setUsage(builder, AAUDIO_USAGE_VOICE_COMMUNICATION);
+  AAudioStreamBuilder_setContentType(builder, AAUDIO_CONTENT_TYPE_SPEECH);
   // Use the direction that was given at construction.
   AAudioStreamBuilder_setDirection(builder, direction_);
   // TODO(henrika): investigate performance using different performance modes.

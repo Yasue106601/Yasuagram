@@ -222,8 +222,8 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
                                  aaudio_.stream());
     } else {
       const int64_t yasu_now_us = rtc::TimeMicros();
-      if (yasu_now_us - yasu_last_underrun_us > 1500000 &&
-          yasu_now_us - yasu_last_shrink_us > 500000) {
+      if (yasu_now_us - yasu_last_underrun_us > 700000 &&
+          yasu_now_us - yasu_last_shrink_us > 250000) {
         const int32_t yasu_burst = aaudio_.frames_per_burst();
         const int32_t yasu_size =
             AAudioStream_getBufferSizeInFrames(aaudio_.stream());
@@ -321,7 +321,7 @@ aaudio_data_callback_result_t AAudioPlayer::OnDataCallback(void* audio_data,
   // Prime output with zeros during a short initial phase to avoid distortion.
   // TODO(henrika): do more work to figure out of if the initial forced silence
   // period is really needed.
-  if (aaudio_.frames_written() < 50 * aaudio_.frames_per_burst()) {
+  if (aaudio_.frames_written() < 8 * aaudio_.frames_per_burst()) {
     const size_t num_bytes =
         sizeof(int16_t) * aaudio_.samples_per_frame() * num_frames;
     memset(audio_data, 0, num_bytes);
